@@ -73,6 +73,6 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git rm -r -- .atlas-bootstrap .github/workflows/bootstrap-atlas-v1.yml
-          find . -type f -not -path './.git/*' -not -path './.atlas-bootstrap/*' -not -path './.github/workflows/bootstrap-atlas-v1.yml' -print0 | xargs -0 git add --
+          git add -- README.md CLAUDE.md package.md index.md log.md CODEOWNERS .gitignore pyproject.toml .gitlab-ci.yml taxonomy _curated _staging reviews onboarding .claude scripts tests .github/workflows/atlas-ci.yml
           git commit -m "feat: implement Team Atlas V1 scaffold"
           git push origin HEAD:feat/team-atlas-v1-implementation
