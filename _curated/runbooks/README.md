@@ -1,30 +1,120 @@
 # Runbooks policy
 
 ## Purpose
-Store curated runbooks knowledge.
+
+`_curated/runbooks/` stores reviewed, reusable operational procedures for diagnosing, recovering or safely handling known engineering situations.
+
+A runbook should help answer: **when should I use this procedure, what must I check before acting, what steps are safe, how do I know recovery worked, and when should I stop or escalate?**
+
 ## Trust level
-Only `status: curated` is authoritative; proposed pages require human review.
+
+Only `status: curated` runbooks are authoritative Atlas guidance. `draft` and `proposed` runbooks require human review. A runbook being curated does not override live incident command, organisation policy or access controls.
+
 ## When to use this area
-Use for stable, reusable knowledge matching this concept type.
+
+Use a runbook for stable operational guidance that is worth reusing, including:
+
+- recurring failure/recovery procedures;
+- diagnostic sequences;
+- safe restart/replay/reprocessing guidance;
+- validation after recovery;
+- rollback or escalation decision points;
+- monitoring/alert response procedures;
+- operational checks tied to components, flows or infrastructure.
+
 ## When not to use it
-Do not store raw evidence, secrets, routine logs or unsupported claims.
+
+Do not use runbooks for:
+
+- a full incident record — use incident tooling and capture reusable learning separately;
+- speculative recovery steps that have not been reviewed;
+- local development setup owned by a product repository;
+- broad architecture explanation better stored in components/flows/infra;
+- transient status updates;
+- credentials, tokens or sensitive operational data.
+
 ## Granularity rule
-one reusable operational procedure.
+
+Create one runbook per coherent operational scenario/procedure. It may cover multiple components when the recovery path is naturally end-to-end, but avoid giant catch-all runbooks that mix unrelated failure modes.
+
+Split procedures when triggers, safety constraints, ownership, recovery actions or validation differ materially.
+
 ## Storage/filename convention
-Use descriptive kebab-case filenames; IDs are stable logical identities and do not have to match paths.
+
+Use descriptive action/scenario-oriented kebab-case filenames, for example `reference-data-recovery.md`. IDs are stable logical identities and are not derived from paths.
+
 ## Required frontmatter/type-specific fields
-Use `_template.md` and type `atlas.runbook`.
+
+Start from `_template.md`. Use `type: atlas.runbook`, the common curated envelope and:
+
+```yaml
+covers: []
+severity_scope: ""
+last_exercised: ""
+```
+
+`covers` should reference the meaningful concepts/scenarios this procedure operates, not become an unstructured keyword dump.
+
 ## Relationship guidance
-Use only taxonomy-approved relationships; preserve confidence and evidence.
+
+Use only taxonomy-approved relationships.
+
+Typical relationships include:
+
+- `atlas.operated-by` from a component/flow/infra concept to the runbook;
+- `atlas.depends-on` when the procedure requires another governed capability;
+- `atlas.must-follow` for standards constraining recovery behaviour;
+- `atlas.informed-by` when incident learning materially shaped the runbook;
+- `atlas.supersedes` when a runbook replaces an older procedure.
+
+Do not create operational relationship edges unless the procedure actually applies to the target.
+
 ## Evidence expectations
-Every material claim should be traceable to staging, repository paths, external references, or reviewer-confirmed sources.
+
+Operational guidance should be backed by sources such as:
+
+- existing approved operational documentation;
+- repository scripts/configuration;
+- monitoring/alert definitions;
+- incident or exercise learning;
+- staging evidence;
+- reviewer/operator-confirmed steps.
+
+High-risk actions deserve stronger evidence than descriptive context. Where a command or endpoint is likely to drift, link to the owning repository/document rather than duplicating it.
+
 ## `not covered` rule
-Use exactly `*Not covered — no evidence in current staging material.*` when a required body section lacks evidence.
+
+When a required section lacks evidence, use exactly:
+
+```markdown
+*Not covered — no evidence in current staging material.*
+```
+
+Never invent a recovery, rollback or validation step to make a runbook appear complete.
+
 ## Agent curation instructions
-Read this README, `_template.md`, and `index.md` before proposing changes. Never self-approve.
+
+Before proposing a runbook change, read this README, `_template.md` and `index.md`. Resolve the exact scenario and covered concepts, preserve safety boundaries, distinguish observation from procedure, and surface missing recovery/rollback/escalation evidence. Prefer links to authoritative executable instructions when exact commands may drift.
+
 ## Reviewer checklist
-Check evidence, granularity, IDs, relationships, uncertainty, index/map/status updates and sensitive data.
+
+Before approval, verify:
+
+- trigger/symptom and scope are clear;
+- prerequisites and permissions are explicit;
+- safety/stop conditions are adequate;
+- investigation steps precede destructive recovery where appropriate;
+- recovery steps are ordered and evidence-backed;
+- success validation is objective;
+- rollback and escalation paths are usable;
+- monitoring references remain valid;
+- sensitive values are not embedded;
+- `last_exercised` is not fabricated and coverage gaps are visible.
+
 ## Index maintenance rule
-Every non-archived governed page must appear in `index.md`; archived pages stay out of normal routing.
+
+Every non-archived runbook must appear in `index.md`. Archived runbooks remain for history but are excluded from normal routing.
+
 ## Security/sensitivity reminder
-Never introduce credentials, customer data, raw sensitive logs or unnecessary personal data.
+
+Never store secrets, privileged tokens, customer data, raw production logs or bypass instructions. Describe required access at the appropriate level and link to authorised secret/operational systems instead of copying sensitive values into Atlas.

@@ -1,30 +1,135 @@
 # Standards policy
 
 ## Purpose
-Store curated standards knowledge.
+
+`_curated/standards/` stores reviewed, reusable TeamA engineering rules and conventions. Standards are team knowledge consumed by humans and skills such as `implement-jira`; reusable skill procedures should resolve standards from Atlas rather than hard-code team-specific choices.
+
+A standard page should help answer: **what rule applies, to whom, how strong is it, why does it exist, what behaviour is required or recommended, and what exceptions are valid?**
+
 ## Trust level
-Only `status: curated` is authoritative; proposed pages require human review.
+
+Only `status: curated` standards are authoritative TeamA knowledge. `draft` and `proposed` standards are not enforceable merely because they exist in Atlas. Human review remains the approval boundary.
+
 ## When to use this area
-Use for stable, reusable knowledge matching this concept type.
+
+Use a standard page for durable guidance that should be applied repeatedly across engineering work, including:
+
+- language/framework conventions;
+- AWS or infrastructure patterns;
+- data and testing rules;
+- Jira/implementation workflow expectations;
+- Git/review conventions;
+- team-wide mandatory or recommended behaviour;
+- documented exceptions and specialisations.
+
 ## When not to use it
-Do not store raw evidence, secrets, routine logs or unsupported claims.
+
+Do not use standards for:
+
+- a one-off design decision or ticket-specific instruction;
+- raw evidence of repeated practice — stage it first in `_staging/standards/`;
+- repo-local commands better owned by the product repo README/`CLAUDE.md`;
+- organisation/security policy rewritten without authority;
+- a skill procedure that belongs in `.claude/skills/`;
+- advice inferred from one repository and presented as a team rule.
+
 ## Granularity rule
-one reusable engineering rule; organised by category.
+
+Create one page per reusable rule or tightly coupled policy set that has a coherent scope and rationale. Avoid giant "all Java" or "all AWS" pages when independent rules need different evidence, mandatory status, scope or exceptions.
+
+Conversely, do not split every sentence into a separate standard. A page should represent a rule engineers can meaningfully discover and apply.
+
 ## Storage/filename convention
-Use descriptive kebab-case filenames; IDs are stable logical identities and do not have to match paths.
+
+Curated standards are grouped by category. Canonical categories are defined in `taxonomy/standard-categories.yaml`, for example:
+
+```text
+_curated/standards/general/<slug>.md
+_curated/standards/java/<slug>.md
+_curated/standards/python/<slug>.md
+_curated/standards/aws/<slug>.md
+_curated/standards/infra/<slug>.md
+_curated/standards/jira/<slug>.md
+_curated/standards/data/<slug>.md
+_curated/standards/testing/<slug>.md
+_curated/standards/git/<slug>.md
+```
+
+The category folder is organisational. The page remains `type: atlas.standard`, and moving a page does not change its stable ID. The physical category folder should match `standard_category`.
+
 ## Required frontmatter/type-specific fields
-Use `_template.md` and type `atlas.standard`.
+
+Start from `_template.md`. Use the common curated envelope plus:
+
+```yaml
+standard_category: general
+applies_to: []
+mandatory: false
+scope: team
+exceptions: []
+```
+
+`standard_category` must exist in the standard-category taxonomy.
+
 ## Relationship guidance
-Use only taxonomy-approved relationships; preserve confidence and evidence.
+
+Use only taxonomy-approved relationships.
+
+Common standard relationships include:
+
+- `atlas.extends` when a standard specialises or adds constraints to another;
+- `atlas.supersedes` when a new standard replaces an older one;
+- `atlas.must-follow` from governed components/flows/concepts to this standard;
+- `atlas.informed-by` when incident learning or reviewed evidence materially shaped the rule.
+
+An extension may specialise a parent standard but should not silently weaken mandatory security, regulatory or organisation-level requirements.
+
 ## Evidence expectations
-Every material claim should be traceable to staging, repository paths, external references, or reviewer-confirmed sources.
+
+A standard should show why it is a **team standard**, not merely a pattern observed once. Useful evidence includes:
+
+- explicit team/lead agreement;
+- approved engineering documentation;
+- repeated consistent repository evidence;
+- `.editorconfig`, build, CI or scaffold conventions;
+- policy references;
+- reviewed incident learning;
+- staging evidence from standards discovery.
+
+Repeated code is evidence of practice, not proof of mandate. Keep `mandatory: false` unless authority is supported.
+
 ## `not covered` rule
-Use exactly `*Not covered — no evidence in current staging material.*` when a required body section lacks evidence.
+
+When a required section has no evidence, use exactly:
+
+```markdown
+*Not covered — no evidence in current staging material.*
+```
+
+Do not invent rationale, exceptions or mandatory status.
+
 ## Agent curation instructions
-Read this README, `_template.md`, and `index.md` before proposing changes. Never self-approve.
+
+Before proposing a standard, read this README, `_template.md`, the root standards `index.md`, the target category `index.md`, `taxonomy/standard-categories.yaml` and existing related standards. Search for semantic overlap before creating a new page. Preserve disagreements and evidence strength, distinguish required from recommended behaviour, and never promote observed convention to mandatory policy without support.
+
 ## Reviewer checklist
-Check evidence, granularity, IDs, relationships, uncertainty, index/map/status updates and sensitive data.
+
+Before approval, verify:
+
+- the rule is reusable rather than ticket-specific;
+- category and scope are correct;
+- `mandatory` is justified by evidence;
+- required vs recommended behaviour is unambiguous;
+- examples and anti-patterns match the rule;
+- exceptions are explicit and bounded;
+- overlaps/extensions/supersession with existing standards are resolved;
+- the root and category indexes are updated;
+- no sensitive internal policy content has been copied beyond what Atlas should store.
+
 ## Index maintenance rule
-Every non-archived governed page must appear in `index.md`; archived pages stay out of normal routing.
+
+Every non-archived standard must be discoverable from `_curated/standards/index.md` and its category `index.md`. Archived standards remain in place/history but are excluded from normal routing.
+
 ## Security/sensitivity reminder
-Never introduce credentials, customer data, raw sensitive logs or unnecessary personal data.
+
+Do not weaken mandatory security or regulatory requirements through a team standard. Avoid copying secrets, restricted controls or sensitive configuration. Link to authoritative organisation-level policy where Atlas should reference rather than reproduce it.
