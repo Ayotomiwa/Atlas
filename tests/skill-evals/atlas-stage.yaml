@@ -16,10 +16,13 @@ forbidden_writes:
 forbidden_actions:
   - "Create reviewed relationships"
   - "Persist private-conversation context without approval"
+  - "Flatten bucket-specific evidence into a generic summary"
 outcome_assertions:
   - "Writes one correct staging bucket entry and preserves uncertainty."
-  - "Does not write curated knowledge."
+  - "Preserves domain-specific sections supported by evidence."
+  - "Does not create empty linked staging records or write curated knowledge."
 text_must_contain:
+  - "domain-specific discovery/capture lenses"
   - "exactly one staging evidence entry"
   - "explicit user approval"
   - "Never write `_curated/`"
