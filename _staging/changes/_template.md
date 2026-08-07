@@ -21,7 +21,7 @@ change_type: []
 
 # Change evidence: <logical change>
 
-> Capture reusable context discovered through the change, not a delivery diary. Keep observed facts separate from possible impact.
+> Capture reusable context discovered through the change, not a delivery diary. For code-derived changes, prefer the merged/default-branch state. MR/PR references are provenance, not the staging boundary.
 
 ## Summary
 
@@ -32,8 +32,11 @@ Describe the logical change, why this evidence is worth keeping, and the boundar
 - What changed:
 - Why the change was made:
 - Repositories/local paths:
-- Relevant MR/PR/commit/release references:
+- Final/default-branch state inspected:
+- Relevant merged MR/PR/commit/release references (if any):
 - Material changed files/config/contracts:
+- If multiple MRs/PRs are grouped, why they form one logical change:
+- If one broad MR/PR was split, what independent boundary this record owns:
 
 ### Atlas relevance
 
@@ -63,7 +66,7 @@ Select only what evidence supports:
 List exact attributable sources.
 
 - Repository/path:
-- Diff/commit/MR/PR:
+- Merged diff/commit/MR/PR (if applicable):
 - Changed file:
 - Test/build evidence:
 - API/schema/event/data-contract:
@@ -124,7 +127,7 @@ List only plausible durable targets supported by this evidence, for example:
 - `_curated/runbooks/...`
 - `_curated/standards/...`
 - `_curated/incidents/...`
-- relationship updates that will regenerate maps
+- relationship updates that will regenerate the appropriate maps
 
 Do not list generated JSON maps as authoring targets; curated Markdown relationships are the V1 source of truth.
 
