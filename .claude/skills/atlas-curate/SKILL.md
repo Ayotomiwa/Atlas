@@ -13,9 +13,9 @@ Curation turns evidence into a proposal; a human remains the authority. Staging 
 1. Read `_staging/README.md` and the source staging record.
 2. Read `taxonomy/statuses.yaml` and inspect the staging `status` on the default/current governed baseline.
 3. Automatically curate only `status: new` records.
-4. If status is `curating`, do not start a second independent curation. Resume the known active work or report that the staging ID is already being handled. When Git-host context is available, check active Atlas PR/MRs/branches for the same staging ID before claiming concurrent work.
-5. If status is `curated`, `no-change`, `deferred`, or `rejected`, stop automatic curation and report the recorded outcome. `deferred` may be reconsidered only through an explicit lifecycle decision; new evidence should normally be a new staging record.
-6. While working, the branch may set the staging record to `curating`. After the curation decision is known, the proposal should carry the appropriate terminal staging outcome. Only the top-level `status` field may change; never edit the captured evidence/path/ID.
+4. If the record is `status: curating`, do not start a second independent curation. Resume the known active work or report that the staging ID is already being handled. When Git-host context is available, check active Atlas PR/MRs/branches for the same staging ID before claiming concurrent work.
+5. If the record is `status: curated`, `status: no-change`, `status: deferred`, or `status: rejected`, stop automatic curation and report the recorded outcome. `deferred` may be reconsidered only through an explicit lifecycle decision; new evidence should normally be a new staging record.
+6. While working, the branch may set the staging record to `status: curating`. After the curation decision is known, the proposal should carry the appropriate terminal staging outcome. Only the top-level `status` field may change; never edit the captured evidence/path/ID.
 
 A status transition on a branch is proposed workflow state. It becomes durable queue state only if the Atlas change is merged to the governed/default branch.
 
@@ -44,10 +44,10 @@ A status transition on a branch is proposed workflow state. It becomes durable q
 
 Use staging lifecycle status to record the proposed outcome:
 
-- `curated` — the evidence produced accepted curated changes in this proposal;
-- `no-change` — the evidence was reviewed but existing curated knowledge already covered it or no durable change was needed;
-- `deferred` — evidence/blockers are insufficient for a safe decision;
-- `rejected` — evidence is unsuitable, non-reusable or otherwise should not become durable Atlas knowledge.
+- `status: curated` — the evidence produced accepted curated changes in this proposal;
+- `status: no-change` — the evidence was reviewed but existing curated knowledge already covered it or no durable change was needed;
+- `status: deferred` — evidence/blockers are insufficient for a safe decision;
+- `status: rejected` — evidence is unsuitable, non-reusable or otherwise should not become durable Atlas knowledge.
 
 Do not edit the staging record except for `status`. If additional facts or corrections are needed, create new staging evidence.
 
