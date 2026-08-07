@@ -15,52 +15,168 @@ intended_curated_targets: []
 
 # Infrastructure evidence: <package or topic>
 
+> Capture the package/resource context deeply enough to preserve structure, relationships and operational significance. This is raw evidence, not a trusted infrastructure model. Do not promote every resource or infer consumers/blast radius from names alone.
+
 ## Summary
 
-Identify the infrastructure package/resource context and why this evidence is reusable.
+Identify the infrastructure package/resource context, why it was inspected and why the evidence is reusable.
+
+### Candidate package identity and scope
+
+- Package/module/template name:
+- Package/repository path:
+- Primary IaC/service-catalogue template:
+- Metadata/deployment descriptor:
+- Helper/preconfiguration script:
+- Environment/config locations:
+- Related deployment/source location:
+- Scope state: `observed` / `user-confirmed` / `possible` / `not-covered`
 
 ## Evidence
 
-Capture exact IaC/config references where available.
+Capture exact attributable infrastructure/config references where available.
 
-- Package/path:
+- Package/module path:
 - Template/IaC file:
-- Environment config:
-- Resource/logical ID:
+- Metadata/deployment descriptor:
+- Environment config/overlay:
+- Resource/logical ID definition:
 - Parameter/import/export:
-- Schedule/trigger:
-- IAM/monitoring reference:
+- Schedule/trigger/event definition:
+- IAM/permission reference:
+- Monitoring/alarm/log definition:
+- Component/flow reference:
+- Runbook/incident reference:
+- Engineer/user-confirmed statement:
 - Other:
 
 ## What is known
 
-Record observed or user-confirmed package structure, resources and relationships.
+Record only **observed** or **user-confirmed** findings below.
 
-| Finding | Source | State |
+### Package location and structure
+
+Capture only files/paths that matter to understanding deployment, configuration, resources or operation.
+
+| Path | Type | Purpose | Evidence | State |
+|---|---|---|---|---|
+| | template/metadata/script/environment-config/source/module/other | | | observed/user-confirmed |
+
+### Environment differences
+
+Record differences only where they affect behaviour, deployment, permissions, routing, operation or risk.
+
+| Environment/context | Path/source | Difference / effect | Evidence | State |
+|---|---|---|---|---|
+| | | | | observed/user-confirmed |
+
+### Internal resources
+
+Do not create separate Atlas concepts merely because a resource exists.
+
+| Resource/logical ID | Type | Defined/referenced in | Purpose | Why operationally significant, if known | Evidence |
+|---|---|---|---|---|---|
+| | function/job/queue/topic/bucket/database/role/policy/scheduler/alarm/cluster/network/other | | | | |
+
+### Observed resource relationships
+
+Preserve source semantics. Final curated relationships must map to the approved taxonomy rather than inventing new relationship types here.
+
+| From resource | Observed relationship/behaviour | To resource/value | Source | State |
+|---|---|---|---|---|
+| | triggers/reads/writes/imports/exports/depends/permission/alarms-on/other | | | observed/user-confirmed |
+
+### Components using resources
+
+| Component | Resource | Observed use/relationship | Evidence | State |
+|---|---|---|---|---|
+| | | | | observed/user-confirmed |
+
+Only include component usage when it is supported; a resource definition does not prove a consumer.
+
+### Flows using resources
+
+| Flow/candidate flow | Resource/package | Role in path | Evidence | State |
+|---|---|---|---|---|
+| | | | | observed/user-confirmed |
+
+### Parameters, imports and exports
+
+| Name | Kind | Defined/produced by | Consumed/referenced by | Evidence |
+|---|---|---|---|---|
+| | parameter/import/export/output/shared-value/other | | | |
+
+### Schedules, triggers and events
+
+| Trigger/schedule/event | Target | Definition/frequency/event | Evidence |
+|---|---|---|---|
+| | | | |
+
+### Permissions and roles
+
+Describe material access relationships without copying secret values or unnecessary security-sensitive detail.
+
+| Role/policy/permission | Allows/controls | Used by / applies to | Evidence |
+|---|---|---|---|
+| | | | |
+
+### Monitoring and operational relevance
+
+| Alarm/log/dashboard/monitor | Watches | Operational meaning / signal | Evidence |
+|---|---|---|---|
+| | | | |
+
+### Change/deletion impact evidence
+
+Record only impact directly observed or explicitly user-confirmed here. Put plausible blast radius in the next section.
+
+| Item/scenario | Known observed/confirmed impact | Evidence | Coverage limit |
+|---|---|---|---|
+| | | | |
+
+### Resource promotion signals
+
+This records **why a resource might deserve first-class impact-analysis treatment later**; it is not a promotion decision.
+
+| Resource | Signal | Evidence |
 |---|---|---|
-| | | observed/user-confirmed |
-
-Include component/flow usage only when supported by evidence.
+| | shared / independently-operated / monitored / incident-relevant / security-sensitive / deletion-sensitive / data-routing / flow-critical / other | |
 
 ## What is possible / unconfirmed
 
-| Possible relationship/resource significance | Why plausible | Evidence needed |
+Capture relationships, consumers, significance and blast-radius implications that remain plausible but unsupported.
+
+| Possible relationship/resource significance/impact | Why plausible | Evidence needed to confirm |
 |---|---|---|
 | | | |
 
-Do not assume every resource should become a promoted impact-analysis node.
+Examples include an assumed consumer of an export, a likely cross-package dependency, an inferred permission path, or possible downstream impact. Do not promote these because resource names, stacks or timestamps happen to align.
 
 ## Suggested curated targets
 
-List only supported targets such as `_curated/infra/`, linked component/flow pages or infra relationships that will regenerate the infra dependency map.
+List only evidence-supported durable targets, for example:
 
-- 
+- `_curated/infra/...`
+- related `_curated/components/...`
+- related `_curated/flows/...`
+- related `_curated/runbooks/...`
+- related `_curated/incidents/...`
+- curated relationships that will regenerate `infra-dependency-map.json` or other relevant projections
+
+Do not propose direct edits to generated map JSON as relationship truth.
 
 ## Open questions
 
-- Is the package boundary correct?
-- Which environment differences matter?
-- Which resources are shared/operationally significant?
-- Which components/flows actually use them?
-- Which permissions, triggers or monitors remain unverified?
-- Which resources, if any, merit promotion for impact analysis?
+- Is the package/module/template boundary correct?
+- Which package files or referenced locations remain inaccessible?
+- Which environment differences materially affect behaviour or risk?
+- Which resources are confirmed versus only referenced by name?
+- Which resource-to-resource relationships are explicit?
+- Which components actually use each important resource?
+- Which flows depend on these resources?
+- Are parameters/imports/exports crossing package boundaries?
+- Which schedules/triggers/events control execution?
+- Which permissions/roles matter operationally and remain unverified?
+- Which alarms/logs/dashboards are meaningful during support?
+- Which resources, if any, show evidence strong enough to consider promotion?
+- What change/deletion impact is known, possible or simply not covered?
