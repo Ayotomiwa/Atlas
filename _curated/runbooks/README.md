@@ -1,30 +1,30 @@
 # Runbooks policy
 
 ## Purpose
-Curated reusable operational procedures.
+Store curated runbooks knowledge.
 ## Trust level
-Only curated status is authoritative.
+Only `status: curated` is authoritative; proposed pages require human review.
 ## When to use this area
-Repeatable operational investigation/recovery procedures.
+Use for stable, reusable knowledge matching this concept type.
 ## When not to use it
-Do not store untested guesses as authoritative recovery steps.
+Do not store raw evidence, secrets, routine logs or unsupported claims.
 ## Granularity rule
-One reusable operational procedure per page.
+one reusable operational procedure.
 ## Storage/filename convention
-Descriptive filenames and stable IDs.
+Use descriptive kebab-case filenames; IDs are stable logical identities and do not have to match paths.
 ## Required frontmatter/type-specific fields
-Use `_template.md` and `atlas.runbook`.
+Use `_template.md` and type `atlas.runbook`.
 ## Relationship guidance
-Link covered components/infra and evidence.
+Use only taxonomy-approved relationships; preserve confidence and evidence.
 ## Evidence expectations
-Operational steps need traceable evidence/review.
+Every material claim should be traceable to staging, repository paths, external references, or reviewer-confirmed sources.
 ## `not covered` rule
-Use exact not-covered marker where evidence is absent.
+Use exactly `*Not covered — no evidence in current staging material.*` when a required body section lacks evidence.
 ## Agent curation instructions
-Read README/template/index before proposing.
+Read this README, `_template.md`, and `index.md` before proposing changes. Never self-approve.
 ## Reviewer checklist
-Check safety, rollback, validation and escalation.
+Check evidence, granularity, IDs, relationships, uncertainty, index/map/status updates and sensitive data.
 ## Index maintenance rule
-Index non-archived pages.
+Every non-archived governed page must appear in `index.md`; archived pages stay out of normal routing.
 ## Security/sensitivity reminder
-Exclude credentials and sensitive operational data.
+Never introduce credentials, customer data, raw sensitive logs or unnecessary personal data.

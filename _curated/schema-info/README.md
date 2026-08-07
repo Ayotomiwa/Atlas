@@ -1,30 +1,30 @@
 # Schema Info policy
 
 ## Purpose
-Curated durable data/interface contract knowledge.
+Store curated schema info knowledge.
 ## Trust level
-Only curated status is authoritative.
+Only `status: curated` is authoritative; proposed pages require human review.
 ## When to use this area
-Tables, events, files, APIs, schemas and durable data contracts.
+Use for stable, reusable knowledge matching this concept type.
 ## When not to use it
-Do not store transient query output or unsupported data meaning.
+Do not store raw evidence, secrets, routine logs or unsupported claims.
 ## Granularity rule
-One page per meaningful durable asset/contract.
+one durable schema, table, event, file, API or data-contract concept.
 ## Storage/filename convention
-Descriptive filenames; stable IDs.
+Use descriptive kebab-case filenames; IDs are stable logical identities and do not have to match paths.
 ## Required frontmatter/type-specific fields
-Use `_template.md` and `atlas.schema-info`.
+Use `_template.md` and type `atlas.schema-info`.
 ## Relationship guidance
-Capture producers/consumers with typed, evidenced relationships.
+Use only taxonomy-approved relationships; preserve confidence and evidence.
 ## Evidence expectations
-Trace physical/business meaning to evidence.
+Every material claim should be traceable to staging, repository paths, external references, or reviewer-confirmed sources.
 ## `not covered` rule
-Use exact not-covered marker where evidence is absent.
+Use exactly `*Not covered — no evidence in current staging material.*` when a required body section lacks evidence.
 ## Agent curation instructions
-Read README/template/index before proposing.
+Read this README, `_template.md`, and `index.md` before proposing changes. Never self-approve.
 ## Reviewer checklist
-Check grain, keys, temporal model, classification and evidence.
+Check evidence, granularity, IDs, relationships, uncertainty, index/map/status updates and sensitive data.
 ## Index maintenance rule
-Index non-archived pages.
+Every non-archived governed page must appear in `index.md`; archived pages stay out of normal routing.
 ## Security/sensitivity reminder
-Do not copy sensitive data samples unnecessarily.
+Never introduce credentials, customer data, raw sensitive logs or unnecessary personal data.

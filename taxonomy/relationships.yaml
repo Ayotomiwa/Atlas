@@ -1,15 +1,47 @@
 schema_version: atlas-taxonomy/1.0
 relationships:
-  - atlas.depends-on
-  - atlas.consumes
-  - atlas.produces
-  - atlas.participates-in
-  - atlas.deployed-by
-  - atlas.must-follow
-  - atlas.owned-by
-  - atlas.implemented-by
-  - atlas.derived-from
-  - atlas.supersedes
-  - atlas.operated-by
-  - atlas.informed-by
-  - atlas.extends
+  - name: atlas.depends-on
+    meaning: Source requires the target to operate or complete its responsibility.
+    reciprocal_display: depended-on-by
+  - name: atlas.consumes
+    meaning: Source reads or receives a durable interface, data asset, event, file, API, component output, configuration, or infrastructure capability from the target.
+    reciprocal_display: consumed-by
+  - name: atlas.produces
+    meaning: Source creates or emits a durable interface, data asset, event, file, job output, or other reusable output represented by the target.
+    reciprocal_display: produced-by
+  - name: atlas.participates-in
+    meaning: Source is a meaningful participant in the target flow.
+    source_types: [atlas.component, atlas.infra]
+    target_types: [atlas.flow]
+    reciprocal_display: has-participant
+  - name: atlas.deployed-by
+    meaning: Source is deployed, provisioned, or materially hosted by the target infrastructure context.
+    source_types: [atlas.component, atlas.infra]
+    target_types: [atlas.infra]
+    reciprocal_display: deploys
+  - name: atlas.must-follow
+    meaning: Source is governed by the target standard.
+    target_types: [atlas.standard]
+    reciprocal_display: governs
+  - name: atlas.owned-by
+    meaning: Source has the target as its documented owner or ownership reference.
+    reciprocal_display: owns
+  - name: atlas.implemented-by
+    meaning: Source concept or contract is materially implemented by the target.
+    reciprocal_display: implements
+  - name: atlas.derived-from
+    meaning: Source knowledge or artefact is derived from the target evidence or concept.
+    reciprocal_display: source-for
+  - name: atlas.supersedes
+    meaning: Source replaces the target while preserving the target identity/history.
+    reciprocal_display: superseded-by
+  - name: atlas.operated-by
+    meaning: Source is operated through the target runbook or operational mechanism.
+    target_types: [atlas.runbook]
+    reciprocal_display: operates
+  - name: atlas.informed-by
+    meaning: Source is materially informed by the target incident learning or other governed knowledge.
+    reciprocal_display: informs
+  - name: atlas.extends
+    meaning: Source specialises or adds constraints to the target standard or concept.
+    reciprocal_display: extended-by

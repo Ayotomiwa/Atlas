@@ -1,6 +1,27 @@
 name: implement-jira
-should_trigger: ["Implement this Jira story using TeamA standards"]
-should_not_trigger: ["Curate a TeamA standard"]
-expected_files: ["_curated/standards/jira/index.md"]
-forbidden_actions: ["hard-code TeamA Jira policy", "mutate curated Atlas"]
-outcome_assertions: ["resolves Jira standard before implementation"]
+should_trigger:
+  - "Implement this Jira story using TeamA standards."
+  - "Work this Jira ticket and follow the applicable Atlas process."
+should_not_trigger:
+  - "Discover standards from these repositories."
+expected_reads:
+  - CLAUDE.md
+  - package.md
+  - _curated/standards/jira/index.md
+  - "product repository build/test instructions"
+expected_writes:
+  - "product repository implementation files"
+forbidden_writes:
+  - _curated/
+forbidden_actions:
+  - "Hard-code TeamA Jira standards into the skill"
+  - "Stage reusable context without user approval"
+outcome_assertions:
+  - "Resolves the Jira standard before implementation."
+  - "Reports the Atlas pages/standards used."
+  - "Does not mutate curated Atlas as a side effect."
+text_must_contain:
+  - "_curated/standards/jira/index.md"
+  - "atlas.extends"
+  - "explicit user approval"
+  - "Never modify curated Atlas"

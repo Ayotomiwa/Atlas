@@ -1,6 +1,25 @@
 name: atlas-stage
-should_trigger: ["Stage this reusable component fact"]
-should_not_trigger: ["Curate this evidence"]
-expected_files: ["_staging/components/README.md", "_staging/components/_template.md"]
-forbidden_actions: ["write curated", "self-merge"]
-outcome_assertions: ["one correct staging bucket"]
+should_trigger:
+  - "Stage this reusable component fact in Atlas."
+  - "Capture this newly discovered runbook context as evidence."
+should_not_trigger:
+  - "Onboard this entire service repository."
+expected_reads:
+  - _staging/index.md
+  - _staging/<bucket>/README.md
+  - _staging/<bucket>/_template.md
+expected_writes:
+  - _staging/<bucket>/STG-YYYYMMDD-<slug>.md
+forbidden_writes:
+  - _curated/
+  - _curated/maps/
+forbidden_actions:
+  - "Create reviewed relationships"
+  - "Persist private-conversation context without approval"
+outcome_assertions:
+  - "Writes one correct staging bucket entry and preserves uncertainty."
+  - "Does not write curated knowledge."
+text_must_contain:
+  - "exactly one staging evidence entry"
+  - "explicit user approval"
+  - "Never write `_curated/`"

@@ -1,30 +1,30 @@
 # Infra policy
 
 ## Purpose
-Curated infrastructure package/resource knowledge.
+Store curated infra knowledge.
 ## Trust level
-Only curated status is authoritative.
+Only `status: curated` is authoritative; proposed pages require human review.
 ## When to use this area
-Meaningful infra packages/templates and promoted blast-radius resources.
+Use for stable, reusable knowledge matching this concept type.
 ## When not to use it
-Do not promote every low-level resource by default.
+Do not store raw evidence, secrets, routine logs or unsupported claims.
 ## Granularity rule
-Normally one meaningful infra package/template; promote lower-level resources only when shared, independently operated, incident/security/deletion/flow critical.
+normally one meaningful infrastructure package/template.
 ## Storage/filename convention
-Descriptive filenames; stable logical IDs.
+Use descriptive kebab-case filenames; IDs are stable logical identities and do not have to match paths.
 ## Required frontmatter/type-specific fields
-Use `_template.md` and `atlas.infra`.
+Use `_template.md` and type `atlas.infra`.
 ## Relationship guidance
-Use approved typed relationships with evidence/confidence.
+Use only taxonomy-approved relationships; preserve confidence and evidence.
 ## Evidence expectations
-Trace claims to IaC or other evidence.
+Every material claim should be traceable to staging, repository paths, external references, or reviewer-confirmed sources.
 ## `not covered` rule
-Use the exact not-covered marker when needed.
+Use exactly `*Not covered — no evidence in current staging material.*` when a required body section lacks evidence.
 ## Agent curation instructions
-Read README/template/index first; never self-approve.
+Read this README, `_template.md`, and `index.md` before proposing changes. Never self-approve.
 ## Reviewer checklist
-Check granularity, blast radius, evidence and security.
+Check evidence, granularity, IDs, relationships, uncertainty, index/map/status updates and sensitive data.
 ## Index maintenance rule
-Index all non-archived pages.
+Every non-archived governed page must appear in `index.md`; archived pages stay out of normal routing.
 ## Security/sensitivity reminder
-Do not capture credentials or sensitive values.
+Never introduce credentials, customer data, raw sensitive logs or unnecessary personal data.

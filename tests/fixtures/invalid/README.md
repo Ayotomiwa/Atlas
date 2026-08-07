@@ -1,3 +1,3 @@
-# Invalid fixtures
+# Invalid lint fixtures
 
-Single-purpose invalid cases may be extended as lint rules evolve.
+These files are intentionally malformed synthetic inputs and are excluded from production repository lint.

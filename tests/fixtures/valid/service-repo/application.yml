@@ -1,0 +1,4 @@
+fixture:
+  infraPath: ../infra
+  upstream: fixture-input
+# downstream flow intentionally not documented to exercise not-covered behavior

@@ -1,6 +1,25 @@
 name: atlas-onboard-standards
-should_trigger: ["Discover reusable standards in this repo"]
-should_not_trigger: ["Implement this Jira story"]
-expected_files: ["_staging/standards/README.md", "taxonomy/standard-categories.yaml"]
-forbidden_actions: ["promote tool default to team standard", "write curated"]
-outcome_assertions: ["separates candidate repo-local tool-default unknown-scope"]
+should_trigger:
+  - "Scan these repos for reusable TeamA engineering standards."
+  - "Discover candidate standards from these repositories."
+should_not_trigger:
+  - "Which curated Java standard already applies?"
+expected_reads:
+  - _staging/standards/README.md
+  - _staging/standards/_template.md
+  - taxonomy/standard-categories.yaml
+  - _curated/standards/index.md
+expected_writes:
+  - _staging/standards/STG-YYYYMMDD-<slug>.md
+forbidden_writes:
+  - _curated/standards/
+forbidden_actions:
+  - "Promote a tool default to team policy without evidence"
+outcome_assertions:
+  - "Separates team-standard candidates, repo-local conventions, tool defaults, and unknown scope."
+  - "Stages candidate evidence without curating it."
+text_must_contain:
+  - "team-standard-candidate"
+  - "repo-local-convention"
+  - "tool-default"
+  - "unknown-scope"

@@ -1,30 +1,30 @@
 # Business Concepts policy
 
 ## Purpose
-Curated business definitions and boundaries.
+Store curated business concepts knowledge.
 ## Trust level
-Only curated status is authoritative.
+Only `status: curated` is authoritative; proposed pages require human review.
 ## When to use this area
-Stable business concepts that engineering needs to interpret consistently.
+Use for stable, reusable knowledge matching this concept type.
 ## When not to use it
-Do not invent business meaning from code alone.
+Do not store raw evidence, secrets, routine logs or unsupported claims.
 ## Granularity rule
-One reviewed business definition with clear boundaries.
+one reviewed business definition with clear boundaries.
 ## Storage/filename convention
-Descriptive filenames and stable logical IDs.
+Use descriptive kebab-case filenames; IDs are stable logical identities and do not have to match paths.
 ## Required frontmatter/type-specific fields
-Use `_template.md` and `atlas.business-concept`.
+Use `_template.md` and type `atlas.business-concept`.
 ## Relationship guidance
-Link related assets/standards only when evidenced.
+Use only taxonomy-approved relationships; preserve confidence and evidence.
 ## Evidence expectations
-Require supplied or reviewer-confirmed business meaning.
+Every material claim should be traceable to staging, repository paths, external references, or reviewer-confirmed sources.
 ## `not covered` rule
-Use exact not-covered marker where evidence is absent.
+Use exactly `*Not covered — no evidence in current staging material.*` when a required body section lacks evidence.
 ## Agent curation instructions
-Read README/template/index before proposing.
+Read this README, `_template.md`, and `index.md` before proposing changes. Never self-approve.
 ## Reviewer checklist
-Check definition, inclusions/exclusions, variants and evidence.
+Check evidence, granularity, IDs, relationships, uncertainty, index/map/status updates and sensitive data.
 ## Index maintenance rule
-Index all non-archived pages.
+Every non-archived governed page must appear in `index.md`; archived pages stay out of normal routing.
 ## Security/sensitivity reminder
-Avoid sensitive or personal data.
+Never introduce credentials, customer data, raw sensitive logs or unnecessary personal data.

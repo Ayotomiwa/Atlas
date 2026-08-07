@@ -1,30 +1,30 @@
 # Standards policy
 
 ## Purpose
-Curated reusable TeamA engineering standards, grouped by approved category.
+Store curated standards knowledge.
 ## Trust level
-Only `status: curated` is authoritative.
+Only `status: curated` is authoritative; proposed pages require human review.
 ## When to use this area
-Reusable team rules and conventions.
+Use for stable, reusable knowledge matching this concept type.
 ## When not to use it
-Do not elevate tool defaults or one-repo habits without scope evidence.
+Do not store raw evidence, secrets, routine logs or unsupported claims.
 ## Granularity rule
-One reusable rule/standard per page; categories are organisation only.
+one reusable engineering rule; organised by category.
 ## Storage/filename convention
-Store under an approved category folder; page remains `type: atlas.standard`.
+Use descriptive kebab-case filenames; IDs are stable logical identities and do not have to match paths.
 ## Required frontmatter/type-specific fields
-Use `_template.md`; `standard_category` must match taxonomy and storage category.
+Use `_template.md` and type `atlas.standard`.
 ## Relationship guidance
-Use `atlas.extends` for specialisation and link related standards.
+Use only taxonomy-approved relationships; preserve confidence and evidence.
 ## Evidence expectations
-Evidence must support team scope/authority.
+Every material claim should be traceable to staging, repository paths, external references, or reviewer-confirmed sources.
 ## `not covered` rule
-Use exact not-covered marker where evidence is absent.
+Use exactly `*Not covered — no evidence in current staging material.*` when a required body section lacks evidence.
 ## Agent curation instructions
-Read parent README/template/index plus category index before proposing.
+Read this README, `_template.md`, and `index.md` before proposing changes. Never self-approve.
 ## Reviewer checklist
-Check scope, authority, category, exceptions and evidence.
+Check evidence, granularity, IDs, relationships, uncertainty, index/map/status updates and sensitive data.
 ## Index maintenance rule
-Maintain parent and category routing for non-archived standards.
+Every non-archived governed page must appear in `index.md`; archived pages stay out of normal routing.
 ## Security/sensitivity reminder
-Do not embed credentials or sensitive policy material.
+Never introduce credentials, customer data, raw sensitive logs or unnecessary personal data.

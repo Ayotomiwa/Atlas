@@ -1,6 +1,25 @@
 name: atlas-setup-repo
-should_trigger: ["Add Atlas routing to this repo CLAUDE.md"]
-should_not_trigger: ["Curate staging evidence"]
-expected_files: ["onboarding/local-CLAUDE.template.md"]
-forbidden_actions: ["delete non-Atlas CLAUDE content"]
-outcome_assertions: ["preserves content", "replaces managed block only"]
+should_trigger:
+  - "Make this product repository Atlas-ready."
+  - "Update the Atlas block in this repo CLAUDE.md."
+should_not_trigger:
+  - "Curate this staging evidence."
+expected_reads:
+  - CLAUDE.md
+  - package.md
+expected_writes:
+  - CLAUDE.md
+forbidden_writes:
+  - "content outside the Atlas managed block"
+forbidden_actions:
+  - "Copy Atlas knowledge into the product repo"
+outcome_assertions:
+  - "Preserves non-Atlas CLAUDE.md content."
+  - "Creates or replaces only the managed Atlas block."
+  - "Uses unresolved component identity rather than staging when no curated ID exists."
+text_must_contain:
+  - "Preserve all existing content"
+  - "atlas:managed:start"
+  - "atlas:managed:end"
+  - "unresolved"
+  - "Show the resulting diff"

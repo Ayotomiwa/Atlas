@@ -7,4 +7,4 @@ No TeamA production knowledge is included in this public scaffold.
 |---|---|---|---|---|---|
 
 ## Coverage notes
-No real TeamA components have been curated yet.
+No real TeamA concepts have been curated yet.
