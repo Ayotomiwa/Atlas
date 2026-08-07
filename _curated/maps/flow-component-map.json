@@ -1,0 +1,9 @@
+{
+  "metadata": {
+    "schema_version": "atlas-map/1.0",
+    "generated": true,
+    "generator": "scripts/rebuild_maps.py",
+    "source_of_truth": "_curated markdown pages"
+  },
+  "components": []
+}
