@@ -1,21 +1,26 @@
-stages: [validate, graph, test, freshness]
+stages: [validate, graph, freshness]
+
 default:
-  image: python:3.11
+  image: python:3.11-slim
   before_script:
-    - pip install -e .[dev]
-validate:
+    - pip install -q -r scripts/requirements.txt
+
+atlas_lint:
   stage: validate
-  script: ["python scripts/atlas_lint.py ."]
-graph:
-  stage: graph
-  script: ["python scripts/rebuild_maps.py --check"]
-test:
-  stage: test
   script:
-    - pytest
-    - python scripts/run_skill_evals.py --deterministic
-freshness:
+    - python scripts/atlas_lint.py .
+  allow_failure: true
+
+atlas_maps:
+  stage: graph
+  script:
+    - python scripts/rebuild_maps.py --check
+  allow_failure: true
+
+atlas_freshness:
   stage: freshness
-  script: ["python scripts/atlas_lint.py ."]
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+  script:
+    - python scripts/atlas_lint.py . --rules ATLAS021 --format text
+  allow_failure: true

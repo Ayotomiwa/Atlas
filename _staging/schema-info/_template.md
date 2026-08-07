@@ -1,26 +1,24 @@
+# Staging schema-info template
+
+```yaml
 ---
-id: STG-YYYYMMDD-<slug>
+id: atlas.datalens.staging.schema-info.STG-YYYYMMDD-slug
 type: atlas.staging.schema-info
-package: teama
+package: datalens
 schema_version: atlas/1.0
+staging_ref: STG-YYYYMMDD-slug
 timestamp: YYYY-MM-DD
 title: ""
 description: ""
 status: new
 captured_by: ""
-source_type: ""
+source: ""
 source_links: []
-intended_curated_targets: []
+target_type: atlas.schema-info
+promoted_to: ""
 ---
-
-## Summary
+```
 
 ## Evidence
 
-## What is known
-
-## What is possible / unconfirmed
-
-## Suggested curated targets
-
-## Open questions
+Record evidence without inventing facts.

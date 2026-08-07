@@ -1,24 +1,23 @@
 schema_version: atlas-taxonomy/1.0
 types:
-  - {name: atlas.package, folder: ".", file: package.md, id_prefix: atlas-package, status: active}
-  - {name: atlas.index, folder: "**", id_prefix: atlas-index, status: active}
-  - {name: atlas.component, folder: _curated/components, id_prefix: atlas-comp, grouped: true, status: active}
-  - {name: atlas.flow, folder: _curated/flows, id_prefix: atlas-flow, grouped: false, status: active}
-  - {name: atlas.infra, folder: _curated/infra, id_prefix: atlas-infra, grouped: false, status: active}
-  - {name: atlas.schema-info, folder: _curated/schema-info, id_prefix: atlas-schema, grouped: true, status: active}
-  - {name: atlas.business-concept, folder: _curated/business-concepts, id_prefix: atlas-concept, grouped: false, status: active}
-  - {name: atlas.standard, folder: _curated/standards, id_prefix: atlas-standard, grouped: true, status: active}
-  - {name: atlas.runbook, folder: _curated/runbooks, id_prefix: atlas-runbook, grouped: false, status: active}
-  - {name: atlas.incident-learning, folder: _curated/incidents, id_prefix: atlas-incident, grouped: false, status: active}
-  - {name: atlas.join-path, folder: _curated/join-paths, id_prefix: atlas-join, status: reserved}
-  - {name: atlas.query-pattern, folder: _curated/query-patterns, id_prefix: atlas-query, status: reserved}
-  - {name: atlas.decision, folder: _curated/decisions, id_prefix: atlas-decision, status: reserved}
+  - {name: atlas.package, folder: ".", file: package.md, status: active}
+  - {name: atlas.index, folder: "**", file: index.md, status: active}
+  - {name: atlas.component, folder: _curated/components, grouped: true, status: active}
+  - {name: atlas.flow, folder: _curated/flows, grouped: false, status: active}
+  - {name: atlas.infra, folder: _curated/infra, grouped: false, status: active}
+  - {name: atlas.schema-info, folder: _curated/schema-info, grouped: true, status: active}
+  - {name: atlas.business-concept, folder: _curated/business-concepts, grouped: false, status: active}
+  - {name: atlas.standard, folder: _curated/standards, grouped: false, status: active}
+  - {name: atlas.runbook, folder: _curated/runbooks, grouped: false, status: active}
+  - {name: atlas.incident-learning, folder: _curated/incidents, grouped: false, status: active}
+  - {name: atlas.join-path, folder: _curated/join-paths, status: reserved}
+  - {name: atlas.query-pattern, folder: _curated/query-patterns, status: reserved}
+  - {name: atlas.decision, folder: _curated/decisions, status: reserved}
   - {name: atlas.staging.change, folder: _staging/changes, status: active}
   - {name: atlas.staging.component, folder: _staging/components, status: active}
   - {name: atlas.staging.flow, folder: _staging/flows, status: active}
   - {name: atlas.staging.infra, folder: _staging/infra, status: active}
   - {name: atlas.staging.schema-info, folder: _staging/schema-info, status: active}
-  - {name: atlas.staging.business-concept, folder: _staging/business-concepts, status: active}
   - {name: atlas.staging.incident, folder: _staging/incidents, status: active}
   - {name: atlas.staging.runbook, folder: _staging/runbooks, status: active}
   - {name: atlas.staging.standard, folder: _staging/standards, status: active}

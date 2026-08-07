@@ -1,12 +1,9 @@
 {
-  "edges": [],
-  "generated": true,
-  "generator": "scripts/rebuild_maps.py",
-  "nodes": [],
-  "package": "teama",
-  "reverse_edges": [],
-  "schema_version": "atlas-map/1.0",
-  "source_of_truth": [
-    "_curated/**/*.md"
-  ]
+  "metadata": {
+    "schema_version": "atlas-map/1.0",
+    "generated": true,
+    "generator": "scripts/rebuild_maps.py",
+    "source_of_truth": "_curated markdown pages"
+  },
+  "components": []
 }

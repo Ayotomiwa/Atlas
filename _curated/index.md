@@ -1,13 +1,23 @@
-# Curated index
+---
+id: atlas.datalens.index.curated
+type: atlas.index
+package: datalens
+schema_version: atlas/1.0
+---
+
+# Curated knowledge
 
 ## Route by question
 
-- What does a service/repository do? Start with [components](components/index.md).
-- How does an end-to-end path work? Start with [flows](flows/index.md).
-- What infrastructure exists or what is its blast radius? Start with [infra](infra/index.md) and [maps](maps/index.md).
-- What does a durable data/interface asset mean? Start with [schema info](schema-info/index.md).
-- What business term or boundary applies? Start with [business concepts](business-concepts/index.md).
-- Which engineering rule applies? Start with [standards](standards/index.md).
-- How is an operational problem handled? Start with [runbooks](runbooks/index.md) and [incidents](incidents/index.md).
+- What does a component consume or produce? → [Components](components/index.md)
+- How does an end-to-end pipeline work? → [Flows](flows/index.md)
+- Which tables are involved, and what is their grain? → [Schema info](schema-info/index.md)
+- What does this business term mean? → [Business concepts](business-concepts/index.md)
+- What breaks if infrastructure changes? → [Infra](infra/index.md) · [Maps](maps/index.md)
+- Which standards apply? → [Standards](standards/index.md)
+- How do I operate this? → [Runbooks](runbooks/index.md)
+- What went wrong before? → [Incident learnings](incidents/index.md)
 
-Only pages with `status: curated` are authoritative. Proposed pages are reviewable knowledge candidates, not final team truth.
+## Route by domain
+
+- [SDS](domains/sds/index.md)

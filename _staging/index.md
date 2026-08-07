@@ -1,11 +1,17 @@
-# Staging index
+---
+id: atlas.datalens.index.staging
+type: atlas.index
+package: datalens
+schema_version: atlas/1.0
+---
 
-- [changes](changes/README.md) — Reusable context discovered during a logical code/change investigation
-- [components](components/README.md) — Raw repo/service/component discovery
-- [flows](flows/README.md) — Raw end-to-end flow evidence
-- [infra](infra/README.md) — Raw IaC/package/resource evidence
-- [schema-info](schema-info/README.md) — Raw table/event/file/API/data-contract evidence
-- [business-concepts](business-concepts/README.md) — Raw supplied business definitions/meaning
-- [incidents](incidents/README.md) — Sanitised reusable incident/near-miss learning
-- [runbooks](runbooks/README.md) — Draft operational procedures
-- [standards](standards/README.md) — Candidate reusable team standards/conventions
+# Staging evidence
+
+- [Changes](changes/README.md)
+- [Components](components/README.md)
+- [Flows](flows/README.md)
+- [Infra](infra/README.md)
+- [Schema info](schema-info/README.md)
+- [Incidents](incidents/README.md)
+- [Runbooks](runbooks/README.md)
+- [Standards](standards/README.md)

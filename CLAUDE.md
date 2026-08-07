@@ -1,32 +1,26 @@
-# TeamA Atlas — Claude operating rules
+# DataLens Atlas — agent instructions
 
-This repository is the TeamA Atlas package (`teama`). It is a governed engineering context layer, not a general document dump.
+This repository is the **DataLens Atlas package** (`atlas.datalens`), one of the federated Clearwater Atlas packages. It is not the central repository.
 
-## Trust
-- `_staging/` is raw evidence and is never authoritative.
-- `_curated/` is reviewed knowledge; only `status: curated` is authoritative.
-- Claude may stage and propose; Claude never self-approves or merges knowledge.
-- Never invent missing engineering context.
+## What this repository is
+Curated, human-reviewed engineering context for DataLens. `_curated/` is authoritative. `_staging/` is raw evidence and is never authoritative.
 
-## How repository rules are organised
-- `package.md` defines package identity and entrypoints.
-- `index.md` files route to existing knowledge.
-- A target folder's `README.md` defines semantic, granularity, evidence and reviewer rules.
-- A target folder's `_template.md` defines page shape.
-- Skills in `.claude/skills/` define workflows.
+## Routing
+1. Start at `index.md`, then `_curated/index.md`.
+2. Route by concept area, or by domain via `_curated/domains/<domain>/index.md`.
+3. For impact questions, start in `_curated/maps/`.
+4. For a flow question, start at `_curated/maps/flow-component-map.json`.
+5. Open the smallest set of pages that answers the question.
 
-## Editing Atlas
-- Before curating into a folder, read that folder's `README.md`, `_template.md`, and `index.md`.
-- Edit relationships only on curated Markdown pages.
-- Never hand-edit generated relationship data in `_curated/maps/*.json`.
-- After relationship changes run `python scripts/rebuild_maps.py`.
-- Before proposing changes run `python scripts/atlas_lint.py .` and tests.
-- Once staging evidence has been referenced by curation, do not alter or move it. Add new corrective evidence instead.
+## Trust rules
+- Only cite pages with `status: curated`. Label `draft-curated` explicitly as draft.
+- Never present `_staging/` content as authoritative.
+- Cite the Atlas `id` and file path for every Atlas-backed claim.
+- If Atlas does not cover the question, label the answer as not Atlas-backed.
+- A missing relationship means “not captured”, never “does not exist”.
 
-## Navigation
-Do not read the entire Atlas repository. Start from `index.md` or the relevant skill and open the smallest useful set of files.
-
-## Operational records
-- routine curation state → `_curated/status/curation-status.md`
-- detailed curation reasoning → `reviews/`
-- significant Atlas milestones only → `log.md`
+## Write rules
+- Never hand-edit `_curated/maps/*.json`; edit page relationships and run `python scripts/rebuild_maps.py`.
+- Never modify a staging file after it has been used for curation.
+- Run `python scripts/atlas_lint.py .` before proposing any change.
+- Propose; never self-approve. All promotion goes through a merge request.

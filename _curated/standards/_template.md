@@ -1,69 +1,31 @@
+# Standard template
+
+```yaml
 ---
-id: atlas-standard.<namespace>.<slug>
+id: ""
 type: atlas.standard
-package: teama
+package: datalens
 schema_version: atlas/1.0
 title: ""
 description: ""
-status: proposed
-last_reviewed: YYYY-MM-DD
-reviewed_by: []
-owners: []
+tags: []
+status: draft-curated
+last_reviewed: ""
+reviewed_by: ""
 routing:
   aliases: []
   domains: []
 relationships: []
 evidence: []
-coverage:
-  level: unknown
-  notes: []
-standard_category: general
 applies_to: []
 mandatory: false
-scope: team
-exceptions: []
 ---
+```
 
-## Standard
-
-*Not covered — no evidence in current staging material.*
-
-## Scope
+## Summary
 
 *Not covered — no evidence in current staging material.*
 
-## Rationale
-
-*Not covered — no evidence in current staging material.*
-
-## Required behaviour
-
-*Not covered — no evidence in current staging material.*
-
-## Recommended behaviour
-
-*Not covered — no evidence in current staging material.*
-
-## Examples
-
-*Not covered — no evidence in current staging material.*
-
-## Anti-patterns
-
-*Not covered — no evidence in current staging material.*
-
-## Exceptions
-
-*Not covered — no evidence in current staging material.*
-
-## Related standards
-
-*Not covered — no evidence in current staging material.*
-
-## Evidence
-
-*Not covered — no evidence in current staging material.*
-
-## Open questions / coverage limits
+## Details
 
 *Not covered — no evidence in current staging material.*

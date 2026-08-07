@@ -1,3 +1,3 @@
-# Curated knowledge
+# Curated layer
 
-Human-reviewed/proposed engineering knowledge. Only `status: curated` is authoritative. Claude may propose but not approve.
+Human-reviewed operating context. `draft-curated` pages are explicitly non-authoritative until review.

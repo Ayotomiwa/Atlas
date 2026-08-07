@@ -1,10 +1,12 @@
-# Infra index
+---
+id: atlas.datalens.index.infra
+type: atlas.index
+package: datalens
+schema_version: atlas/1.0
+indexes: _curated/infra
+---
 
-## Route by question
-No TeamA production knowledge is included in this public scaffold.
+# Infrastructure
 
-| ID | Title | Status | Domain/category | Last reviewed | Page |
-|---|---|---|---|---|---|
-
-## Coverage notes
-No real TeamA concepts have been curated yet.
+| Page | Description | Status | Domain |
+|---|---|---|---|

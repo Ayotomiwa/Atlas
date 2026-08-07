@@ -1,47 +1,29 @@
 schema_version: atlas-taxonomy/1.0
 relationships:
-  - name: atlas.depends-on
-    meaning: Source requires the target to operate or complete its responsibility.
-    reciprocal_display: depended-on-by
-  - name: atlas.consumes
-    meaning: Source reads or receives a durable interface, data asset, event, file, API, component output, configuration, or infrastructure capability from the target.
-    reciprocal_display: consumed-by
-  - name: atlas.produces
-    meaning: Source creates or emits a durable interface, data asset, event, file, job output, or other reusable output represented by the target.
-    reciprocal_display: produced-by
-  - name: atlas.participates-in
-    meaning: Source is a meaningful participant in the target flow.
-    source_types: [atlas.component, atlas.infra]
-    target_types: [atlas.flow]
-    reciprocal_display: has-participant
-  - name: atlas.deployed-by
-    meaning: Source is deployed, provisioned, or materially hosted by the target infrastructure context.
-    source_types: [atlas.component, atlas.infra]
-    target_types: [atlas.infra]
-    reciprocal_display: deploys
-  - name: atlas.must-follow
-    meaning: Source is governed by the target standard.
-    target_types: [atlas.standard]
-    reciprocal_display: governs
-  - name: atlas.owned-by
-    meaning: Source has the target as its documented owner or ownership reference.
-    reciprocal_display: owns
-  - name: atlas.implemented-by
-    meaning: Source concept or contract is materially implemented by the target.
-    reciprocal_display: implements
-  - name: atlas.derived-from
-    meaning: Source knowledge or artefact is derived from the target evidence or concept.
-    reciprocal_display: source-for
-  - name: atlas.supersedes
-    meaning: Source replaces the target while preserving the target identity/history.
-    reciprocal_display: superseded-by
-  - name: atlas.operated-by
-    meaning: Source is operated through the target runbook or operational mechanism.
-    target_types: [atlas.runbook]
-    reciprocal_display: operates
-  - name: atlas.informed-by
-    meaning: Source is materially informed by the target incident learning or other governed knowledge.
-    reciprocal_display: informs
-  - name: atlas.extends
-    meaning: Source specialises or adds constraints to the target standard or concept.
-    reciprocal_display: extended-by
+  - {name: atlas.depends-on, meaning: Cannot operate correctly without the target, reciprocal: has-dependent}
+  - {name: atlas.consumes, meaning: Reads data events API output or another artefact, reciprocal: produces-for}
+  - {name: atlas.produces, meaning: Creates data events or artefacts, reciprocal: consumed-by}
+  - {name: atlas.participates-in, meaning: Component is part of a flow, reciprocal: contains-component}
+  - {name: atlas.deployed-by, meaning: Created or deployed through target infrastructure, reciprocal: deploys}
+  - {name: atlas.must-follow, meaning: Target standard is mandatory for this concept, reciprocal: applies-to}
+  - {name: atlas.owned-by, meaning: Accountable team or role, reciprocal: owns}
+  - {name: atlas.implemented-by, meaning: Concept is realised by target component or computation, reciprocal: implements}
+  - {name: atlas.derived-from, meaning: Knowledge or output is based on target, reciprocal: source-for}
+  - {name: atlas.supersedes, meaning: Replaces an older concept or decision, reciprocal: superseded-by}
+  - {name: atlas.operated-by, meaning: Target runbook covers operating this concept, reciprocal: covers}
+  - {name: atlas.informed-by, meaning: Target incident learning is relevant to this concept, reciprocal: informs}
+  - {name: atlas.extends, meaning: Specialises a broader standard without weakening it, reciprocal: extended-by}
+map_verb_mapping:
+  - {relationship: atlas.consumes, target_kind: event, verb: consumes_event}
+  - {relationship: atlas.consumes, target_kind: table, verb: reads_table}
+  - {relationship: atlas.consumes, target_kind: api, verb: calls_api}
+  - {relationship: atlas.consumes, target_kind: file, verb: consumes_file}
+  - {relationship: atlas.consumes, target_kind: job-output, verb: depends_on_job_output}
+  - {relationship: atlas.consumes, target_kind: config, verb: depends_on_config}
+  - {relationship: atlas.produces, target_kind: event, verb: produces_event}
+  - {relationship: atlas.produces, target_kind: table, verb: writes_table}
+  - {relationship: atlas.produces, target_kind: api, verb: exposes_api}
+  - {relationship: atlas.produces, target_kind: file, verb: publishes_file}
+  - {relationship: atlas.depends-on, target_kind: shared-library, verb: uses_shared_library}
+  - {relationship: atlas.depends-on, target_kind: schema-library, verb: uses_schema_library}
+  - {relationship: atlas.depends-on, target_kind: component, verb: depends_on_component}

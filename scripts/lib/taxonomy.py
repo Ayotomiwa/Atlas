@@ -1,30 +1,15 @@
-from __future__ import annotations
-
 from pathlib import Path
 import yaml
 
+def load_yaml(root, rel):
+    return yaml.safe_load((Path(root)/rel).read_text(encoding='utf-8'))
 
-def load_yaml(path: str | Path):
-    with Path(path).open(encoding="utf-8") as handle:
-        return yaml.safe_load(handle)
+def type_map(root):
+    return {x['name']:x for x in load_yaml(root,'taxonomy/types.yaml')['types']}
 
+def relationship_names(root):
+    return {x['name'] for x in load_yaml(root,'taxonomy/relationships.yaml')['relationships']}
 
-def load_taxonomy(root: str | Path) -> dict:
-    root = Path(root)
-    return {
-        "types": load_yaml(root / "taxonomy" / "types.yaml"),
-        "relationships": load_yaml(root / "taxonomy" / "relationships.yaml"),
-        "statuses": load_yaml(root / "taxonomy" / "statuses.yaml"),
-        "categories": load_yaml(root / "taxonomy" / "standard-categories.yaml"),
-    }
-
-
-def relationship_names(relationships_yaml: dict) -> set[str]:
-    """Support both the concise spec examples and enriched real taxonomy entries."""
-    names: set[str] = set()
-    for item in relationships_yaml.get("relationships") or []:
-        if isinstance(item, str):
-            names.add(item)
-        elif isinstance(item, dict) and isinstance(item.get("name"), str):
-            names.add(item["name"])
-    return names
+def status_sets(root):
+    y=load_yaml(root,'taxonomy/statuses.yaml')
+    return ({x['name'] for x in y['curated_status']},{x['name'] for x in y['staging_status']},set(y['relationship_confidence']))

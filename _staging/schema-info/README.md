@@ -1,10 +1,3 @@
-# Schema Info staging
+# Staging schema info
 
-## Purpose
-Raw table/event/file/API/data-contract evidence.
-## Belongs here
-Raw, attributable evidence relevant to this bucket, including uncertainty and missing context.
-## Does not belong here
-Curated conclusions, secrets, customer data, fabricated context or routine noise.
-## Immutability
-Once referenced by a curation proposal, do not alter or move the evidence; add a corrective staging record instead.
+Capture new evidence using `_template.md`. Never authoritative.

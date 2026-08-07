@@ -1,68 +1,64 @@
-# TeamA Atlas
+# Team Atlas — DataLens package
 
-## Purpose
-TeamA Atlas is a governed engineering context layer for humans and AI agents. This public V1 is a scaffold only and contains no real TeamA engineering facts.
+Team Atlas is the DataLens Atlas package: governed engineering and data context readable by humans and coding agents. Curated pages are reviewed operating context; staging pages are evidence and are never authoritative.
 
-## Pilot scope
-One TeamA package (`teama`) only. The owner name `team-a-engineering` is a placeholder and must be replaced before internal adoption.
+## Lifecycle
 
-## Repository structure
-- `_staging/`: raw evidence, never authoritative.
-- `_curated/`: reviewed/proposed knowledge and generated maps.
-- `taxonomy/`: deterministic vocabularies.
-- `.claude/skills/` and `.claude/agents/`: workflows and specialist roles.
-- `scripts/` and `tests/`: validation, graph generation and evaluations.
+**Stage → Curate → Propose → Human review → Merge → Refresh**
 
-## Trust model
-Only curated pages with `status: curated` are authoritative. Claude may stage and propose but never self-approve or merge knowledge.
+Refresh is reporting-only: it flags stale reviewed pages and never changes status automatically.
 
-## File responsibilities
-`CLAUDE.md` governs Atlas maintenance; `package.md` defines identity and entrypoints; folder READMEs define local policy; indexes route; templates define page shape; maps are generated projections.
+## Stage evidence
 
-## How to browse Atlas
-Start at `index.md`, then follow the smallest relevant curated index or map.
+1. Choose the matching bucket under `_staging/`.
+2. Copy its `_template.md` to `STG-YYYYMMDD-<slug>.md`.
+3. Record source, capture date and links. Do not infer missing facts.
+4. Once used for curation, keep the staging file immutable and archive in place.
 
-## How to use Atlas from another repository
+## Curate
+
+Run `/atlas-curate` with the staging file. The skill chooses the target type, loads the curated template, reconciles existing context, proposes evidence-backed relationships, rebuilds maps and runs lint. Proposed pages remain `status: draft-curated`.
+
+For an unevidenced body section use exactly:
+
+*Not covered — no evidence in current staging material.*
+
+## Validate locally
+
+Requires Python 3.11+.
+
 ```bash
-cd <product-repo>
-claude --add-dir <path-to>/team-atlas
-```
-Cross-repo consumption relies on discovered skills plus `package.md` and indexes; the added directory's root `CLAUDE.md` is not the consumer contract.
-
-## Available Claude skills
-`atlas-discover`, `atlas-impact`, `atlas-stage`, `atlas-onboard-service`, `atlas-onboard-standards`, `atlas-setup-repo`, `atlas-curate`, `implement-jira`.
-
-## Service onboarding
-Use `atlas-onboard-service` to scan a bounded service repository and stage only evidenced context.
-
-## Standards discovery
-Use `atlas-onboard-standards` to distinguish reusable team-standard candidates from repo-local conventions and tool defaults.
-
-## Curation and review
-Use `atlas-curate`; proposals remain `proposed` until a human reviews and merges them.
-
-## Map generation
-Run `python scripts/rebuild_maps.py`; never hand-edit generated relationship data.
-
-## Validation and tests
-```bash
-python scripts/atlas_lint.py .
+pip install -r scripts/requirements.txt
+python scripts/atlas_lint.py . --self-test
 python scripts/rebuild_maps.py --check
-pytest
-python scripts/run_skill_evals.py --deterministic
+python scripts/atlas_lint.py .
 ```
+
+Never hand-edit `_curated/maps/*.json`; edit page relationships and regenerate them.
+
+## Propose and review
+
+Create a feature branch, include staged evidence, proposed curated page, index/status updates and generated maps, then open a merge request or pull request. A human reviewer decides whether a page becomes `status: curated`, supplies `reviewed_by` and `last_reviewed`, and merges. Claude never self-approves.
+
+## Templates
+
+- Curated: `_curated/<concept>/_template.md`
+- Staging: `_staging/<bucket>/_template.md`
+- Reviews: `reviews/_template.md`
+- Taxonomy: `taxonomy/`
 
 ## CI
-GitHub Actions and the GitLab CI file invoke the same repository scripts.
 
-## Security and sensitive data
-Never capture credentials, tokens, customer data, raw sensitive logs, connection strings or unnecessary personal data.
+`.gitlab-ci.yml` runs lint, generated-map consistency and scheduled freshness reporting. The lint/map jobs are temporarily `allow_failure: true` for the initial two-week adoption window.
 
-## Contribution triggers
-Stage reusable context when discovered; curate only from evidence; rebuild maps after relationship changes; run deterministic checks before proposing a change.
+## Worked end-to-end example
 
-## What not to capture
-Do not invent missing context, duplicate routine logs, or turn inaccessible information into an absence claim.
+This example demonstrates the lifecycle without asserting any real DataLens system facts.
 
-## Placeholder values to replace before internal adoption
-Replace `team-a-engineering` in ownership configuration and review controls before enforcing protected-branch review.
+1. **Stage a repository observation.** Copy `_staging/components/_template.md` to `_staging/components/STG-20260807-example-repo.md`. Record only evidence actually observed, set `target_type: atlas.component`, and leave `status: new` until ready.
+2. **Run `/atlas-curate`.** The skill reads the staging entry and component template, then identifies an existing page to update or proposes a new grouped component page. Unknown body sections use the exact not-covered marker.
+3. **Resolve relationships.** Each proposed edge points at a real Atlas ID, carries `kind` where required, and has relationship-level `confidence`; anything below `reviewed` explains what evidence is missing.
+4. **Regenerate and validate.** Run `python scripts/rebuild_maps.py`, update the relevant `index.md` and `_curated/status/curation-status.md`, then run `python scripts/atlas_lint.py .`.
+5. **Propose.** Commit on a feature branch and open a merge request or pull request. The proposed curated page remains `status: draft-curated`.
+6. **Human review and merge.** A reviewer checks evidence and relationships. Only the reviewer promotes to `status: curated`, supplies `reviewed_by` and `last_reviewed`, and merges.
+7. **Refresh later.** Scheduled CI runs ATLAS021 to report pages older than 180 days. It never alters status.
