@@ -1,7 +1,7 @@
 name: bootstrap-atlas-v1
 on:
   push:
-    branches: [feat/team-atlas-v1]
+    branches: [feat/team-atlas-v1-implementation]
 permissions:
   contents: write
 jobs:
@@ -11,7 +11,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: feat/team-atlas-v1
+          ref: feat/team-atlas-v1-implementation
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -32,4 +32,4 @@ jobs:
           git rm -r -- .atlas-bootstrap .github/workflows/bootstrap-atlas-v1.yml
           find . -type f -not -path './.git/*' -not -path './.atlas-bootstrap/*' -not -path './.github/workflows/bootstrap-atlas-v1.yml' -print0 | xargs -0 git add --
           git commit -m "feat: implement Team Atlas V1 scaffold"
-          git push origin HEAD:feat/team-atlas-v1
+          git push origin HEAD:feat/team-atlas-v1-implementation
