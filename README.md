@@ -50,3 +50,15 @@ Create a feature branch, include staged evidence, proposed curated page, index/s
 ## CI
 
 `.gitlab-ci.yml` runs lint, generated-map consistency and scheduled freshness reporting. The lint/map jobs are temporarily `allow_failure: true` for the initial two-week adoption window.
+
+## Worked end-to-end example
+
+This example demonstrates the lifecycle without asserting any real DataLens system facts.
+
+1. **Stage a repository observation.** Copy `_staging/components/_template.md` to `_staging/components/STG-20260807-example-repo.md`. Record only evidence actually observed, set `target_type: atlas.component`, and leave `status: new` until ready.
+2. **Run `/atlas-curate`.** The skill reads the staging entry and component template, then identifies an existing page to update or proposes a new grouped component page. Unknown body sections use the exact not-covered marker.
+3. **Resolve relationships.** Each proposed edge points at a real Atlas ID, carries `kind` where required, and has relationship-level `confidence`; anything below `reviewed` explains what evidence is missing.
+4. **Regenerate and validate.** Run `python scripts/rebuild_maps.py`, update the relevant `index.md` and `_curated/status/curation-status.md`, then run `python scripts/atlas_lint.py .`.
+5. **Propose.** Commit on a feature branch and open a merge request or pull request. The proposed curated page remains `status: draft-curated`.
+6. **Human review and merge.** A reviewer checks evidence and relationships. Only the reviewer promotes to `status: curated`, supplies `reviewed_by` and `last_reviewed`, and merges.
+7. **Refresh later.** Scheduled CI runs ATLAS021 to report pages older than 180 days. It never alters status.
