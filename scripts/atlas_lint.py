@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse,re,subprocess,sys,yaml
+from datetime import date
 from pathlib import Path
 from lib.frontmatter import load_page
 from lib.taxonomy import type_map,relationship_names,status_sets
@@ -17,7 +18,7 @@ def report(findings,fmt):
         for f in findings: print(f"{f['level']} {f['code']} {f['path']}:{f['line']} {f['message']}")
         print(f"Summary: {sum(f['level']=='ERROR' for f in findings)} ERROR, {sum(f['level']=='WARN' for f in findings)} WARN")
 
-def lint(root, rules=None):
+def lint(root,rules=None):
     root=Path(root); findings=[]
     def add(level,code,p,msg,line=1):
         if not rules or code in rules: findings.append({'level':level,'code':code,'path':str(Path(p).relative_to(root)) if Path(p).is_absolute() else str(p),'line':line,'message':msg})
@@ -25,10 +26,10 @@ def lint(root, rules=None):
     pkgfm,_=load_page(root/'package.md'); pkg=pkgfm['package']; domains=set(pkgfm.get('domains',[]))
     pages=[]; ids={}
     for p in root.rglob('*.md'):
-        if '.git' in p.parts or '_fixtures' in p.parts or p.name in SKIP: continue
+        if '.git' in p.parts or '_fixtures' in p.parts or '.claude' in p.parts or p.name in SKIP: continue
         fm,body=load_page(p)
         if fm is None:
-            if p.name=='index.md' or p.name=='package.md' or p.parts[-2:] == ('status','curation-status.md'): add('ERROR','ATLAS001',p,'frontmatter missing or invalid')
+            if p.name=='index.md' or p.name=='package.md' or p.parts[-2:]==('status','curation-status.md'): add('ERROR','ATLAS001',p,'frontmatter missing or invalid')
             continue
         typ=fm.get('type'); t=tm.get(typ)
         if not t or t.get('status')!='active': add('ERROR','ATLAS001',p,'type must be an active taxonomy type')
@@ -49,13 +50,23 @@ def lint(root, rules=None):
                     if f'.{group}.{p.stem}' not in ident: add('ERROR','ATLAS004',p,'group segment must equal containing folder')
         if typ and typ.startswith('atlas.staging.'):
             if fm.get('status') not in ss: add('ERROR','ATLAS001',p,'invalid staging status')
+            if fm.get('promoted_to'):
+                try:
+                    st=subprocess.run(['git','status','--porcelain','--',str(p)],cwd=root,capture_output=True,text=True).stdout.strip()
+                    if st: add('ERROR','ATLAS022',p,'staging file with promoted_to set has uncommitted modifications')
+                except Exception: pass
         elif typ and typ not in {'atlas.package','atlas.index'}:
             if fm.get('status') not in cs: add('ERROR','ATLAS001',p,'invalid curated status')
             for d in ((fm.get('routing') or {}).get('domains') or []):
                 if d not in domains: add('ERROR','ATLAS018',p,f'undeclared domain {d}')
             if fm.get('status')=='curated' and (not fm.get('reviewed_by') or not fm.get('last_reviewed') or (not fm.get('evidence') and not fm.get('evidence_exempt'))): add('ERROR','ATLAS013',p,'curated pages need reviewer, review date and evidence')
+            if fm.get('status')=='curated' and fm.get('last_reviewed'):
+                try:
+                    reviewed=fm['last_reviewed']; reviewed=reviewed if isinstance(reviewed,date) else date.fromisoformat(str(reviewed))
+                    if (date.today()-reviewed).days>180: add('WARN','ATLAS021',p,'last_reviewed is older than 180 days')
+                except Exception: pass
             for m in re.finditer(r'^##+\s+.+$',body,re.M):
-                end=re.search(r'^##+\s+.+$',body[m.end():],re.M); chunk=body[m.end(): m.end()+(end.start() if end else len(body[m.end():]))].strip()
+                end=re.search(r'^##+\s+.+$',body[m.end():],re.M); chunk=body[m.end():m.end()+(end.start() if end else len(body[m.end():]))].strip()
                 if not chunk: add('ERROR','ATLAS017',p,'empty body section')
         for edge in fm.get('relationships') or []:
             if edge.get('type') not in rn: add('ERROR','ATLAS009',p,'unknown relationship type')
@@ -67,7 +78,7 @@ def lint(root, rules=None):
         text=p.read_text(errors='ignore')
         if any(rx.search(text) for rx in SECRETS): add('ERROR','ATLAS020',p,'possible secret pattern')
         pages.append((p,fm,body))
-    for p,fm,body in pages:
+    for p,fm,_ in pages:
         for edge in fm.get('relationships') or []:
             target=edge.get('target','')
             if target and not target.startswith(('team:','person:')) and target not in ids: add('ERROR','ATLAS010',p,f'unresolved relationship target {target}')
@@ -91,9 +102,14 @@ def lint(root, rules=None):
     return findings
 
 def self_test(root):
+    root=Path(root)
     required=['taxonomy/types.yaml','taxonomy/relationships.yaml','taxonomy/statuses.yaml']
-    missing=[x for x in required if not (Path(root)/x).exists()]
-    if missing: print('self-test failed:',missing); return 1
+    missing=[x for x in required if not (root/x).exists()]
+    invalid=sorted((root/'_fixtures/invalid').glob('ATLAS*-*.md')) if (root/'_fixtures/invalid').exists() else []
+    expected={f'ATLAS{i:03d}' for i in range(1,23)}
+    present={p.name.split('-',1)[0] for p in invalid}
+    if missing or present!=expected:
+        print('self-test failed:',{'missing':missing,'missing_fixture_codes':sorted(expected-present)}); return 1
     print('self-test: PASS'); return 0
 
 def main():
