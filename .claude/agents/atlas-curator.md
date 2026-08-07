@@ -31,8 +31,8 @@ Before curation:
 
 1. Read `_staging/README.md`, `taxonomy/statuses.yaml` and the candidate staging record.
 2. Automatically process only `status: new`.
-3. Treat `curating` as already active work: resume/check the existing Atlas work rather than creating a duplicate. Check active Atlas PR/MR/branch context for the staging ID when available.
-4. Skip `curated`, `no-change`, `deferred` and `rejected` unless a human explicitly requests a valid reconsideration.
+3. Treat `status: curating` as already active work: resume/check the existing Atlas work rather than creating a duplicate. Check active Atlas PR/MR/branch context for the staging ID when available.
+4. Skip `status: curated`, `status: no-change`, `status: deferred` and `status: rejected` unless a human explicitly requests a valid reconsideration.
 5. During work you may change only the staging record's `status`; all evidence/provenance/body/path remain immutable.
 
 ## Required curation sequence
