@@ -27,15 +27,36 @@ change_type: []
 
 Describe the logical change, why this evidence is worth keeping, and the boundary of the investigation.
 
-### What changed
+### Change context
 
-- Behaviour/contract/configuration change:
-- Repositories/paths:
+- What changed:
+- Why the change was made:
+- Repositories/local paths:
 - Relevant MR/PR/commit/release references:
+- Material changed files/config/contracts:
 
-### Why it matters to Atlas
+### Atlas relevance
 
-Explain which durable engineering context may need review: component, flow, infra, schema, runbook, standard, incident learning or relationship.
+Choose one: `yes`, `no`, `unknown`.
+
+Explain whether the change reveals or modifies reusable component, flow, dependency, infrastructure, schema, runbook, standard or incident context.
+
+### Change classification
+
+Select only what evidence supports:
+
+- [ ] API changed
+- [ ] Event/schema changed
+- [ ] Table/data/file output changed
+- [ ] Job schedule/dependency changed
+- [ ] Shared library dependency changed
+- [ ] Infrastructure/template/resource reference changed
+- [ ] Runtime behaviour changed
+- [ ] Runbook/recovery process changed
+- [ ] Standard/convention evidence changed
+- [ ] Incident fix/operational learning
+- [ ] Documentation-only change
+- [ ] Unknown
 
 ## Evidence
 
@@ -43,9 +64,12 @@ List exact attributable sources.
 
 - Repository/path:
 - Diff/commit/MR/PR:
+- Changed file:
 - Test/build evidence:
-- Config/schema/contract:
-- Documentation/Jira/Confluence reference:
+- API/schema/event/data-contract:
+- Config/infra/template:
+- Jira/change/incident reference:
+- Documentation reference:
 - Engineer/user-confirmed statement:
 - Other:
 
@@ -57,7 +81,23 @@ Record only observed or explicitly confirmed findings.
 |---|---|---|---|
 | | | | |
 
-### Changed contracts/dependencies
+### Dependency and contract impact
+
+#### New dependencies
+
+List evidence-backed dependencies introduced by the logical change.
+
+| Dependency | Kind | Consumer | Evidence |
+|---|---|---|---|
+| | | | |
+
+#### Removed dependencies
+
+| Dependency | Kind | Previous consumer/use | Evidence |
+|---|---|---|---|
+| | | | |
+
+#### Changed contracts/configuration
 
 | Change | Kind | Before | After | Evidence |
 |---|---|---|---|---|
@@ -86,6 +126,8 @@ List only plausible durable targets supported by this evidence, for example:
 - `_curated/incidents/...`
 - relationship updates that will regenerate maps
 
+Do not list generated JSON maps as authoring targets; curated Markdown relationships are the V1 source of truth.
+
 ## Open questions
 
 - Which consumers or dependencies still need confirmation?
@@ -93,4 +135,5 @@ List only plausible durable targets supported by this evidence, for example:
 - Does this change alter a flow boundary or only one component?
 - Are schema/compatibility implications known?
 - Is there related infra outside the inspected repository?
+- Are tests or compatibility checks still outstanding?
 - Which findings are one-off delivery detail and should **not** be curated?

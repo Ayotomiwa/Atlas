@@ -15,48 +15,138 @@ intended_curated_targets: []
 
 # Flow evidence: <flow or candidate flow>
 
+> Capture the evidenced path, including its hand-offs and gaps. A flow may cross repositories and platforms. Do not manufacture missing steps or create a complete-looking path from inference alone.
+
 ## Summary
 
-Explain what end-to-end path this evidence appears to describe and why it was captured.
+Describe what end-to-end path this evidence appears to cover and why the knowledge is reusable.
+
+### Candidate purpose and boundary
+
+- Apparent purpose/outcome:
+- Starts at:
+- Ends at:
+- In scope:
+- Explicitly out of scope:
+- Boundary state: `observed` / `user-confirmed` / `possible` / `not-covered`
+
+If the start/end boundary is not defensible, say so explicitly rather than presenting a confirmed flow.
 
 ## Evidence
 
-List source paths/references for the trigger, steps, components, contracts, orchestration and downstream use.
+List exact attributable sources. Include sources for ordering and hand-offs, not only for participant identity.
 
-- Repository/config path:
+- Repository/source/config path:
 - Scheduler/orchestration definition:
-- Schema/API/event/file evidence:
-- Engineer walkthrough/reference:
+- API/event/table/file/schema contract:
+- Job/dependency definition:
+- Infrastructure/template reference:
+- Monitoring/runbook/incident reference:
+- Jira/Confluence/engineering-document reference:
+- Engineer/user-confirmed walkthrough:
 - Other:
 
 ## What is known
 
-Only record steps/boundaries that are observed or explicitly user-confirmed.
+Record only **observed** or **user-confirmed** findings below.
 
-| Step/finding | Component/job/resource | Source | State |
+### Entry point / trigger
+
+| Trigger/source | Kind | Target/first step | Evidence | State |
+|---|---|---|---|---|
+| | schedule/event/api/file/upstream/manual/other | | | observed/user-confirmed |
+
+### End-to-end steps
+
+Record the meaningful sequence. A step can cross a repository, scheduler, infrastructure or data boundary.
+
+| Step | Activity / hand-off | Component/job/resource/system | Input | Output | Evidence | State |
+|---|---|---|---|---|---|---|
+| 1 | | | | | | observed/user-confirmed |
+
+Do not add a missing step merely because it would make the sequence easier to explain.
+
+### Participating components / jobs
+
+| Participant | Type | Role in flow | Repository/path if known | Evidence | State |
+|---|---|---|---|---|---|
+| | component/job/external-system/other | | | | observed/user-confirmed |
+
+### Inputs, outputs and hand-offs
+
+Capture the contracts that connect material steps.
+
+| Kind | Name/contract | Producer/source | Consumer/destination | Ordering/trigger if known | Evidence |
+|---|---|---|---|---|---|
+| api/event/table/file/schema/job-output/config/other | | | | | |
+
+### Upstream dependencies
+
+| Upstream item | What the flow needs from it | Evidence | State |
 |---|---|---|---|
 | | | | observed/user-confirmed |
 
-Also capture known entry point, end point, upstream inputs and downstream consumers where evidenced.
+### Downstream consumers
+
+| Consumer | What it consumes/depends on | Evidence | State |
+|---|---|---|---|
+| | | | observed/user-confirmed |
+
+### Jobs, schedules and orchestration
+
+| Job/orchestrator | Role | Trigger/frequency/dependency | Definition/reference | Evidence |
+|---|---|---|---|---|
+| | | | | |
+
+### Infrastructure used by the path
+
+Record only infrastructure material to understanding execution, routing, orchestration or failure. Detailed package/resource discovery belongs in `_staging/infra/`.
+
+| Infra/package/resource | Role in flow | Participant/step using it | Evidence |
+|---|---|---|---|
+| | | | |
+
+### Operational and failure evidence
+
+This section captures evidence about the flow; it is not a substitute for a reviewed runbook or incident record.
+
+| Failure/signal | Where observed | Known impact or symptom | Monitoring/runbook/incident reference | Evidence |
+|---|---|---|---|---|
+| | | | | |
 
 ## What is possible / unconfirmed
 
-Do not fill gaps to manufacture a complete flow.
+Keep plausible but unsupported sequencing, dependencies, consumers and blast-radius implications here.
 
-| Possible step/relationship | Why plausible | Missing evidence |
+| Possible step/relationship/impact | Why plausible | Evidence needed to confirm |
 |---|---|---|
 | | | |
 
+Examples include an inferred downstream consumer, an assumed scheduler dependency, a likely resource relationship or an unverified failure effect. Do not promote these because names or timestamps appear correlated.
+
 ## Suggested curated targets
 
-List only evidence-supported targets such as `_curated/flows/`, linked component/infra/schema pages or relationships that will regenerate the relevant maps.
+List only evidence-supported durable targets, for example:
 
-- 
+- `_curated/flows/...`
+- related `_curated/components/...`
+- related `_curated/infra/...`
+- related `_curated/schema-info/...`
+- related `_curated/runbooks/...`
+- related `_curated/incidents/...`
+- curated relationship updates that will regenerate the appropriate maps
+
+Do not propose direct edits to generated map JSON as the source of truth.
 
 ## Open questions
 
-- Is the flow boundary confirmed?
-- Which steps/participants are missing?
-- Which upstream/downstream dependencies remain uncertain?
-- Are schedules/triggers evidenced?
-- Are any referenced repositories or infra locations inaccessible?
+- Is the start/end boundary confirmed?
+- Which steps or hand-offs remain missing?
+- Which participant identities or repositories are unresolved?
+- Which upstream prerequisites are proven versus assumed?
+- Which downstream consumers are known versus possible?
+- Are schedules, triggers and ordering dependencies evidenced?
+- Which APIs/events/tables/files/schemas define important hand-offs?
+- Is material infrastructure in another supplied but inaccessible location?
+- What failure/retry/partial-completion behaviour remains unknown?
+- Which areas were not investigated and therefore must remain not covered?

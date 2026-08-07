@@ -9,17 +9,22 @@ expected_reads:
   - onboarding/service-questionnaire.md
   - _staging/components/README.md
   - _staging/components/_template.md
+  - "README/template for every optional staging bucket actually written"
   - tests/fixtures/valid/service-repo/
 expected_writes:
   - _staging/components/STG-YYYYMMDD-<slug>.md
   - "supported optional staging buckets only"
 forbidden_writes:
   - _curated/
+  - _curated/maps/
 forbidden_actions:
   - "Fabricate missing infrastructure"
   - "Create an unsupported flow placeholder"
+  - "Assume one repository equals one complete flow"
 outcome_assertions:
   - "Can stage component plus supported linked infra/schema/flow evidence where evidence exists."
+  - "Uses domain-specific component/flow/infra capture structure rather than generic summaries."
+  - "Reads each optional bucket README/template before writing that bucket."
   - "Asks one consolidated clarification round and a second only when blocking."
   - "Leaves intentionally missing flow facts not covered rather than fabricated."
 text_must_contain:
@@ -27,3 +32,5 @@ text_must_contain:
   - "second targeted clarification only if"
   - "Do not create empty placeholder staging files"
   - "Always stage a component"
+  - "Before writing it, read `_staging/infra/README.md`"
+  - "Before writing it, read `_staging/flows/README.md`"

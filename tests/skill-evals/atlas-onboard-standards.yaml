@@ -15,11 +15,15 @@ forbidden_writes:
   - _curated/standards/
 forbidden_actions:
   - "Promote a tool default to team policy without evidence"
+  - "Create atlas.must-follow applicability from pattern frequency alone"
 outcome_assertions:
   - "Separates team-standard candidates, repo-local conventions, tool defaults, and unknown scope."
+  - "Captures authority, rationale when evidenced, examples, counterexamples and exceptions."
   - "Stages candidate evidence without curating it."
 text_must_contain:
   - "team-standard-candidate"
   - "repo-local-convention"
   - "tool-default"
   - "unknown-scope"
+  - "counterexamples"
+  - "Repetition is evidence of practice, not proof of mandate"

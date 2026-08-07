@@ -19,6 +19,8 @@ repositories_examined: []
 
 # Standard evidence: <candidate rule or convention>
 
+> This record captures evidence for a possible reusable standard. Repetition is evidence of practice, not proof of policy.
+
 ## Summary
 
 State the candidate reusable rule/theme and why the evidence may matter beyond one repository.
@@ -26,6 +28,13 @@ State the candidate reusable rule/theme and why the evidence may matter beyond o
 ### Candidate rule
 
 Phrase the observation without overstating authority, e.g. "Multiple inspected Java services use ..." rather than "TeamA requires ..." unless an authoritative source says so.
+
+### Candidate scope/category
+
+- Likely category (`general`, `java`, `python`, `aws`, `infra`, `jira`, `data`, `testing`, `git`):
+- Observed component/repo/flow/infra scope:
+- Authority state (`explicit`, `repeated-practice`, `repo-local`, `possible`, `unknown`):
+- Mandatory vs recommended: leave `unknown` unless supported by authority.
 
 ## Evidence
 
@@ -43,7 +52,35 @@ Also record supplied team/lead/policy statements separately from observed implem
 |---|---|---|---|
 | | | | |
 
-Capture known exceptions/conflicting practice too; consistency should not be manufactured by ignoring counterexamples.
+### Observed rationale
+
+Record rationale only when a source states it or a user explicitly confirms it. Otherwise put a proposed rationale under `What is possible / unconfirmed`.
+
+- 
+
+### Observed examples
+
+Examples are evidence of how the candidate rule is applied; they do not by themselves prove mandate.
+
+| Example | Context | Source |
+|---|---|---|
+| | | |
+
+### Counterexamples / anti-pattern evidence
+
+Capture conflicting implementation, explicitly documented anti-patterns, or examples that limit the candidate's scope.
+
+| Counterexample/anti-pattern | Context | What it tells us | Source |
+|---|---|---|---|
+| | | | |
+
+### Known exceptions
+
+| Exception | Scope | Authority/evidence |
+|---|---|---|
+| | | |
+
+Do not manufacture consistency by omitting counterexamples or exceptions.
 
 ## What is possible / unconfirmed
 
@@ -51,7 +88,7 @@ Capture known exceptions/conflicting practice too; consistency should not be man
 |---|---|---|
 | | | |
 
-Questions such as "mandatory or recommended?" belong here until supported.
+Questions such as "mandatory or recommended?", "does this apply to all Java services?" or "is this rationale intentional?" belong here until supported.
 
 ## Suggested curated targets
 
@@ -64,9 +101,10 @@ Do not create governed applicability edges from pattern frequency alone.
 ## Open questions
 
 - Is this an explicit TeamA rule or merely repeated practice?
+- Who/what is the authority for the rule?
 - What category and scope are correct?
 - Is it mandatory or recommended?
-- Which repositories/technologies are exceptions?
+- What rationale is actually evidenced?
+- Which repositories/technologies are examples, counterexamples or valid exceptions?
 - Is there an organisation/security policy that takes precedence?
-- Does an existing standard already cover this rule?
-- What rationale is evidenced rather than inferred?
+- Does an existing standard already cover, extend or conflict with this candidate?

@@ -5,6 +5,7 @@ should_trigger:
 should_not_trigger:
   - "Stage this raw fact only."
 expected_reads:
+  - "source staging evidence and its bucket contract when needed"
   - taxonomy/types.yaml
   - taxonomy/relationships.yaml
   - taxonomy/statuses.yaml
@@ -23,12 +24,15 @@ forbidden_actions:
   - "Set status curated"
   - "Self-approve"
   - "Merge"
+  - "Upgrade rich staging detail to reviewed fact without evidence"
 outcome_assertions:
   - "Reads target README, template, and index before writing."
+  - "Preserves relevant domain-specific staging detail and uncertainty."
   - "Keeps proposed pages at status proposed."
   - "Regenerates maps and runs validation."
   - "Never self-approves or merges."
 text_must_contain:
+  - "bucket-specific structure"
   - "README.md"
   - "_template.md"
   - "index.md"

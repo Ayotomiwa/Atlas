@@ -21,7 +21,7 @@ related_infra: []
 
 # Incident evidence: <sanitised incident / near miss / exercise>
 
-> Capture reusable engineering learning only. Link to the authoritative incident record and remove sensitive detail.
+> Capture reusable engineering learning only. Link to the authoritative incident record and remove sensitive detail. This is not a replacement incident-management record.
 
 ## Summary
 
@@ -29,7 +29,7 @@ Provide a sanitised description of the event and why it may change Atlas knowled
 
 ### Observed impact / timeline anchors
 
-Record only the minimal timeline points needed to understand cause, detection or recovery.
+Record only the minimal timeline points needed to understand impact, detection, cause or recovery.
 
 | Time/phase | Observation | Evidence |
 |---|---|---|
@@ -49,11 +49,45 @@ Record only the minimal timeline points needed to understand cause, detection or
 
 ## What is known
 
+### Impact
+
+| Observed impact | Affected component/flow/resource | Evidence | State |
+|---|---|---|---|
+| | | | observed/user-confirmed |
+
+### Detection
+
+| Signal/observation | What it revealed | Evidence | State |
+|---|---|---|---|
+| | | | observed/user-confirmed |
+
+### Confirmed cause
+
+Record a cause here only when evidence or an authorised/user-confirmed source identifies it as confirmed.
+
+| Cause finding | Evidence | State |
+|---|---|---|
+| | | observed/user-confirmed |
+
+### Recovery actually performed
+
+| Recovery action | Outcome | Evidence | State |
+|---|---|---|---|
+| | | | observed/user-confirmed |
+
+Recovery observations are not automatically an approved runbook.
+
+### Reusable gaps / learnings
+
+| Learning/gap | Type | Why reusable | Evidence |
+|---|---|---|---|
+| | dependency/flow/infra/runbook/monitoring/standard/other | | |
+
+### Other known findings
+
 | Finding | Category | Source | State |
 |---|---|---|---|
 | | impact/detection/cause/recovery/dependency/gap | | observed/user-confirmed |
-
-Keep confirmed cause separate from suspected cause. Record recovery steps as observations, not automatically as an approved runbook.
 
 ## What is possible / unconfirmed
 
@@ -61,7 +95,7 @@ Keep confirmed cause separate from suspected cause. Record recovery steps as obs
 |---|---|---|
 | | | |
 
-Include suspected cause, possible blast radius and uncertain dependencies here until reviewed.
+Keep suspected cause, possible blast radius and uncertain dependencies here until reviewed. Do not present plausible causality as established fact.
 
 ## Suggested curated targets
 
@@ -75,10 +109,11 @@ Include suspected cause, possible blast radius and uncertain dependencies here u
 
 ## Open questions
 
-- Is the root/technical cause confirmed?
+- Is the root/technical cause confirmed or still suspected?
 - Which affected components/flows/resources are proven?
 - Which impact is known versus possible?
 - What detection/monitoring gap is reusable?
+- Which dependency or flow relationship was difficult to establish during triage?
 - Which recovery steps deserve a reviewed runbook update?
 - Which standard/process gap needs separate evidence?
 - Has all sensitive material been removed from this staging record?
