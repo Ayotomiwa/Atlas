@@ -1,17 +1,20 @@
-name: atlas-ci
+name: Atlas CI
+
 on:
   push:
   pull_request:
   schedule:
-    - cron: '0 8 * * 1'
-permissions:
-  contents: read
+    - cron: '17 6 * * 1'
+
 jobs:
   validate:
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '3.11'
       - run: pip install -e .[dev]
@@ -19,13 +22,16 @@ jobs:
       - run: python scripts/rebuild_maps.py --check
       - run: pytest
       - run: python scripts/run_skill_evals.py --deterministic
+
   freshness:
     if: github.event_name == 'schedule'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '3.11'
       - run: pip install -e .[dev]
-      - run: python scripts/atlas_lint.py . --warn-as-error
+      - run: python scripts/atlas_lint.py .

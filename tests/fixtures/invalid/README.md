@@ -1,2 +1,3 @@
-# Invalid fixture notes
-Single-purpose invalid cases are constructed in unit tests as needed; this directory is intentionally not treated as TeamA knowledge.
+# Invalid lint fixtures
+
+These files are intentionally malformed synthetic inputs and are excluded from production repository lint.

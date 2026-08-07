@@ -1,14 +1,26 @@
+name: atlas-discover
 should_trigger:
-- curated Atlas
+  - "What does this TeamA service depend on?"
+  - "Which TeamA standard applies to this repository?"
 should_not_trigger:
-- unrelated generic question
+  - "Create a new staging evidence record from what I just found."
 expected_reads:
-- package.md
+  - package.md
+  - index.md
+  - _curated/index.md
 expected_writes: []
+forbidden_writes:
+  - _staging/
+  - _curated/
+  - reviews/
 forbidden_actions:
-- write
+  - "Treat staging as authoritative"
+  - "Self-merge"
 outcome_assertions:
-- follows V1 contract
-must_contain:
-- 'status: curated'
-- Never write
+  - "Routes through curated Atlas before fallback discovery."
+  - "Labels repository-derived fallback separately when Atlas does not cover the question."
+  - "Makes no writes."
+text_must_contain:
+  - "status: curated"
+  - "repository-derived"
+  - "Never write"

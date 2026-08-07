@@ -1,2 +1,3 @@
 # Staging evidence
-Raw evidence, uncertainty and missing-context records live here. Staging is never authoritative. Once evidence is referenced by a curation proposal, its contents and path are immutable; add corrective evidence instead.
+
+Raw evidence and uncertainty. Staging is never authoritative. Once referenced by curation, evidence is immutable; add corrective evidence rather than rewriting consumed evidence.

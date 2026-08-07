@@ -1,16 +1,25 @@
+name: atlas-onboard-standards
 should_trigger:
-- discover standards
+  - "Scan these repos for reusable TeamA engineering standards."
+  - "Discover candidate standards from these repositories."
 should_not_trigger:
-- unrelated generic question
+  - "Which curated Java standard already applies?"
 expected_reads:
-- package.md
+  - _staging/standards/README.md
+  - _staging/standards/_template.md
+  - taxonomy/standard-categories.yaml
+  - _curated/standards/index.md
 expected_writes:
-- task-appropriate files
+  - _staging/standards/STG-YYYYMMDD-<slug>.md
+forbidden_writes:
+  - _curated/standards/
 forbidden_actions:
-- promote tool default
+  - "Promote a tool default to team policy without evidence"
 outcome_assertions:
-- follows V1 contract
-must_contain:
-- team-standard-candidate
-- tool-default
-- repo-local-convention
+  - "Separates team-standard candidates, repo-local conventions, tool defaults, and unknown scope."
+  - "Stages candidate evidence without curating it."
+text_must_contain:
+  - "team-standard-candidate"
+  - "repo-local-convention"
+  - "tool-default"
+  - "unknown-scope"

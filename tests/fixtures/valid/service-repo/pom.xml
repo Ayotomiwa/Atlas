@@ -1,1 +1,1 @@
-<project><modelVersion>4.0.0</modelVersion><groupId>fixture</groupId><artifactId>fake-service</artifactId><version>1</version></project>
+<project xmlns="http://maven.apache.org/POM/4.0.0"><modelVersion>4.0.0</modelVersion><groupId>fixture</groupId><artifactId>fixture-service</artifactId><version>1.0.0</version></project>

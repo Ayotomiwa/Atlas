@@ -1,5 +1,5 @@
 ---
-id: atlas-comp.example
+id: atlas-comp.<namespace>.<slug>
 type: atlas.component
 package: teama
 schema_version: atlas/1.0
@@ -25,52 +25,66 @@ deployed_as: []
 contains_internal_units: false
 ---
 
-# <title>
-
 ## Summary
+
 *Not covered — no evidence in current staging material.*
 
 ## Responsibility
+
 *Not covered — no evidence in current staging material.*
 
 ## Location
+
 *Not covered — no evidence in current staging material.*
 
 ## Internal units
+
 *Not covered — no evidence in current staging material.*
 
 ## Consumes
+
 *Not covered — no evidence in current staging material.*
 
 ## Produces
+
 *Not covered — no evidence in current staging material.*
 
 ## Flows
+
 *Not covered — no evidence in current staging material.*
 
 ## Infrastructure
+
 *Not covered — no evidence in current staging material.*
 
 ## Local repository references
+
 *Not covered — no evidence in current staging material.*
 
 ## Operational notes
+
 *Not covered — no evidence in current staging material.*
 
 ## Runbooks
+
 *Not covered — no evidence in current staging material.*
 
 ## Standards
+
 *Not covered — no evidence in current staging material.*
 
 ## Incident learnings
+
 *Not covered — no evidence in current staging material.*
 
 ## Evidence
+
 *Not covered — no evidence in current staging material.*
 
 ## Possible relationships
+
 *Not covered — no evidence in current staging material.*
 
 ## Open questions / coverage limits
+
 *Not covered — no evidence in current staging material.*

@@ -1,3 +1,0 @@
-Resources:
-  FakeQueue:
-    Type: AWS::SQS::Queue

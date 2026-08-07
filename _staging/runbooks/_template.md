@@ -13,8 +13,6 @@ source_links: []
 intended_curated_targets: []
 ---
 
-# <title>
-
 ## Summary
 
 ## Evidence

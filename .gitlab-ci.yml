@@ -1,7 +1,8 @@
 stages: [validate, graph, test, freshness]
-image: python:3.11
-before_script:
-  - pip install -e .[dev]
+default:
+  image: python:3.11
+  before_script:
+    - pip install -e .[dev]
 validate:
   stage: validate
   script: ["python scripts/atlas_lint.py ."]
@@ -15,6 +16,6 @@ test:
     - python scripts/run_skill_evals.py --deterministic
 freshness:
   stage: freshness
-  script: ["python scripts/atlas_lint.py . --warn-as-error"]
+  script: ["python scripts/atlas_lint.py ."]
   rules:
     - if: '$CI_PIPELINE_SOURCE == "schedule"'

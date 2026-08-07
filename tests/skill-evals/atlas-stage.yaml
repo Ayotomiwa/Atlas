@@ -1,15 +1,25 @@
+name: atlas-stage
 should_trigger:
-- capture reusable fact
+  - "Stage this reusable component fact in Atlas."
+  - "Capture this newly discovered runbook context as evidence."
 should_not_trigger:
-- unrelated generic question
+  - "Onboard this entire service repository."
 expected_reads:
-- package.md
+  - _staging/index.md
+  - _staging/<bucket>/README.md
+  - _staging/<bucket>/_template.md
 expected_writes:
-- task-appropriate files
+  - _staging/<bucket>/STG-YYYYMMDD-<slug>.md
+forbidden_writes:
+  - _curated/
+  - _curated/maps/
 forbidden_actions:
-- curated write
+  - "Create reviewed relationships"
+  - "Persist private-conversation context without approval"
 outcome_assertions:
-- follows V1 contract
-must_contain:
-- staging bucket
-- Never write curated
+  - "Writes one correct staging bucket entry and preserves uncertainty."
+  - "Does not write curated knowledge."
+text_must_contain:
+  - "exactly one staging evidence entry"
+  - "explicit user approval"
+  - "Never write `_curated/`"

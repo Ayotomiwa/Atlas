@@ -1,16 +1,11 @@
 from pathlib import Path
 import yaml
 
-def parse_frontmatter_text(text: str):
+def parse_frontmatter(path_or_text):
+    text = Path(path_or_text).read_text(encoding='utf-8') if isinstance(path_or_text, (str, Path)) and Path(path_or_text).exists() else str(path_or_text)
     if not text.startswith('---\n'):
-        return None, text
-    parts=text.split('---\n',2)
-    if len(parts)<3:
+        raise ValueError('missing YAML frontmatter')
+    end = text.find('\n---\n', 4)
+    if end < 0:
         raise ValueError('unterminated YAML frontmatter')
-    data=yaml.safe_load(parts[1]) or {}
-    if not isinstance(data, dict):
-        raise ValueError('frontmatter must be a mapping')
-    return data, parts[2]
-
-def parse_frontmatter(path: Path):
-    return parse_frontmatter_text(path.read_text(encoding='utf-8'))
+    return yaml.safe_load(text[4:end]) or {}, text[end+5:]

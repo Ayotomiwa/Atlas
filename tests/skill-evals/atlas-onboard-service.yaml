@@ -1,15 +1,29 @@
+name: atlas-onboard-service
 should_trigger:
-- onboard service
+  - "Onboard this service into TeamA Atlas."
+  - "Scan this repository and stage the supported Atlas context."
 should_not_trigger:
-- unrelated generic question
+  - "Capture this one reusable fact."
 expected_reads:
-- package.md
+  - onboarding/README.md
+  - onboarding/service-questionnaire.md
+  - _staging/components/README.md
+  - _staging/components/_template.md
+  - tests/fixtures/valid/service-repo/
 expected_writes:
-- task-appropriate files
+  - _staging/components/STG-YYYYMMDD-<slug>.md
+  - "supported optional staging buckets only"
+forbidden_writes:
+  - _curated/
 forbidden_actions:
-- fabricate infra
+  - "Fabricate missing infrastructure"
+  - "Create an unsupported flow placeholder"
 outcome_assertions:
-- follows V1 contract
-must_contain:
-- evidence matrix
-- Do not create empty placeholder staging files
+  - "Can stage component plus supported linked infra/schema/flow evidence where evidence exists."
+  - "Asks one consolidated clarification round and a second only when blocking."
+  - "Leaves intentionally missing flow facts not covered rather than fabricated."
+text_must_contain:
+  - "one consolidated clarification round"
+  - "second targeted clarification only if"
+  - "Do not create empty placeholder staging files"
+  - "Always stage a component"

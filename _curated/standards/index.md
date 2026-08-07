@@ -1,11 +1,28 @@
 # Standards index
 
 ## Route by question
-Use this area for `atlas.standard` questions; start from aliases/IDs and open only the smallest relevant page set.
+
+Choose the primary category that best matches the question. A standard remains `type: atlas.standard`; categories are navigation only.
+
+## Category indexes
+
+- [general](general/index.md) — team-wide engineering/process rules not better classified.
+- [java](java/index.md) — Java, JVM, Spring, and build conventions.
+- [python](python/index.md) — Python packaging, runtime, style, and test conventions.
+- [aws](aws/index.md) — AWS-specific usage, deployment, security, and operations conventions.
+- [infra](infra/index.md) — IaC, service-catalogue, environment, and deployment conventions not specific to one AWS service.
+- [jira](jira/index.md) — story implementation, evidence, branch/PR/MR, and process conventions.
+- [data](data/index.md) — schema, data-quality, and data-engineering conventions.
+- [testing](testing/index.md) — testing strategy, minimum validation, and test organisation.
+- [git](git/index.md) — branching, commit, review, and source-control conventions.
 
 ## Catalogue
+
 | ID | Title | Status | Domain/category | Last reviewed | Page |
 |---|---|---|---|---|---|
 
+The parent catalogue is intentionally empty until real TeamA standards are curated; category indexes are the primary routing surface.
+
 ## Coverage notes
-No TeamA production knowledge is included in the V1 scaffold.
+
+No real TeamA production standards are included in this public scaffold. Do not duplicate the same standard across categories; select a primary category and link related standards.

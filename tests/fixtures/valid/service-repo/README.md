@@ -1,2 +1,3 @@
-# Fake fixture service
-Fixture only. Processes fake reference records. Infra: `../infra/service.yaml`. One observed path participates in `fake-reference-flow`; downstream boundary intentionally missing.
+# Fixture Service
+
+Synthetic service used only by Atlas tests. It reads `fixture-input` and is deployed using the separate `../infra` fixture. The downstream end-to-end flow boundary is intentionally not stated.

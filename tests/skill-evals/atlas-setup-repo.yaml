@@ -1,15 +1,25 @@
+name: atlas-setup-repo
 should_trigger:
-- setup Atlas in repo
+  - "Make this product repository Atlas-ready."
+  - "Update the Atlas block in this repo CLAUDE.md."
 should_not_trigger:
-- unrelated generic question
+  - "Curate this staging evidence."
 expected_reads:
-- package.md
+  - CLAUDE.md
+  - package.md
 expected_writes:
-- task-appropriate files
+  - CLAUDE.md
+forbidden_writes:
+  - "content outside the Atlas managed block"
 forbidden_actions:
-- delete existing CLAUDE
+  - "Copy Atlas knowledge into the product repo"
 outcome_assertions:
-- follows V1 contract
-must_contain:
-- Preserve every existing user line
-- managed block
+  - "Preserves non-Atlas CLAUDE.md content."
+  - "Creates or replaces only the managed Atlas block."
+  - "Uses unresolved component identity rather than staging when no curated ID exists."
+text_must_contain:
+  - "Preserve all existing content"
+  - "atlas:managed:start"
+  - "atlas:managed:end"
+  - "unresolved"
+  - "Show the resulting diff"

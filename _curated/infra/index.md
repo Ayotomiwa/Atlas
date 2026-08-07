@@ -1,11 +1,10 @@
 # Infra index
 
 ## Route by question
-Use this area for `atlas.infra` questions; start from aliases/IDs and open only the smallest relevant page set.
+No TeamA production knowledge is included in this public scaffold.
 
-## Catalogue
 | ID | Title | Status | Domain/category | Last reviewed | Page |
 |---|---|---|---|---|---|
 
 ## Coverage notes
-No TeamA production knowledge is included in the V1 scaffold.
+No real TeamA concepts have been curated yet.

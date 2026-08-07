@@ -1,2 +1,5 @@
-# Fake service instructions
-Run fixture tests before changes.
+# Fixture product instructions
+
+Keep this non-Atlas instruction.
+
+Run local tests before proposing a change.

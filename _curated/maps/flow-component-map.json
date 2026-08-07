@@ -4,7 +4,7 @@
   "generator": "scripts/rebuild_maps.py",
   "nodes": [],
   "package": "teama",
-  "reverse": [],
+  "reverse_edges": [],
   "schema_version": "atlas-map/1.0",
   "source_of_truth": [
     "_curated/**/*.md"

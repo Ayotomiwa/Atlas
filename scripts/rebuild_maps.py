@@ -1,19 +1,50 @@
 #!/usr/bin/env python3
-import argparse, json, sys
-from pathlib import Path
-sys.path.insert(0,str(Path(__file__).resolve().parent.parent))
-from scripts.lib.maps import generate_maps
-NAMES={'flow-component':'flow-component-map.json','repo-dependency':'repo-dependency-map.json','infra-dependency':'infra-dependency-map.json'}
+from __future__ import annotations
 
-def rendered(data): return (json.dumps(data,indent=2,sort_keys=True,ensure_ascii=False)+'\n').encode()
-def main():
-    ap=argparse.ArgumentParser(); ap.add_argument('--check',action='store_true'); ap.add_argument('--root',default='.')
-    a=ap.parse_args(); root=Path(a.root).resolve(); maps=generate_maps(root); bad=False
-    for key,name in NAMES.items():
-        p=root/'_curated/maps'/name; b=rendered(maps[key])
-        if a.check:
-            if not p.exists() or p.read_bytes()!=b: print(f'MAP DRIFT: {p.relative_to(root)}'); bad=True
+from pathlib import Path
+import argparse
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+from scripts.lib.maps import MapBuildError, build_maps, stable_bytes
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--check", action="store_true")
+    parser.add_argument("--root", default=str(ROOT), help=argparse.SUPPRESS)
+    args = parser.parse_args(argv)
+    root = Path(args.root).resolve()
+
+    try:
+        expected, diagnostics = build_maps(root, include_diagnostics=True)
+    except MapBuildError as exc:
+        print(f"Map generation failed: {exc}", file=sys.stderr)
+        return 1
+
+    outdir = root / "_curated" / "maps"
+    outdir.mkdir(parents=True, exist_ok=True)
+    drift: list[str] = []
+    for name, obj in expected.items():
+        path = outdir / name
+        data = stable_bytes(obj)
+        if args.check:
+            if not path.exists() or path.read_bytes() != data:
+                drift.append(str(path.relative_to(root)))
         else:
-            p.parent.mkdir(parents=True,exist_ok=True); p.write_bytes(b)
-    raise SystemExit(1 if bad else 0)
-if __name__=='__main__': main()
+            path.write_bytes(data)
+
+    for diagnostic in diagnostics:
+        print(f"INFO unprojected relationship: {diagnostic.render()}")
+
+    if drift:
+        print("Map drift: " + ", ".join(drift))
+        return 1
+    print("Maps clean" if args.check else "Maps rebuilt")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

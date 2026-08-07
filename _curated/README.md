@@ -1,3 +1,3 @@
 # Curated knowledge
 
-Curated pages are governed knowledge. `status: curated` is authoritative; `proposed` requires human review. Relationships are authored on pages and maps are generated projections. Never fabricate uncovered facts.
+Human-reviewed/proposed engineering knowledge. Only `status: curated` is authoritative. Claude may propose but not approve.

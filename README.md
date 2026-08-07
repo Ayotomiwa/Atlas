@@ -1,27 +1,26 @@
 # TeamA Atlas
 
 ## Purpose
-TeamA Atlas is a governed engineering context layer for humans and AI agents. It separates raw evidence from human-reviewed knowledge and provides deterministic validation and generated relationship maps.
+TeamA Atlas is a governed engineering context layer for humans and AI agents. This public V1 is a scaffold only and contains no real TeamA engineering facts.
 
 ## Pilot scope
-V1 contains one public prototype package only: `teama`. It deliberately contains no real TeamA production knowledge.
+One TeamA package (`teama`) only. The owner name `team-a-engineering` is a placeholder and must be replaced before internal adoption.
 
 ## Repository structure
-- `_staging/` — raw evidence and uncertainty.
-- `_curated/` — reviewed/proposed concept knowledge.
-- `_curated/maps/` — generated projections of curated relationships.
-- `taxonomy/` — type, relationship, status and standard-category vocabularies.
-- `.claude/skills/` and `.claude/agents/` — Claude workflows and specialist roles.
-- `scripts/` and `tests/` — deterministic tooling, tests and evals.
+- `_staging/`: raw evidence, never authoritative.
+- `_curated/`: reviewed/proposed knowledge and generated maps.
+- `taxonomy/`: deterministic vocabularies.
+- `.claude/skills/` and `.claude/agents/`: workflows and specialist roles.
+- `scripts/` and `tests/`: validation, graph generation and evaluations.
 
 ## Trust model
-Only curated pages with `status: curated` are authoritative. Claude may stage and propose; humans approve and merge. Staging evidence is never authoritative.
+Only curated pages with `status: curated` are authoritative. Claude may stage and propose but never self-approve or merge knowledge.
 
 ## File responsibilities
-`CLAUDE.md` governs Atlas maintenance; `package.md` defines package routing; folder READMEs define local policy; indexes route; templates define shape; reviews record reasoning; status records routine curation state.
+`CLAUDE.md` governs Atlas maintenance; `package.md` defines identity and entrypoints; folder READMEs define local policy; indexes route; templates define page shape; maps are generated projections.
 
 ## How to browse Atlas
-Start at `index.md`, then route to the smallest relevant curated index, map or staging bucket.
+Start at `index.md`, then follow the smallest relevant curated index or map.
 
 ## How to use Atlas from another repository
 ```bash
@@ -31,19 +30,19 @@ claude --add-dir <path-to>/team-atlas
 Cross-repo consumption relies on discovered skills plus `package.md` and indexes; the added directory's root `CLAUDE.md` is not the consumer contract.
 
 ## Available Claude skills
-`atlas-discover`, `atlas-impact`, `atlas-stage`, `atlas-onboard-service`, `atlas-onboard-standards`, `atlas-setup-repo`, `atlas-curate`, and `implement-jira`.
+`atlas-discover`, `atlas-impact`, `atlas-stage`, `atlas-onboard-service`, `atlas-onboard-standards`, `atlas-setup-repo`, `atlas-curate`, `implement-jira`.
 
 ## Service onboarding
-Use `atlas-onboard-service` to perform a bounded repo scan, gather missing context, and stage only evidenced material.
+Use `atlas-onboard-service` to scan a bounded service repository and stage only evidenced context.
 
 ## Standards discovery
-Use `atlas-onboard-standards` to find candidate reusable standards without confusing tool defaults or repo-local conventions with team policy.
+Use `atlas-onboard-standards` to distinguish reusable team-standard candidates from repo-local conventions and tool defaults.
 
 ## Curation and review
-Use `atlas-curate`; it must read the destination README, template and index, writes `status: proposed`, updates maps/status/review notes, and never self-approves.
+Use `atlas-curate`; proposals remain `proposed` until a human reviews and merges them.
 
 ## Map generation
-Relationships are authored only in curated Markdown. Run `python scripts/rebuild_maps.py`; use `--check` in validation.
+Run `python scripts/rebuild_maps.py`; never hand-edit generated relationship data.
 
 ## Validation and tests
 ```bash
@@ -54,16 +53,16 @@ python scripts/run_skill_evals.py --deterministic
 ```
 
 ## CI
-GitHub Actions and GitLab CI invoke the same repository scripts; CI is a gate, not a semantic approver.
+GitHub Actions and the GitLab CI file invoke the same repository scripts.
 
 ## Security and sensitive data
-Do not capture credentials, keys, tokens, customer data, raw sensitive logs/query output, unnecessary personal data, or inaccessible context.
+Never capture credentials, tokens, customer data, raw sensitive logs, connection strings or unnecessary personal data.
 
 ## Contribution triggers
-Contribute when reusable engineering context, relationships, operational learning, standards, or coverage gaps are discovered and can be evidenced.
+Stage reusable context when discovered; curate only from evidence; rebuild maps after relationship changes; run deterministic checks before proposing a change.
 
 ## What not to capture
-Do not fabricate missing facts, store secrets, create speculative production topology, or use Atlas as a general document dump.
+Do not invent missing context, duplicate routine logs, or turn inaccessible information into an absence claim.
 
 ## Placeholder values to replace before internal adoption
-`team-a-engineering` in `package.md`/`CODEOWNERS` is a public-prototype placeholder and must be replaced before protected-branch review is enforced.
+Replace `team-a-engineering` in ownership configuration and review controls before enforcing protected-branch review.
