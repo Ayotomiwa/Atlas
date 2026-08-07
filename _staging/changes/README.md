@@ -2,15 +2,43 @@
 
 ## Purpose
 
-`_staging/changes/` captures **reusable engineering context discovered while investigating or implementing a logical change**. The change is the discovery context, not necessarily the durable Atlas concept.
+`_staging/changes/` captures **reusable engineering context discovered because of a logical engineering change**. The change is the discovery context, not necessarily the durable Atlas concept.
 
 Use this bucket so knowledge learned during delivery is not lost before it can be reviewed and routed to components, flows, infra, schemas, runbooks, standards or incident learnings.
 
-A logical change may span one commit, one MR/PR, several related MRs, a release bundle or a bounded Claude investigation.
+A logical change may be evidenced by one merged MR/PR, several related merged MRs/PRs, commits, a release bundle or another bounded engineering change. The logical change — not the number of delivery artefacts — is the staging boundary.
+
+## Capture timing for code changes
+
+For working-code changes, **capture into Atlas after the relevant code PR/MR has been approved and merged to the repository's default/main branch whenever practical**. Atlas should reason from the resulting repository state, not document an implementation that is still changing during review or may never land.
+
+MR/PR identifiers are optional provenance. They do not control Atlas lifecycle state and they are not required for findings that did not originate from a code review.
+
+If useful knowledge is discovered independently of a code change — for example during investigation, onboarding, architecture discussion, incident follow-up or an engineer-supplied clarification — stage it directly in the most appropriate bucket instead of manufacturing a change record.
+
+## Default MR/PR-to-staging rule
+
+The normal monorepo case is:
+
+```text
+one merged working-code MR/PR
+        ↓
+one logical change
+        ↓
+one `_staging/changes/` record
+```
+
+This is a default, not a rigid one-to-one invariant.
+
+**Group multiple MRs/PRs into one change record** when they are delivery pieces of one coherent engineering outcome, substantially share the same reusable knowledge, and reviewing one without the others would produce misleading context.
+
+**Split one broad MR/PR into multiple staging records** when it contains materially independent reusable findings with different boundaries, consumers or curation targets.
+
+A release/epic association alone is not sufficient reason to group unrelated changes.
 
 ## Belongs here
 
-Capture attributable evidence when a change reveals or modifies reusable context such as:
+Capture attributable evidence when a logical change reveals or modifies reusable context such as:
 
 - component behaviour or responsibility;
 - API/event/table/file/data-contract changes;
@@ -42,11 +70,11 @@ Do not use this bucket for:
 
 Group evidence when several implementation changes form one coherent engineering outcome. Split entries when their scope, evidence, consumers or curation targets are materially independent.
 
-The staging record should make clear **what changed**, **where**, and **why it may matter beyond this delivery item**.
+The staging record should make clear **what changed**, **where**, **what final/merged state was inspected when applicable**, and **why it may matter beyond this delivery item**.
 
 ## Evidence and uncertainty
 
-Prefer concrete references: repositories, paths, commits/MRs, config/schema diffs, tests, documentation and supplied reviewer/user statements.
+Prefer concrete references: repositories, paths, merged commits/MRs/PRs, config/schema diffs, tests, documentation and supplied reviewer/user statements.
 
 Separate:
 
@@ -68,11 +96,11 @@ One change entry may result in:
 6. relationship changes that regenerate maps;
 7. defer/reject because evidence is insufficient or not reusable.
 
-The curation workflow decides this; staging does not.
+The curation workflow decides this; staging does not become authoritative.
 
-## Immutability
+## Lifecycle and immutability
 
-Once a staging record has been consumed/referenced by a curation proposal, **do not edit, rename or move it**. Add a corrective or follow-up staging record instead so the evidence trail remains reproducible.
+Use the lifecycle defined by `_staging/README.md`. New change records start with `status: new`. After first commit, only the top-level `status` field may change; all evidence content and the path/ID remain immutable. Corrections or newly discovered context are new staging records.
 
 ## Security and sensitivity
 

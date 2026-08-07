@@ -1,32 +1,32 @@
-# `_staging/` — raw evidence layer
+# `_staging/` — raw evidence and curation queue
 
 ## Purpose
 
 `_staging/` captures useful TeamA engineering evidence before it is trusted. It preserves what was observed or supplied, where it came from, what is uncertain, and which curated areas may eventually need an update.
 
-Staging is **not** polished documentation and is never authoritative.
+Staging is **not** polished documentation and is never authoritative. It is also the scalable curation queue: lifecycle state lives on each staging record rather than in a central per-record ledger.
 
 ## Trust model
 
 ```text
-source/repository/engineer evidence
+source / repository / engineer evidence
         ↓
-_staging/ record
+_staging/ record with status: new
         ↓
 Claude-assisted curation proposal
         ↓
-human review
+Atlas PR/MR + human review
         ↓
 _curated/ page with status: curated
 ```
 
-A staging file may support a proposal, but it does not become trusted merely because it exists.
+A staging file may support a proposal, but it does not become trusted merely because it exists or because its workflow status changes.
 
 ## Buckets
 
 | Bucket | Use for |
 |---|---|
-| `changes/` | Reusable context discovered during a logical code/change investigation |
+| `changes/` | Reusable context discovered because of a logical engineering change |
 | `components/` | Raw repo/service/component discovery |
 | `flows/` | Raw end-to-end flow evidence |
 | `infra/` | Raw IaC/package/resource evidence |
@@ -59,6 +59,31 @@ intended_curated_targets: []
 
 Use a deterministic `-2`, `-3`, etc. suffix when the same-day slug already exists.
 
+## Lifecycle status
+
+The staging record itself is the queue. On the default branch:
+
+| Status | Meaning | Automatic curation behaviour |
+|---|---|---|
+| `new` | captured evidence not yet processed | eligible |
+| `curating` | actively being reconciled in Atlas work | do not start a duplicate; resume/check the active work |
+| `curated` | curation completed and accepted knowledge was produced | skip |
+| `no-change` | reviewed; no durable curated change was needed | skip |
+| `deferred` | insufficient evidence or a deliberate blocker remains | skip until explicitly reset/reconsidered |
+| `rejected` | not suitable for durable Atlas knowledge | skip |
+
+A branch or open Atlas PR/MR may contain a proposed status transition before it exists on the default branch. For queue decisions, prefer the default branch and also check active Atlas work for the same staging ID when concurrent curation is plausible.
+
+`curated` is a **staging workflow outcome**, not a statement that every claim in the staging file was accepted. Curated knowledge remains governed by `_curated/` page status and evidence.
+
+## Immutability after capture
+
+After a staging record is first committed, its evidence is immutable. **The only field that may subsequently change is top-level frontmatter `status`.**
+
+Do not edit the body, title, description, provenance, source links, intended targets, path or ID to make old evidence look cleaner or more accurate. Add a new corrective/follow-up staging record instead.
+
+This status-only exception supersedes any bucket wording that says consumed evidence must never be edited: lifecycle status may change; evidence content may not.
+
 ## Evidence and uncertainty
 
 A useful staging entry should distinguish:
@@ -71,11 +96,11 @@ A useful staging entry should distinguish:
 
 Do not rewrite raw evidence to sound more certain than its source.
 
-## Immutability after consumption
+## Where review history lives
 
-Once a staging file is referenced by a curation proposal, its contents and path are immutable. Do not "clean it up" after the fact. Add a new corrective staging record and let review/status records describe the outcome.
+The **Atlas PR/MR is the human review and audit record** for curation. Its description should identify staging records consumed, curation outcomes, curated pages/relationships changed, material claims not promoted, open questions and validation results. Git then retains reviewer identity, comments, approvals, changes requested, timestamps, diff and merge commit without duplicating that reasoning into a second Markdown review system.
 
-Promotion/rejection state belongs in `reviews/` and `_curated/status/curation-status.md`, not by mutating consumed evidence.
+`_curated/status/curation-status.md` is only a compact last-run/checkpoint summary. It is not the queue and must not grow into a row per staging record.
 
 ## Sensitive data
 

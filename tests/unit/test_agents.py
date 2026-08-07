@@ -17,7 +17,7 @@ EXPECTED = {
         "file": "atlas-curator.md",
         "tools": {"Read", "Grep", "Glob", "Bash", "Write", "Edit"},
         "permission_mode": "default",
-        "must_contain": ["status: proposed", "README.md", "_template.md", "index.md", "rebuild_maps.py"],
+        "must_contain": ["status: new", "status: curating", "status: proposed", "README.md", "_template.md", "index.md", "rebuild_maps.py", "PR/MR"],
     },
     "atlas-impact-analyst": {
         "file": "atlas-impact-analyst.md",
@@ -29,7 +29,7 @@ EXPECTED = {
         "file": "atlas-reviewer.md",
         "tools": {"Read", "Grep", "Glob"},
         "permission_mode": "plan",
-        "must_contain": ["BLOCKER", "MAJOR", "MINOR", "QUESTION", "approve on behalf of a human"],
+        "must_contain": ["BLOCKER", "MAJOR", "MINOR", "QUESTION", "approve on behalf of a human", "status", "PR/MR"],
     },
 }
 
@@ -85,6 +85,13 @@ def test_curator_can_propose_but_not_approve_or_merge():
     tools = tool_set(meta["tools"])
     assert {"Write", "Edit"}.issubset(tools)
     lowered = body.lower()
-    assert "set a page to `status: curated`" in lowered
+    assert "set a curated concept page to `status: curated`" in lowered
     assert "merge a branch or pr/mr" in lowered
-    assert "human review" in lowered
+    assert "human" in lowered
+
+
+def test_agents_do_not_reintroduce_review_documents_as_workflow_state():
+    curator = (AGENTS / EXPECTED["atlas-curator"]["file"]).read_text(encoding="utf-8").lower()
+    reviewer = (AGENTS / EXPECTED["atlas-reviewer"]["file"]).read_text(encoding="utf-8").lower()
+    assert "do not create or maintain a separate `reviews/` folder" in curator
+    assert "no duplicated `reviews/` markdown record" in reviewer

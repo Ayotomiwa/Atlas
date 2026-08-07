@@ -2,9 +2,11 @@ name: atlas-stage
 should_trigger:
   - "Stage this reusable component fact in Atlas."
   - "Capture this newly discovered runbook context as evidence."
+  - "Capture the reusable context from this merged code change."
 should_not_trigger:
   - "Onboard this entire service repository."
 expected_reads:
+  - _staging/README.md
   - _staging/index.md
   - _staging/<bucket>/README.md
   - _staging/<bucket>/_template.md
@@ -17,12 +19,17 @@ forbidden_actions:
   - "Create reviewed relationships"
   - "Persist private-conversation context without approval"
   - "Flatten bucket-specific evidence into a generic summary"
+  - "Rewrite an existing staging record instead of adding corrective evidence"
 outcome_assertions:
-  - "Writes one correct staging bucket entry and preserves uncertainty."
+  - "Writes one correct staging bucket entry with status new and preserves uncertainty."
   - "Preserves domain-specific sections supported by evidence."
+  - "Supports new findings without requiring a code MR/PR."
+  - "For code-derived changes, prefers the approved/merged default-branch state."
   - "Does not create empty linked staging records or write curated knowledge."
 text_must_contain:
   - "domain-specific discovery/capture lenses"
+  - "status: new"
+  - "approved/merged default-branch state"
   - "exactly one staging evidence entry"
   - "explicit user approval"
   - "Never write `_curated/`"

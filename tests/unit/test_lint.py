@@ -67,6 +67,42 @@ def _codes(issues: list[dict[str, str]]) -> set[str]:
     return {item["code"] for item in issues}
 
 
+def _write_staging_fixture(root: Path) -> Path:
+    staging = root / "_staging/components/STG-20260807-fixture.md"
+    staging.parent.mkdir(parents=True, exist_ok=True)
+    staging.write_text(
+        """---
+id: STG-20260807-fixture
+type: atlas.staging.component
+package: fixtures
+schema_version: atlas/1.0
+timestamp: 2026-08-07
+title: Fixture evidence
+description: Synthetic
+status: new
+captured_by: fixture
+source_type: test
+source_links: []
+intended_curated_targets: []
+---
+
+## Summary
+Original fixture evidence.
+""",
+        encoding="utf-8",
+    )
+    return staging
+
+
+def _init_git(root: Path) -> str:
+    subprocess.run(["git", "init", "-q", str(root)], check=True)
+    subprocess.run(["git", "-C", str(root), "config", "user.email", "fixture@example.invalid"], check=True)
+    subprocess.run(["git", "-C", str(root), "config", "user.name", "Fixture"], check=True)
+    subprocess.run(["git", "-C", str(root), "add", "."], check=True)
+    subprocess.run(["git", "-C", str(root), "commit", "-qm", "baseline"], check=True)
+    return subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip()
+
+
 def test_canonical_repository_structure_and_contract_counts():
     required = {
         "README.md",
@@ -92,8 +128,6 @@ def test_canonical_repository_structure_and_contract_counts():
         "_curated/status/curation-status.md",
         "_staging/README.md",
         "_staging/index.md",
-        "reviews/README.md",
-        "reviews/_template.md",
         "onboarding/README.md",
         "onboarding/index.md",
         "onboarding/service-questionnaire.md",
@@ -124,10 +158,16 @@ def test_canonical_repository_structure_and_contract_counts():
         required.add(f".claude/agents/{agent}.md")
     missing = sorted(path for path in required if not (ROOT / path).exists())
     assert not missing, f"missing canonical files: {missing}"
+    assert not (ROOT / "reviews").exists(), "V1 uses Atlas PR/MR history rather than a duplicate reviews/ folder"
     assert len(list((ROOT / ".claude" / "skills").glob("*/SKILL.md"))) == 8
     assert len(list((ROOT / ".claude" / "agents").glob("*.md"))) == 4
     for area in staging:
         assert not (ROOT / "_staging" / area / "index.md").exists(), f"staging bucket {area} must not have an index"
+
+
+def test_staging_lifecycle_statuses_are_exact():
+    statuses = yaml.safe_load((ROOT / "taxonomy/statuses.yaml").read_text(encoding="utf-8"))
+    assert statuses["staging_status"] == ["new", "curating", "curated", "no-change", "deferred", "rejected"]
 
 
 def test_real_scaffold_contains_no_fabricated_teama_concept_or_staging_pages():
@@ -273,29 +313,38 @@ def test_atlas020_stale_review_warning(tmp_path: Path):
     assert any(item["code"] == "ATLAS020" and item["level"] == "WARN" for item in issues)
 
 
-def test_atlas021_consumed_staging_evidence_cannot_be_modified(tmp_path: Path):
+def test_atlas021_existing_staging_evidence_rejects_non_status_edits(tmp_path: Path):
     root = _base_root(tmp_path)
-    page = _install_page(root, VALID / "component.md", "_curated/components/component.md")
-    text = page.read_text(encoding="utf-8").replace(
-        "evidence:\n- fixture://reviewed-source",
-        "evidence:\n- _staging/components/STG-20260807-fixture.md",
-    )
-    page.write_text(text, encoding="utf-8")
-    staging = root / "_staging/components/STG-20260807-fixture.md"
-    staging.parent.mkdir(parents=True, exist_ok=True)
-    staging.write_text(
-        """---\nid: STG-20260807-fixture\ntype: atlas.staging.component\npackage: fixtures\nschema_version: atlas/1.0\ntimestamp: 2026-08-07\ntitle: Fixture evidence\ndescription: Synthetic\nstatus: new\ncaptured_by: fixture\nsource_type: test\nsource_links: []\nintended_curated_targets: []\n---\n\n## Summary\nOriginal fixture evidence.\n""",
-        encoding="utf-8",
-    )
-    subprocess.run(["git", "init", "-q", str(root)], check=True)
-    subprocess.run(["git", "-C", str(root), "config", "user.email", "fixture@example.invalid"], check=True)
-    subprocess.run(["git", "-C", str(root), "config", "user.name", "Fixture"], check=True)
-    subprocess.run(["git", "-C", str(root), "add", "."], check=True)
-    subprocess.run(["git", "-C", str(root), "commit", "-qm", "baseline"], check=True)
-    base = subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip()
-    staging.write_text(staging.read_text(encoding="utf-8") + "Modified after consumption.\n", encoding="utf-8")
+    staging = _write_staging_fixture(root)
+    base = _init_git(root)
+    staging.write_text(staging.read_text(encoding="utf-8") + "Modified after capture.\n", encoding="utf-8")
     subprocess.run(["git", "-C", str(root), "add", str(staging.relative_to(root))], check=True)
-    subprocess.run(["git", "-C", str(root), "commit", "-qm", "modify consumed staging"], check=True)
+    subprocess.run(["git", "-C", str(root), "commit", "-qm", "modify staging evidence"], check=True)
+    issues = lint_repository(root, package_name="fixtures", check_maps=False, git_base=base, today=date(2026, 8, 7))
+    assert "ATLAS021" in _codes(issues)
+
+
+def test_atlas021_allows_status_only_staging_lifecycle_change(tmp_path: Path):
+    root = _base_root(tmp_path)
+    staging = _write_staging_fixture(root)
+    base = _init_git(root)
+    text = staging.read_text(encoding="utf-8").replace("status: new", "status: curated")
+    staging.write_text(text, encoding="utf-8")
+    subprocess.run(["git", "-C", str(root), "add", str(staging.relative_to(root))], check=True)
+    subprocess.run(["git", "-C", str(root), "commit", "-qm", "advance staging status"], check=True)
+    issues = lint_repository(root, package_name="fixtures", check_maps=False, git_base=base, today=date(2026, 8, 7))
+    assert "ATLAS021" not in _codes(issues)
+    assert "ATLAS006" not in _codes(issues)
+
+
+def test_atlas021_rejects_status_plus_evidence_edit(tmp_path: Path):
+    root = _base_root(tmp_path)
+    staging = _write_staging_fixture(root)
+    base = _init_git(root)
+    text = staging.read_text(encoding="utf-8").replace("status: new", "status: curated")
+    staging.write_text(text + "Also changed evidence.\n", encoding="utf-8")
+    subprocess.run(["git", "-C", str(root), "add", str(staging.relative_to(root))], check=True)
+    subprocess.run(["git", "-C", str(root), "commit", "-qm", "bad status and evidence edit"], check=True)
     issues = lint_repository(root, package_name="fixtures", check_maps=False, git_base=base, today=date(2026, 8, 7))
     assert "ATLAS021" in _codes(issues)
 

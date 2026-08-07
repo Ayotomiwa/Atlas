@@ -6,7 +6,7 @@
 
 A file being under `_curated/` does **not** make every claim automatically authoritative.
 
-- `status: curated` — reviewed and authoritative within the page's stated coverage.
+- `status: curated` — reviewed and authoritative within the page's stated coverage when present on the governed/default branch.
 - `status: proposed` / `draft` — reviewable knowledge, not yet authoritative.
 - `status: deprecated` — still useful for historical/transition context but no longer preferred.
 - `status: archived` — retained in place/history and excluded from normal routing.
@@ -28,7 +28,7 @@ Each concept folder has a distinct responsibility:
 | `runbooks/` | Reviewed operational procedures |
 | `incidents/` | Sanitised reusable incident/near-miss learning |
 | `maps/` | Generated machine-readable relationship projections |
-| `status/` | Operational curation state, not engineering truth |
+| `status/` | Latest curation checkpoint only, not engineering truth or the staging queue |
 
 ## How folder files divide responsibility
 
@@ -65,11 +65,15 @@ Before changing a concept page:
 1. read that folder's `README.md`, `_template.md` and `index.md`;
 2. search for an existing concept by ID, alias, path and semantic match;
 3. preserve source evidence and uncertainty;
-4. write/update as `proposed`, never self-promote to `curated`;
+4. write/update as `proposed`, never let Claude self-promote to `curated`;
 5. update the relevant index;
 6. rebuild generated maps after relationship changes;
-7. update curation status and the review record;
-8. run lint, map freshness checks and relevant tests.
+7. update the consumed staging record's lifecycle `status` only — never rewrite its evidence;
+8. update the compact curation checkpoint when useful;
+9. run lint, map freshness checks and relevant tests;
+10. use the Atlas PR/MR itself as the human review/audit record.
+
+A human reviewer decides whether accepted curated pages become `status: curated` before the approved change lands on the governed/default branch.
 
 ## What not to put here
 

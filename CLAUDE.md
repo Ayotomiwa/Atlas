@@ -4,7 +4,7 @@ This repository is the TeamA Atlas package (`teama`). It is a governed engineeri
 
 ## Trust
 - `_staging/` is raw evidence and is never authoritative.
-- `_curated/` is reviewed knowledge; only `status: curated` is authoritative.
+- `_curated/` is reviewed knowledge; only `status: curated` on the governed/default branch is authoritative.
 - Claude may stage and propose; Claude never self-approves or merges knowledge.
 - Never invent missing engineering context.
 
@@ -21,12 +21,19 @@ This repository is the TeamA Atlas package (`teama`). It is a governed engineeri
 - Never hand-edit generated relationship data in `_curated/maps/*.json`.
 - After relationship changes run `python scripts/rebuild_maps.py`.
 - Before proposing changes run `python scripts/atlas_lint.py .` and tests.
-- Once staging evidence has been referenced by curation, do not alter or move it. Add new corrective evidence instead.
+- After a staging record is first committed, do not edit its evidence content, path or ID. The only permitted later mutation is top-level frontmatter `status`; corrections are new staging evidence.
+- Treat `status: new` staging records as the normal curation queue. Do not automatically recurate terminal records.
+
+## Curation review
+- The Atlas PR/MR is the curation review/audit record; do not duplicate it into a `reviews/` folder.
+- A curation PR/MR should identify staging consumed, outcome, curated changes, material claims not promoted, relationship decisions/open questions and validation results.
+- `_curated/status/curation-status.md` is a compact latest checkpoint only, never a per-record ledger.
 
 ## Navigation
 Do not read the entire Atlas repository. Start from `index.md` or the relevant skill and open the smallest useful set of files.
 
 ## Operational records
-- routine curation state → `_curated/status/curation-status.md`
-- detailed curation reasoning → `reviews/`
+- staging lifecycle/queue state → each `_staging/` record's `status`
+- latest curation checkpoint → `_curated/status/curation-status.md`
+- human curation review/history → Atlas PR/MR and Git history
 - significant Atlas milestones only → `log.md`
