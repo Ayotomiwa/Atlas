@@ -1,5 +1,25 @@
 schema_version: atlas-taxonomy/1.0
-curated_status: [draft, proposed, curated, deprecated, archived]
-staging_status: [new, awaiting-evidence, ready-for-curation, archived]
-relationship_confidence: [reviewed, possible, unconfirmed, conflicting]
-map_coverage: [none, partial, good, stale, unknown]
+curated_status:
+  - {name: draft-curated, meaning: Page exists but is incomplete or unverified}
+  - {name: curated, meaning: Reviewed and approved operating context}
+  - {name: deprecated, meaning: Retained for history or compatibility}
+  - {name: archived, meaning: Historical only; page stays in place}
+staging_status:
+  - {name: new}
+  - {name: awaiting-evidence}
+  - {name: ready-for-curation}
+  - {name: curation-proposed}
+  - {name: promoted}
+  - {name: rejected}
+  - {name: archived}
+relationship_confidence:
+  - reviewed
+  - possible
+  - unconfirmed
+  - conflicting
+map_coverage:
+  - none
+  - partial
+  - good
+  - stale
+  - unknown

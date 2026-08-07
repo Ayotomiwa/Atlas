@@ -1,1 +1,0 @@
-# Intentionally malformed governed fixture
