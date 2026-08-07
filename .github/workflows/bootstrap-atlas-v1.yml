@@ -68,11 +68,10 @@ jobs:
           python scripts/rebuild_maps.py --check
           pytest
           python scripts/run_skill_evals.py --deterministic
-      - name: Commit validated implementation
+      - name: Commit validated non-workflow implementation
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git rm -r -- .atlas-bootstrap .github/workflows/bootstrap-atlas-v1.yml
-          git add -- README.md CLAUDE.md package.md index.md log.md CODEOWNERS .gitignore pyproject.toml .gitlab-ci.yml taxonomy _curated _staging reviews onboarding .claude scripts tests .github/workflows/atlas-ci.yml
+          git add -- README.md CLAUDE.md package.md index.md log.md CODEOWNERS .gitignore pyproject.toml .gitlab-ci.yml taxonomy _curated _staging reviews onboarding .claude scripts tests
           git commit -m "feat: implement Team Atlas V1 scaffold"
           git push origin HEAD:feat/team-atlas-v1-implementation
