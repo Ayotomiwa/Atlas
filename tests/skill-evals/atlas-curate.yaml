@@ -1,0 +1,37 @@
+name: atlas-curate
+should_trigger:
+  - "Curate this staging evidence into the component area."
+  - "Reconcile this staged standard candidate with curated Atlas."
+should_not_trigger:
+  - "Stage this raw fact only."
+expected_reads:
+  - taxonomy/types.yaml
+  - taxonomy/relationships.yaml
+  - taxonomy/statuses.yaml
+  - _curated/<target>/README.md
+  - _curated/<target>/_template.md
+  - _curated/<target>/index.md
+expected_writes:
+  - _curated/<target>/<page>.md
+  - _curated/<target>/index.md
+  - _curated/maps/
+  - _curated/status/curation-status.md
+  - reviews/
+forbidden_writes:
+  - "consumed staging evidence"
+forbidden_actions:
+  - "Set status curated"
+  - "Self-approve"
+  - "Merge"
+outcome_assertions:
+  - "Reads target README, template, and index before writing."
+  - "Keeps proposed pages at status proposed."
+  - "Regenerates maps and runs validation."
+  - "Never self-approves or merges."
+text_must_contain:
+  - "README.md"
+  - "_template.md"
+  - "index.md"
+  - "status: proposed"
+  - "rebuild_maps.py"
+  - "Never merge"
