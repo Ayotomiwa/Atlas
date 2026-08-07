@@ -1,0 +1,16 @@
+should_trigger:
+- blast radius
+should_not_trigger:
+- unrelated generic question
+expected_reads:
+- package.md
+expected_writes: []
+forbidden_actions:
+- write
+outcome_assertions:
+- follows V1 contract
+must_contain:
+- known affected
+- possibly affected
+- unknown or not covered
+- Never claim
