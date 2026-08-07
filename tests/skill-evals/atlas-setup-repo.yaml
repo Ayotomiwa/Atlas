@@ -1,0 +1,6 @@
+name: atlas-setup-repo
+should_trigger: ["Add Atlas routing to this repo CLAUDE.md"]
+should_not_trigger: ["Curate staging evidence"]
+expected_files: ["onboarding/local-CLAUDE.template.md"]
+forbidden_actions: ["delete non-Atlas CLAUDE content"]
+outcome_assertions: ["preserves content", "replaces managed block only"]

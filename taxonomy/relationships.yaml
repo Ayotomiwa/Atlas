@@ -1,0 +1,15 @@
+schema_version: atlas-taxonomy/1.0
+relationships:
+  - atlas.depends-on
+  - atlas.consumes
+  - atlas.produces
+  - atlas.participates-in
+  - atlas.deployed-by
+  - atlas.must-follow
+  - atlas.owned-by
+  - atlas.implemented-by
+  - atlas.derived-from
+  - atlas.supersedes
+  - atlas.operated-by
+  - atlas.informed-by
+  - atlas.extends

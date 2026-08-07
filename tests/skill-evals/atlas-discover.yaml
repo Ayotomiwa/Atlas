@@ -1,0 +1,6 @@
+name: atlas-discover
+should_trigger: ["What does this TeamA service depend on?"]
+should_not_trigger: ["Write a poem"]
+expected_files: ["package.md", "_curated/index.md"]
+forbidden_actions: ["write Atlas", "self-merge"]
+outcome_assertions: ["routes to curated", "labels fallback", "no write"]

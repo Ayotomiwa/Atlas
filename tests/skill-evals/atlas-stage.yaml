@@ -1,0 +1,6 @@
+name: atlas-stage
+should_trigger: ["Stage this reusable component fact"]
+should_not_trigger: ["Curate this evidence"]
+expected_files: ["_staging/components/README.md", "_staging/components/_template.md"]
+forbidden_actions: ["write curated", "self-merge"]
+outcome_assertions: ["one correct staging bucket"]

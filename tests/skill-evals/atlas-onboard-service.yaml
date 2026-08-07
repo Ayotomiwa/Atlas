@@ -1,0 +1,6 @@
+name: atlas-onboard-service
+should_trigger: ["Onboard this fixture service into Atlas"]
+should_not_trigger: ["Answer one Atlas question"]
+expected_files: ["onboarding/service-questionnaire.md", "tests/fixtures/valid/service-repo/README.md"]
+forbidden_actions: ["fabricate infra", "fabricate flows", "write curated"]
+outcome_assertions: ["can stage multiple supported buckets", "asks targeted gaps"]

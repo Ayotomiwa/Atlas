@@ -1,0 +1,11 @@
+{
+  "edges": [],
+  "generated": true,
+  "generator": "scripts/rebuild_maps.py",
+  "nodes": [],
+  "package": "teama",
+  "schema_version": "atlas-map/1.0",
+  "source_of_truth": [
+    "_curated/**/*.md"
+  ]
+}

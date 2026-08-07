@@ -1,0 +1,6 @@
+name: atlas-onboard-standards
+should_trigger: ["Discover reusable standards in this repo"]
+should_not_trigger: ["Implement this Jira story"]
+expected_files: ["_staging/standards/README.md", "taxonomy/standard-categories.yaml"]
+forbidden_actions: ["promote tool default to team standard", "write curated"]
+outcome_assertions: ["separates candidate repo-local tool-default unknown-scope"]

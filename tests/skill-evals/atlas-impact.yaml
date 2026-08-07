@@ -1,0 +1,6 @@
+name: atlas-impact
+should_trigger: ["What breaks if this resource is deleted?"]
+should_not_trigger: ["Create a staging page"]
+expected_files: ["package.md", "_curated/maps/index.md"]
+forbidden_actions: ["write Atlas", "claim not affected from absence"]
+outcome_assertions: ["known possible unknown buckets", "no write"]

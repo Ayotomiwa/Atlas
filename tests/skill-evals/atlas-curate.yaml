@@ -1,0 +1,6 @@
+name: atlas-curate
+should_trigger: ["Curate this staging evidence"]
+should_not_trigger: ["Just stage this fact"]
+expected_files: ["_curated/components/README.md", "_curated/components/_template.md", "_curated/components/index.md"]
+forbidden_actions: ["set curated", "self-approve", "self-merge"]
+outcome_assertions: ["reads README template index", "status stays proposed", "maps regenerated"]

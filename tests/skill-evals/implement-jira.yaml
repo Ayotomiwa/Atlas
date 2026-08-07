@@ -1,0 +1,6 @@
+name: implement-jira
+should_trigger: ["Implement this Jira story using TeamA standards"]
+should_not_trigger: ["Curate a TeamA standard"]
+expected_files: ["_curated/standards/jira/index.md"]
+forbidden_actions: ["hard-code TeamA Jira policy", "mutate curated Atlas"]
+outcome_assertions: ["resolves Jira standard before implementation"]
