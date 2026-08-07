@@ -9,27 +9,32 @@ jobs:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: feat/team-atlas-v1-implementation
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
+      - name: Checkout implementation branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git init .
+          git remote add origin https://github.com/${GITHUB_REPOSITORY}.git
+          git -c http.extraheader="AUTHORIZATION: bearer ${GH_TOKEN}" fetch --depth=1 origin feat/team-atlas-v1-implementation
+          git checkout -B feat/team-atlas-v1-implementation FETCH_HEAD
       - name: Expand validated V1 tree
         run: |
           cat .atlas-bootstrap/part* | base64 -d | tar -xz
       - name: Validate repository
         run: |
+          python --version
           pip install -e .[dev]
           python scripts/atlas_lint.py .
           python scripts/rebuild_maps.py --check
           pytest
           python scripts/run_skill_evals.py --deterministic
       - name: Commit validated implementation
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git rm -r -- .atlas-bootstrap .github/workflows/bootstrap-atlas-v1.yml
           find . -type f -not -path './.git/*' -not -path './.atlas-bootstrap/*' -not -path './.github/workflows/bootstrap-atlas-v1.yml' -print0 | xargs -0 git add --
           git commit -m "feat: implement Team Atlas V1 scaffold"
-          git push origin HEAD:feat/team-atlas-v1-implementation
+          git -c http.extraheader="AUTHORIZATION: bearer ${GH_TOKEN}" push origin HEAD:feat/team-atlas-v1-implementation
