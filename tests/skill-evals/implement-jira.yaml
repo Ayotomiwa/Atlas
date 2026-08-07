@@ -1,0 +1,15 @@
+should_trigger:
+- implement Jira
+should_not_trigger:
+- unrelated generic question
+expected_reads:
+- package.md
+expected_writes:
+- task-appropriate files
+forbidden_actions:
+- hard-code standard
+outcome_assertions:
+- follows V1 contract
+must_contain:
+- _curated/standards/jira/index.md
+- Never mutate curated Atlas knowledge

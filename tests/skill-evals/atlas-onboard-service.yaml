@@ -1,0 +1,15 @@
+should_trigger:
+- onboard service
+should_not_trigger:
+- unrelated generic question
+expected_reads:
+- package.md
+expected_writes:
+- task-appropriate files
+forbidden_actions:
+- fabricate infra
+outcome_assertions:
+- follows V1 contract
+must_contain:
+- evidence matrix
+- Do not create empty placeholder staging files

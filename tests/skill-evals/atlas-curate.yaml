@@ -1,0 +1,16 @@
+should_trigger:
+- curate staging
+should_not_trigger:
+- unrelated generic question
+expected_reads:
+- package.md
+expected_writes:
+- task-appropriate files
+forbidden_actions:
+- self approve
+outcome_assertions:
+- follows V1 contract
+must_contain:
+- README.md`, `_template.md`, and `index.md
+- 'status: proposed'
+- Never self-approve
