@@ -54,6 +54,7 @@ SECRET_PATTERNS = (
     ),
 )
 TEXT_EXTENSIONS = {".md", ".yaml", ".yml", ".json", ".py", ".toml", ".txt", ".properties"}
+STATUS_LINE = re.compile(r"(?m)^status:\s*[^\n]*$")
 
 REQUIRED_SECTIONS = {
     "atlas.component": [
@@ -228,7 +229,7 @@ def _local_evidence_paths(fm: dict) -> Iterable[str]:
     for rel in fm.get("relationships") or []:
         if isinstance(rel, dict):
             values.extend(rel.get("evidence") or [])
-    local_prefixes = ("_staging/", "_curated/", "reviews/", "onboarding/", "taxonomy/")
+    local_prefixes = ("_staging/", "_curated/", "onboarding/", "taxonomy/")
     for value in values:
         if isinstance(value, str) and value.startswith(local_prefixes):
             yield value.split("#", 1)[0]
@@ -243,22 +244,6 @@ def _parse_iso_date(value: object) -> dt.date | None:
         return dt.date.fromisoformat(value)
     except ValueError:
         return None
-
-
-def _collect_consumed_staging(root: Path, parsed_pages: list[tuple[Path, dict, str]]) -> set[str]:
-    consumed: set[str] = set()
-    for _, fm, _ in parsed_pages:
-        for value in _local_evidence_paths(fm):
-            if value.startswith("_staging/"):
-                consumed.add(value)
-    reviews = root / "reviews"
-    if reviews.exists():
-        pattern = re.compile(r"_staging/[A-Za-z0-9_./-]+\.md")
-        for path in reviews.rglob("*.md"):
-            if path.name == "_template.md":
-                continue
-            consumed.update(pattern.findall(path.read_text(encoding="utf-8")))
-    return consumed
 
 
 def _git_base(root: Path, explicit: str | None) -> str | None:
@@ -288,10 +273,30 @@ def _git_base(root: Path, explicit: str | None) -> str | None:
     return None
 
 
-def _check_consumed_staging_immutability(
-    root: Path, consumed: set[str], explicit_base: str | None
-) -> list[dict[str, str]]:
-    if not consumed or not (root / ".git").exists():
+def _is_staging_record_path(value: str) -> bool:
+    rel = Path(value)
+    return (
+        len(rel.parts) >= 3
+        and rel.parts[0] == "_staging"
+        and rel.suffix == ".md"
+        and rel.name not in {"README.md", "index.md", "_template.md"}
+    )
+
+
+def _status_only_staging_change(before: str, after: str) -> bool:
+    before_match = STATUS_LINE.search(before)
+    after_match = STATUS_LINE.search(after)
+    if before_match is None or after_match is None:
+        return False
+    if before_match.group(0) == after_match.group(0):
+        return False
+    before_without_status = STATUS_LINE.sub("status: __ATLAS_STATUS__", before, count=1)
+    after_without_status = STATUS_LINE.sub("status: __ATLAS_STATUS__", after, count=1)
+    return before_without_status == after_without_status
+
+
+def _check_staging_immutability(root: Path, explicit_base: str | None) -> list[dict[str, str]]:
+    if not (root / ".git").exists():
         return []
     base = _git_base(root, explicit_base)
     if not base:
@@ -303,23 +308,39 @@ def _check_consumed_staging_immutability(
     )
     if proc.returncode != 0:
         return []
+
     issues: list[dict[str, str]] = []
     for line in proc.stdout.splitlines():
         fields = line.split("\t")
-        status = fields[0]
+        git_status = fields[0]
         paths = fields[1:]
-        if status.startswith("A"):
+        if git_status.startswith("A"):
             continue
-        staging_paths = [p for p in paths if p.startswith("_staging/")]
-        if any(p in consumed for p in staging_paths):
-            issues.append(
-                issue(
-                    "ATLAS021",
-                    "ERROR",
-                    staging_paths[-1],
-                    f"consumed staging evidence is immutable within a curation proposal (git status {status})",
-                )
+        staging_paths = [path for path in paths if _is_staging_record_path(path)]
+        if not staging_paths:
+            continue
+
+        if git_status.startswith("M") and len(staging_paths) == 1:
+            rel = staging_paths[0]
+            before_proc = subprocess.run(
+                ["git", "-C", str(root), "show", f"{base}:{rel}"],
+                capture_output=True,
+                text=True,
             )
+            current_path = root / rel
+            if before_proc.returncode == 0 and current_path.exists():
+                after = current_path.read_text(encoding="utf-8")
+                if _status_only_staging_change(before_proc.stdout, after):
+                    continue
+
+        issues.append(
+            issue(
+                "ATLAS021",
+                "ERROR",
+                staging_paths[-1],
+                f"existing staging evidence may only change top-level frontmatter status after first commit (git status {git_status})",
+            )
+        )
     return issues
 
 
@@ -528,8 +549,7 @@ def lint_repository(
             if relationship.get("confidence") == "reviewed" and isinstance(target, str) and target.startswith("atlas-") and target not in curated_ids:
                 issues.append(issue("ATLAS010", "ERROR", rel, f"reviewed local relationship target does not resolve: {target}"))
 
-    consumed = _collect_consumed_staging(root, parsed_pages)
-    issues.extend(_check_consumed_staging_immutability(root, consumed, git_base))
+    issues.extend(_check_staging_immutability(root, git_base))
 
     if check_maps:
         try:
