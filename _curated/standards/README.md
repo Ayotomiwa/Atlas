@@ -8,7 +8,7 @@ A standard page should help answer: **what rule applies, to whom, how strong is 
 
 ## Trust level
 
-Only `status: curated` standards are authoritative TeamA knowledge. `draft` and `proposed` standards are not enforceable merely because they exist in Atlas. Human review remains the approval boundary.
+Only `status: curated` standards are authoritative TeamA knowledge. `draft` standards are not enforceable merely because they exist in Atlas. Human review remains the approval boundary.
 
 ## When to use this area
 

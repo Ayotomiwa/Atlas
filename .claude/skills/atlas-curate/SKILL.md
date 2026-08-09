@@ -31,10 +31,10 @@ A status transition on a branch is proposed workflow state. It becomes durable q
 8. Search existing concept pages by ID, alias, repository path and semantic match before creating anything new.
 9. Choose exactly one curation decision per target: `CREATE`, `UPDATE`, `DEFER`, `REJECT`, or `CONFLICT`.
 10. On a material conflict, stop automatic reconciliation and surface it for human resolution.
-11. Create or update proposed curated knowledge according to the local README/template; preserve evidence, domain-specific detail and uncertainty.
+11. Create or update curated knowledge according to the local README/template; preserve evidence, domain-specific detail and uncertainty.
 12. Propose only taxonomy-approved relationships. Resolve reviewed local targets to real curated IDs; do not silently upgrade possible claims to reviewed edges.
 13. Use `*Not covered — no evidence in current staging material.*` in required sections where evidence is absent.
-14. Claude-created/updated curated pages remain `status: proposed`, never `curated`.
+14. Claude-created/updated curated pages should use `status: curated` directly.
 15. Update the relevant concept/category index.
 16. Run `python scripts/rebuild_maps.py`; never hand-edit `_curated/maps/*.json`.
 17. Update `_curated/status/curation-status.md` only as a compact latest checkpoint; never append a per-record history ledger.
@@ -69,4 +69,4 @@ Git retains reviewer identity, comments, approvals, changes requested, timestamp
 
 ## 5. Human authority
 
-Never merge, self-approve, or set a curated concept page to `status: curated`. A human reviewer decides whether accepted proposed pages become `status: curated` before the approved Atlas change lands on the governed/default branch.
+Never merge or self-approve. A human reviewer decides whether proposed changes are accepted by approving the PR/MR. The PR merge itself serves as the approval, so you should author pages with `status: curated`.

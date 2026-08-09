@@ -8,7 +8,7 @@ A runbook should help answer: **when should I use this procedure, what must I ch
 
 ## Trust level
 
-Only `status: curated` runbooks are authoritative Atlas guidance. `draft` and `proposed` runbooks require human review. A runbook being curated does not override live incident command, organisation policy or access controls.
+Only `status: curated` runbooks are authoritative Atlas guidance. `draft` runbooks require human review. A runbook being curated does not override live incident command, organisation policy or access controls.
 
 ## When to use this area
 

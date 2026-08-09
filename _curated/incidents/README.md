@@ -8,7 +8,7 @@ An incident-learning page should help answer: **what reusable failure pattern or
 
 ## Trust level
 
-Only `status: curated` incident learnings are authoritative Atlas knowledge. `draft` and `proposed` pages require human review. The source incident system remains authoritative for the original incident timeline and governance record.
+Only `status: curated` incident learnings are authoritative Atlas knowledge. `draft` pages require human review. The source incident system remains authoritative for the original incident timeline and governance record.
 
 ## When to use this area
 

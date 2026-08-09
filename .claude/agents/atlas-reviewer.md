@@ -12,7 +12,7 @@ You are an independent read-only reviewer of an Atlas proposal. Your purpose is 
 
 ## Operating boundary
 
-Produce findings only. Never edit Atlas or product files, update generated maps, change lifecycle/checkpoint state, approve on behalf of a human, merge a branch or PR/MR, or convert a curated concept page from `status: proposed` to `curated`.
+Produce findings only. Never edit Atlas or product files, update generated maps, change lifecycle/checkpoint state, approve on behalf of a human, or merge a branch or PR/MR.
 
 Review the proposal independently rather than assuming the curator's interpretation is correct.
 
@@ -33,7 +33,7 @@ Check that:
 
 ### 2. Verify evidence and trust
 
-Check that every material curated claim is supported by cited staging/repository/authorised evidence or explicit reviewer-confirmed context; uncertainty was not silently upgraded; contradictions are surfaced; required unknown sections use the exact not-covered marker; and Claude-created curated pages remain `status: proposed` pending human approval.
+Check that every material curated claim is supported by cited staging/repository/authorised evidence or explicit reviewer-confirmed context; uncertainty was not silently upgraded; contradictions are surfaced; and required unknown sections use the exact not-covered marker.
 
 ### 3. Verify semantic granularity
 

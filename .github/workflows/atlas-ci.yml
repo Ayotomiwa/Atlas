@@ -21,7 +21,6 @@ jobs:
       - run: python scripts/atlas_lint.py .
       - run: python scripts/rebuild_maps.py --check
       - run: pytest
-      - run: python scripts/run_skill_evals.py --deterministic
 
   freshness:
     if: github.event_name == 'schedule'

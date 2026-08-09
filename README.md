@@ -30,7 +30,7 @@ Atlas PR/MR + human review
 _curated/ — authoritative only when status: curated on the governed/default branch
 ```
 
-A file being under `_curated/` does not automatically make it authoritative. `draft` and `proposed` pages are reviewable knowledge; only `status: curated` on the governed/default branch is trusted within the page's stated coverage.
+A file being under `_curated/` does not automatically make it authoritative. `draft` pages are reviewable knowledge; only `status: curated` on the governed/default branch is trusted within the page's stated coverage.
 
 Claude may discover, stage and propose. Claude does not self-approve or merge semantic knowledge.
 
@@ -47,7 +47,7 @@ Claude may discover, stage and propose. Claude does not self-approve or merge se
 | `.claude/skills/` | reusable Claude workflows |
 | `.claude/agents/` | specialist read/write roles with explicit boundaries |
 | `scripts/` | lint, ID/link/taxonomy checks and map generation |
-| `tests/` | deterministic unit tests, fixtures and skill evals |
+| `tests/` | deterministic unit tests and fixtures |
 | `log.md` | significant Atlas-level milestones only |
 
 The Atlas PR/MR and Git history are the durable human review/audit trail for curation; V1 does not maintain a second `reviews/` Markdown system.
@@ -218,7 +218,7 @@ When reusable context is discovered during normal work:
 5. create a new staging record with `status: new`;
 6. later use `atlas-curate`, which first checks lifecycle eligibility and duplicate active work;
 7. reconcile against existing curated knowledge and propose only evidence-backed changes;
-8. keep Claude-created curated pages at `status: proposed`;
+8. create Claude-created curated pages at `status: curated`;
 9. regenerate maps from curated relationships and update indexes;
 10. record the proposed staging outcome using a status-only change;
 11. update the compact curation checkpoint when useful;
@@ -258,7 +258,7 @@ Do not stage routine ticket status, implementation diary noise or facts that are
 
 `atlas-curate` reads staging evidence, lifecycle status, taxonomy, the target folder README/template/index and existing matching pages before deciding `CREATE`, `UPDATE`, `DEFER`, `REJECT` or `CONFLICT`.
 
-Material conflicts are surfaced for human resolution rather than silently reconciled. Claude-created curated knowledge remains `status: proposed`; humans decide whether it becomes authoritative.
+Material conflicts are surfaced for human resolution rather than silently reconciled. Claude-created curated knowledge uses `status: curated`; humans decide whether it becomes authoritative by reviewing and merging the PR.
 
 The **Atlas PR/MR is the review record**. Its description should identify:
 
@@ -285,7 +285,6 @@ Install development dependencies using Python 3.11+ and run:
 python scripts/atlas_lint.py .
 python scripts/rebuild_maps.py --check
 pytest
-python scripts/run_skill_evals.py --deterministic
 ```
 
 After a curated relationship change, generate maps with:

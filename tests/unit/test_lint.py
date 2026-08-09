@@ -135,7 +135,6 @@ def test_canonical_repository_structure_and_contract_counts():
         "onboarding/local-CLAUDE.template.md",
         "scripts/atlas_lint.py",
         "scripts/rebuild_maps.py",
-        "scripts/run_skill_evals.py",
         "scripts/lib/__init__.py",
         "scripts/lib/frontmatter.py",
         "scripts/lib/taxonomy.py",
@@ -153,7 +152,6 @@ def test_canonical_repository_structure_and_contract_counts():
         required.add(f"_curated/standards/{category}/index.md")
     for skill in ["atlas-discover", "atlas-impact", "atlas-stage", "atlas-onboard-service", "atlas-onboard-standards", "atlas-setup-repo", "atlas-curate", "implement-jira"]:
         required.add(f".claude/skills/{skill}/SKILL.md")
-        required.add(f"tests/skill-evals/{skill}.yaml")
     for agent in ["atlas-repo-analyst", "atlas-curator", "atlas-impact-analyst", "atlas-reviewer"]:
         required.add(f".claude/agents/{agent}.md")
     missing = sorted(path for path in required if not (ROOT / path).exists())

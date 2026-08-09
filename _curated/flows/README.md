@@ -8,7 +8,7 @@ A flow page should help answer: **how does this path work end to end, what parti
 
 ## Trust level
 
-Only `status: curated` pages are authoritative. `draft` and `proposed` pages require human review. Claude can propose flow knowledge but cannot approve or merge it.
+Only `status: curated` pages are authoritative. `draft` pages require human review. Claude can propose flow knowledge but cannot approve or merge it.
 
 ## When to use this area
 

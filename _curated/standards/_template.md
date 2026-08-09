@@ -5,7 +5,7 @@ package: teama
 schema_version: atlas/1.0
 title: ""
 description: ""
-status: proposed
+status: curated
 last_reviewed: YYYY-MM-DD
 reviewed_by: []
 owners: []

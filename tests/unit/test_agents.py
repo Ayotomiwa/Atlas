@@ -17,7 +17,7 @@ EXPECTED = {
         "file": "atlas-curator.md",
         "tools": {"Read", "Grep", "Glob", "Bash", "Write", "Edit"},
         "permission_mode": "default",
-        "must_contain": ["status: new", "status: curating", "status: proposed", "README.md", "_template.md", "index.md", "rebuild_maps.py", "PR/MR"],
+        "must_contain": ["status: new", "status: curating", "README.md", "_template.md", "index.md", "rebuild_maps.py", "PR/MR"],
     },
     "atlas-impact-analyst": {
         "file": "atlas-impact-analyst.md",

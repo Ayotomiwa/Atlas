@@ -8,7 +8,7 @@ A component page should help a human or agent answer: **what is this component, 
 
 ## Trust level
 
-Only pages with `status: curated` are authoritative TeamA knowledge. `draft` and `proposed` pages are reviewable proposals, not facts. Claude may create or update proposals but never self-approve them.
+Only pages with `status: curated` are authoritative TeamA knowledge. `draft` pages are reviewable proposals, not facts. Claude may create or update proposals but never self-approve them.
 
 ## When to use this area
 

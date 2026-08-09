@@ -7,7 +7,7 @@
 A file being under `_curated/` does **not** make every claim automatically authoritative.
 
 - `status: curated` — reviewed and authoritative within the page's stated coverage when present on the governed/default branch.
-- `status: proposed` / `draft` — reviewable knowledge, not yet authoritative.
+- `status: curated` / `draft` — reviewable knowledge, not yet authoritative.
 - `status: deprecated` — still useful for historical/transition context but no longer preferred.
 - `status: archived` — retained in place/history and excluded from normal routing.
 

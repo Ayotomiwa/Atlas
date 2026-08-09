@@ -10,4 +10,4 @@
 - Which engineering rule applies? Start with [standards](standards/index.md).
 - How is an operational problem handled? Start with [runbooks](runbooks/index.md) and [incidents](incidents/index.md).
 
-Only pages with `status: curated` are authoritative. Proposed pages are reviewable knowledge candidates, not final team truth.
+Only pages with `status: curated` are authoritative.

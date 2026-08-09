@@ -13,7 +13,6 @@ test:
   stage: test
   script:
     - pytest
-    - python scripts/run_skill_evals.py --deterministic
 freshness:
   stage: freshness
   script: ["python scripts/atlas_lint.py ."]

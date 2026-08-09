@@ -8,7 +8,7 @@ A business-concept page should help answer: **what does this term mean for TeamA
 
 ## Trust level
 
-Only pages with `status: curated` are authoritative TeamA knowledge. `draft` and `proposed` pages require human review. A label found in code, a dashboard or an email is evidence of usage, not automatically an approved definition.
+Only pages with `status: curated` are authoritative TeamA knowledge. `draft` pages require human review. A label found in code, a dashboard or an email is evidence of usage, not automatically an approved definition.
 
 ## When to use this area
 

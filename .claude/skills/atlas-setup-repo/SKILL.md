@@ -11,7 +11,7 @@ Preserve all existing content outside the Atlas-managed markers.
 1. Read the product repository's existing `CLAUDE.md` if present.
 2. Resolve home package `teama` and the curated component ID when one exists.
 3. If no curated component ID exists, use package-only routing and set the component identity to `unresolved`; never point the product repo to staging as authoritative.
-4. If no `CLAUDE.md` exists, create one with only a short repository heading plus the managed block.
+4. If no `CLAUDE.md` exists, initialize it normally by discovering and documenting the repository's build, test, lint, and run commands, along with any local code style rules. Then, append the Atlas-managed block.
 5. On rerun, replace only the content between the two markers below.
 6. Do not copy Atlas knowledge into the product repository. The product repository continues to own its exact build/test/run instructions.
 7. Show the resulting diff before finishing.

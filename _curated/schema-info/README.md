@@ -8,7 +8,7 @@ A schema-info page should help answer: **what is this asset, what does one recor
 
 ## Trust level
 
-Only pages with `status: curated` are authoritative TeamA knowledge. `draft` and `proposed` pages are reviewable proposals. A schema definition found in code or staging evidence is not automatically an approved business interpretation.
+Only pages with `status: curated` are authoritative TeamA knowledge. `draft` pages are reviewable proposals. A schema definition found in code or staging evidence is not automatically an approved business interpretation.
 
 ## When to use this area
 

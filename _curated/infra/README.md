@@ -8,7 +8,7 @@ An infra page should help answer: **what does this package define or configure, 
 
 ## Trust level
 
-Only `status: curated` pages are authoritative. `draft` and `proposed` pages remain subject to human review. Claude may propose infrastructure knowledge but never self-approve it.
+Only `status: curated` pages are authoritative. `draft` pages remain subject to human review. Claude may propose infrastructure knowledge but never self-approve it.
 
 ## When to use this area
 
