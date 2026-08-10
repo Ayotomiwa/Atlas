@@ -1,10 +1,14 @@
 # Business Concepts index
 
-## Route by question
-No TeamA production knowledge is included in this public scaffold.
+## Use this index
 
-| ID | Title | Status | Domain/category | Last reviewed | Page |
+Route business-definition, terminology and implementation-mapping questions here. Read [the business-concepts policy](README.md) before authoring.
+
+## Catalogue
+
+| ID | Title | Status | Routing context | Last reviewed | Page |
 |---|---|---|---|---|---|
 
 ## Coverage notes
+
 No real TeamA concepts have been curated yet.

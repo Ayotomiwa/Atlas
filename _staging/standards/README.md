@@ -41,7 +41,7 @@ Classify findings carefully:
 - **local convention** — limited to one repository/context;
 - **possible** — plausible but insufficient evidence.
 
-Frequency is not the same as mandate. `mandatory` and scope are curation decisions backed by authority.
+Frequency is not the same as mandate. Curated `requirement_level`, applicability and scope are curation decisions backed by authority.
 
 ## Granularity and categories
 
@@ -55,7 +55,7 @@ A staged candidate may become/update `_curated/standards/<category>/...`, be mer
 
 ## Immutability
 
-Once consumed by a curation proposal, do not modify/move the staging record. Add follow-up evidence when practice changes or authority is clarified.
+After first commit, only top-level frontmatter `status` may change. The body, provenance, title, description, path and ID remain immutable; changed practice or authority requires a follow-up staging record.
 
 ## Security and sensitivity
 

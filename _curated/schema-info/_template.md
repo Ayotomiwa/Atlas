@@ -1,6 +1,6 @@
 ---
-id: atlas-schema.<namespace>.<slug>
-type: atlas.schema-info
+id: schema.<stable-name>
+type: schema-info
 package: teama
 schema_version: atlas/1.0
 title: ""
@@ -11,13 +11,14 @@ reviewed_by: []
 owners: []
 routing:
   aliases: []
-  domains: []
-relationships: []
+primary_domain: ""
+related_domains: []
+links: []
 evidence: []
 coverage:
   level: unknown
   notes: []
-asset_kind: unknown
+asset_type: unknown
 physical_name: ""
 platform: ""
 grain: ""
@@ -48,7 +49,7 @@ State the reviewed meaning of the asset and what a record/message/document repre
 
 | Item | Value | Evidence |
 |---|---|---|
-| Asset kind | | |
+| Asset type | | |
 | Physical name/topic/path/endpoint | | |
 | Platform/system | | |
 | Repository/schema definition | | |
@@ -75,6 +76,16 @@ Do not call a field a key solely because its name looks like an identifier.
 ## Temporal model
 
 Explain append/update/version/snapshot behaviour, effective dates, event time versus processing time and the reviewed latest-record rule where relevant.
+
+*Not covered — no evidence in current staging material.*
+
+## Compatibility / versioning
+
+Describe version identifiers, compatibility guarantees, migration expectations, known breaking changes and consumer constraints. Keep unverified compatibility assumptions explicit.
+
+| Version/change | Compatibility or migration rule | Affected consumers | Evidence |
+|---|---|---|---|
+| | | | |
 
 *Not covered — no evidence in current staging material.*
 

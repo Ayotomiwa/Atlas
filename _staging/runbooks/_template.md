@@ -1,20 +1,13 @@
 ---
 id: STG-YYYYMMDD-<slug>
-type: atlas.staging.runbook
+type: staging.runbook
 package: teama
-schema_version: atlas/1.0
 timestamp: YYYY-MM-DD
 title: ""
 description: ""
 status: new
 captured_by: ""
 source_type: ""
-source_links: []
-intended_curated_targets: []
-runbook_name: ""
-covers: []
-severity_scope: ""
-observed_exercise_date: ""
 ---
 
 # Runbook evidence: <scenario / procedure>
@@ -52,6 +45,18 @@ Capture only observed or explicitly confirmed procedure knowledge.
 | Finding | Source | State |
 |---|---|---|
 | | | observed/user-confirmed |
+
+### Affected context
+
+| Component/flow/infra/environment | Applies or excluded | Evidence | State |
+|---|---|---|---|
+| | | | observed/user-confirmed |
+
+### Known failure modes / when not to use
+
+| Failure mode or exclusion | Why this procedure is unsafe/inapplicable | Alternative/escalation | Evidence |
+|---|---|---|---|
+| | | | |
 
 ### Safety / stop conditions
 

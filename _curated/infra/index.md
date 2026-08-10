@@ -1,10 +1,17 @@
-# Infra index
+# Infrastructure index
 
-## Route by question
-No TeamA production knowledge is included in this public scaffold.
+## Use this index
 
-| ID | Title | Status | Domain/category | Last reviewed | Page |
+Use this catalogue for infrastructure packages; use the infrastructure map for promoted-resource routing.
+
+<!-- atlas:generated-catalogue:start -->
+## Catalogue
+
+| ID | Title | Status | Primary domain | Coverage | Page |
 |---|---|---|---|---|---|
+| — | No records | — | — | — | — |
+<!-- atlas:generated-catalogue:end -->
 
 ## Coverage notes
-No real TeamA concepts have been curated yet.
+
+- The generated catalogue includes every non-archived infrastructure page; absence is not evidence that infrastructure does not exist.

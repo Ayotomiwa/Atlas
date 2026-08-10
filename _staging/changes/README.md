@@ -93,7 +93,7 @@ One change entry may result in:
 3. update/create a flow page;
 4. update/create infra or schema knowledge;
 5. update/create a runbook, standard or incident learning;
-6. relationship changes that regenerate maps;
+6. connection-field changes that regenerate maps;
 7. defer/reject because evidence is insufficient or not reusable.
 
 The curation workflow decides this; staging does not become authoritative.

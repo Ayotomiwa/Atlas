@@ -52,7 +52,7 @@ A staged procedure may update/create `_curated/runbooks/`, or reveal related com
 
 ## Immutability
 
-After a staging entry is referenced by curation, do not edit/move it. Record corrections or later exercise results as follow-up evidence.
+After first commit, only top-level frontmatter `status` may change. The body, provenance, title, description, path and ID remain immutable; corrections and later exercise results require a follow-up staging record.
 
 ## Security and sensitivity
 

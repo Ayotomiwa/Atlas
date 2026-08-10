@@ -8,7 +8,7 @@ validate:
   script: ["python scripts/atlas_lint.py ."]
 graph:
   stage: graph
-  script: ["python scripts/rebuild_maps.py --check"]
+  script: ["python scripts/rebuild_atlas.py --check"]
 test:
   stage: test
   script:

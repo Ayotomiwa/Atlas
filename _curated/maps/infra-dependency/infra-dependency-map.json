@@ -1,0 +1,21 @@
+{
+  "metadata": {
+    "description": "Infrastructure packages, promoted resources and direct users.",
+    "generated": true,
+    "generator": "scripts/rebuild_atlas.py",
+    "map_type": "package-resource-impact-map",
+    "package": "teama",
+    "related_maps": {
+      "flow_component": "_curated/maps/flow-component/flow-component-map.json",
+      "repository_component": "_curated/maps/repository-component/repository-component-map.json"
+    },
+    "schema_version": "atlas-map/1.0",
+    "source_of_truth": [
+      "_curated/infra/**/*.md",
+      "_curated/components/**/*.md",
+      "_curated/flows/**/*.md"
+    ]
+  },
+  "packages": {},
+  "resources": {}
+}

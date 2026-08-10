@@ -1,22 +1,13 @@
 ---
 id: STG-YYYYMMDD-<slug>
-type: atlas.staging.change
+type: staging.change
 package: teama
-schema_version: atlas/1.0
 timestamp: YYYY-MM-DD
 title: ""
 description: ""
 status: new
 captured_by: ""
 source_type: ""
-source_links: []
-intended_curated_targets: []
-repositories: []
-local_paths: []
-mrs: []
-commits: []
-change_scope: unknown
-change_type: []
 ---
 
 # Change evidence: <logical change>
@@ -106,6 +97,12 @@ List evidence-backed dependencies introduced by the logical change.
 |---|---|---|---|---|
 | | api/event/table/file/job/library/infra/config/other | | | |
 
+#### Compatibility and migration
+
+| Breaking risk | Consumers verified | Migration needed | Rollback/compatibility path | Evidence |
+|---|---|---|---|---|
+| unknown | | | | |
+
 ## What is possible / unconfirmed
 
 Capture suspected downstream effects, compatibility concerns or relationships that still require evidence.
@@ -127,9 +124,9 @@ List only plausible durable targets supported by this evidence, for example:
 - `_curated/runbooks/...`
 - `_curated/standards/...`
 - `_curated/incidents/...`
-- relationship updates that will regenerate the appropriate maps
+- connection-field updates that will regenerate the appropriate maps
 
-Do not list generated JSON maps as authoring targets; curated Markdown relationships are the V1 source of truth.
+Do not list generated JSON maps as authoring targets; curated Markdown fields are the source of truth.
 
 ## Open questions
 

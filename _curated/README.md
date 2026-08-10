@@ -1,80 +1,56 @@
 # Curated knowledge
 
-`_curated/` is TeamA Atlas's reviewed knowledge layer. It contains durable engineering context that humans and AI agents can route to repeatedly without rediscovering the same facts from source systems.
+`_curated/` is TeamA Atlas's reviewed knowledge layer. It stores durable engineering context that humans and agents should not need to rediscover repeatedly.
 
-## Trust model
+## Trust
 
-A file being under `_curated/` does **not** make every claim automatically authoritative.
+- `curated` — locally reviewed content usable for routing; governed authority is strongest on the declared governed branch.
+- `draft` / `proposed` — reviewable but not authoritative.
+- `deprecated` — retained for transition/history but no longer preferred.
+- `archived` — excluded from normal routing and generated maps.
 
-- `status: curated` — reviewed and authoritative within the page's stated coverage when present on the governed/default branch.
-- `status: curated` / `draft` — reviewable knowledge, not yet authoritative.
-- `status: deprecated` — still useful for historical/transition context but no longer preferred.
-- `status: archived` — retained in place/history and excluded from normal routing.
+Agents may prepare `status: curated` proposals but never self-approve or merge them. Query tooling warns when local curated content is read away from the governed branch because new knowledge may exist only on a working branch.
 
-Claude may propose curated changes. Humans approve/merge them.
-
-## What lives here
-
-Each concept folder has a distinct responsibility:
+## Concept responsibilities
 
 | Area | Represents |
 |---|---|
-| `components/` | Meaningful repositories, services, deployable units, job groups and reusable libraries |
-| `flows/` | End-to-end operational/data paths across meaningful steps/components |
-| `infra/` | Infrastructure packages/templates and selectively promoted resources |
-| `schema-info/` | Durable table/event/file/API/data-contract structure and reviewed semantics |
-| `business-concepts/` | Reviewed business definitions, boundaries and approved variants |
-| `standards/` | Reusable TeamA engineering rules grouped by category |
+| `repositories/` | Source repository identity, topology and code-orientation routes |
+| `components/` | Independently addressable runtime or reusable architectural units |
+| `flows/` | End-to-end ordered paths, branches and handoffs |
+| `infra/` | Infrastructure packages and selectively promoted resources |
+| `schema-info/` | Durable table/event/file/API/data-contract structure and semantics |
+| `business-concepts/` | Reviewed business definitions and boundaries |
+| `standards/` | Reusable engineering rules grouped by category |
 | `runbooks/` | Reviewed operational procedures |
-| `incidents/` | Sanitised reusable incident/near-miss learning |
-| `maps/` | Generated machine-readable relationship projections |
-| `status/` | Latest curation checkpoint only, not engineering truth or the staging queue |
+| `incidents/` | Sanitised reusable incident learning |
+| `maps/` | Generated machine-readable routing projections |
+| `status/` | Latest compact curation checkpoint |
 
-## How folder files divide responsibility
+READMEs own semantic and reviewer policy. Templates own authoring shape. Indexes only route and catalogue.
 
-Within a curated concept folder:
+## Stable IDs and domains
 
-- `README.md` defines **meaning, scope, granularity, evidence and reviewer rules**;
-- `_template.md` defines the **shape of a new page**;
-- `index.md` is the **routing/catalogue surface for existing pages**.
+Use `<type-prefix>.<stable-name>`, such as `repo.orders-platform`, `comp.sds-client` or `flow.order-fulfilment`. Add semantic segments only when required to remove ambiguity. A semantic name may coincide with a repository name, but identity never depends on that mutable locator.
 
-Do not move semantic policy into `index.md`, and do not treat the template alone as sufficient curation guidance.
+Repositories, components, flows, infrastructure and schema-info pages live under a controlled primary-domain folder. `primary_domain` must match the folder and be declared in `atlas-package.json`; `related_domains` records secondary involvement. Paths may move without changing identity.
 
-## Relationship model
+## Structured connections
 
-Relationships are authored on curated Markdown pages in frontmatter `relationships:` using `taxonomy/relationships.yaml`.
+Curated pages author readable, domain-specific blocks rather than a generic `relationships` array. Natural field names such as `depends_on`, `consumes`, `produces`, `reads_from` and `writes_to` carry the meaning. Compiler-only endpoint and impact-direction rules live in `contracts/map-fields.yaml`; authors use the applicable README/template.
 
-The JSON files under `_curated/maps/` are generated projections of those relationships. **Pages are the authoring source of truth; maps are never hand-authored relationship truth.**
+Confidence is per entry (`reviewed`, `possible`, `unconfirmed`, `conflicting`). Possible facts remain in their normal collection with evidence and an explanatory note. Maps keep only high-value reverse views; comprehensive reverse and transitive traversal is computed on demand.
 
-Relationship certainty is per edge (`reviewed`, `possible`, `unconfirmed`, `conflicting`), not a blanket page-level confidence.
-
-## Evidence and coverage
-
-Material claims should trace to staging evidence, repository paths, external references or reviewer-confirmed sources. Missing evidence should remain visible through explicit coverage notes or the required marker:
-
-```markdown
-*Not covered — no evidence in current staging material.*
-```
-
-An absent relationship or missing section does not mean "not affected" or "does not exist".
+Open questions use the fixed body table `Question ID | Question | Affected IDs | Evidence gap`. Maps compile compact routes, not full narrative context.
 
 ## Editing workflow
 
-Before changing a concept page:
+1. Read the target README, template and index.
+2. Search by stable ID, alias, repository locator and semantic match.
+3. Preserve evidence, confidence and coverage boundaries.
+4. Author each structured fact once on its narrowest true record.
+5. Run `python scripts/rebuild_atlas.py` to regenerate maps, catalogues and managed page views.
+6. Update only the staging lifecycle status after committed evidence is consumed; corrections are new evidence.
+7. Use the PR/MR and Git history as the review record.
 
-1. read that folder's `README.md`, `_template.md` and `index.md`;
-2. search for an existing concept by ID, alias, path and semantic match;
-3. preserve source evidence and uncertainty;
-4. write/update as `proposed`, never let Claude self-promote to `curated`;
-5. update the relevant index;
-6. rebuild generated maps after relationship changes;
-7. update the consumed staging record's lifecycle `status` only — never rewrite its evidence;
-8. update the compact curation checkpoint when useful;
-9. run lint, map freshness checks and relevant tests;
-10. use the Atlas PR/MR itself as the human review/audit record.
-
-A human reviewer decides whether accepted curated pages become `status: curated` before the approved change lands on the governed/default branch.
-
-## What not to put here
-
-Do not curate raw evidence, transient delivery status, full incident records, secrets, customer data, raw sensitive logs, unsupported guesses or implementation detail that belongs in the owning product repository and can be reliably derived there.
+Never curate secrets, customer data, unsupported guesses, transient delivery status or source detail that is more reliably owned by the product repository.

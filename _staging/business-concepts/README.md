@@ -46,7 +46,7 @@ A staging entry may become/update a `_curated/business-concepts/` page, or be de
 
 ## Immutability
 
-Once referenced by a curation proposal, do not edit/move the record. Add a follow-up staging entry for corrections or newly agreed meaning.
+After first commit, only top-level frontmatter `status` may change. The body, provenance, title, description, path and ID remain immutable; corrections or newly agreed meaning require a follow-up staging record.
 
 ## Security and sensitivity
 

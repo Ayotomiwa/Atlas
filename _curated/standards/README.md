@@ -8,7 +8,7 @@ A standard page should help answer: **what rule applies, to whom, how strong is 
 
 ## Trust level
 
-Only `status: curated` standards are authoritative TeamA knowledge. `draft` standards are not enforceable merely because they exist in Atlas. Human review remains the approval boundary.
+Only merged `status: curated` standards are authoritative TeamA knowledge. Claude may author lifecycle metadata and consolidate evidence in a proposal, but human-reviewed merge approves mandate, scope and exceptions.
 
 ## When to use this area
 
@@ -55,7 +55,7 @@ _curated/standards/testing/<slug>.md
 _curated/standards/git/<slug>.md
 ```
 
-The category folder is organisational. The page remains `type: atlas.standard`, and moving a page does not change its stable ID. The physical category folder should match `standard_category`.
+The category folder is organisational. The page remains `type: standard`, and moving a page does not change its stable ID. The physical category folder should match `standard_category`.
 
 ## Required frontmatter/type-specific fields
 
@@ -63,24 +63,23 @@ Start from `_template.md`. Use the common curated envelope plus:
 
 ```yaml
 standard_category: general
-applies_to: []
-mandatory: false
-scope: team
-exceptions: []
+requirement_level: unknown
 ```
 
-`standard_category` must exist in the standard-category taxonomy.
+`standard_category` must exist in the standard-category taxonomy and match the storage folder.
+
+`requirement_level` is controlled by `taxonomy/concept-fields.yaml`: `required`, `recommended`, `mixed` or `unknown`. A `status: curated` standard cannot use `unknown`; applicability, exclusions and approved exceptions stay in the body with evidence.
 
 ## Relationship guidance
 
-Use only taxonomy-approved relationships.
+Use only page-link types registered in `contracts/map-fields.yaml`.
 
 Common standard relationships include:
 
-- `atlas.extends` when a standard specialises or adds constraints to another;
-- `atlas.supersedes` when a new standard replaces an older one;
-- `atlas.must-follow` from governed components/flows/concepts to this standard;
-- `atlas.informed-by` when incident learning or reviewed evidence materially shaped the rule.
+- `extends` when a standard specialises or adds constraints to another;
+- `supersedes` when a new standard replaces an older one;
+- `must-follow` from governed components/flows/concepts to this standard;
+- `informed-by` when incident learning or reviewed evidence materially shaped the rule.
 
 An extension may specialise a parent standard but should not silently weaken mandatory security, regulatory or organisation-level requirements.
 
@@ -96,7 +95,7 @@ A standard should show why it is a **team standard**, not merely a pattern obser
 - reviewed incident learning;
 - staging evidence from standards discovery.
 
-Repeated code is evidence of practice, not proof of mandate. Keep `mandatory: false` unless authority is supported.
+Repeated code is evidence of practice, not proof of mandate. Keep `requirement_level: unknown` until authority supports a stronger classification; resolve it before authoritative curation.
 
 ## `not covered` rule
 
@@ -118,7 +117,7 @@ Before approval, verify:
 
 - the rule is reusable rather than ticket-specific;
 - category and scope are correct;
-- `mandatory` is justified by evidence;
+- `requirement_level` is justified by evidence and is not `unknown` for a curated standard;
 - required vs recommended behaviour is unambiguous;
 - examples and anti-patterns match the rule;
 - exceptions are explicit and bounded;

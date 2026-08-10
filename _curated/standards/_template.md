@@ -1,6 +1,6 @@
 ---
-id: atlas-standard.<namespace>.<slug>
-type: atlas.standard
+id: standard.<stable-name>
+type: standard
 package: teama
 schema_version: atlas/1.0
 title: ""
@@ -12,16 +12,13 @@ owners: []
 routing:
   aliases: []
   domains: []
-relationships: []
+links: []
 evidence: []
 coverage:
   level: unknown
   notes: []
 standard_category: general
-applies_to: []
-mandatory: false
-scope: team
-exceptions: []
+requirement_level: <required|recommended|mixed> # unknown is allowed only before status: curated
 ---
 
 # Standard: <standard name>
@@ -41,7 +38,7 @@ Define where the standard applies and where it does not.
 - Applies to:
 - Does not apply to:
 - Category:
-- Mandatory or recommended:
+- Requirement level:
 
 *Not covered — no evidence in current staging material.*
 
@@ -83,7 +80,7 @@ Document approved exception conditions, required justification and where excepti
 
 ## Related standards
 
-Link parent/specialised/superseded standards and explain the relationship. Use `atlas.extends`/`atlas.supersedes` in frontmatter where appropriate.
+Link parent/specialised/superseded standards and explain the relationship. Use `extends`/`supersedes` in frontmatter where appropriate.
 
 *Not covered — no evidence in current staging material.*
 

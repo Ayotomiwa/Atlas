@@ -1,6 +1,6 @@
 ---
-id: atlas-infra.<namespace>.<slug>
-type: atlas.infra
+id: infra.<stable-name>
+type: infra
 package: teama
 schema_version: atlas/1.0
 title: ""
@@ -11,149 +11,97 @@ reviewed_by: []
 owners: []
 routing:
   aliases: []
-  domains: []
-relationships: []
+primary_domain: ""
+related_domains: []
+infra_package: ""
+repository: null
+package_path: ""
+template_path: ""
+environments: []
+depends_on: []
+uses_resources: []
+reads_from: []
+writes_to: []
+triggers: []
+scheduled_by: []
+imports_values: []
+exports_values: []
+permissions: []
+monitored_by: []
+deployed_by: []
+promoted_resources: []
+# - id: resource.<stable-name>
+#   name: ""
+#   resource_type: other
+#   defined_in_path: ""
+#   environments: []
+#   promotion_reason: ""
+#   confidence: reviewed
+#   coverage: {level: unknown, notes: []}
+#   evidence: []
+#   depends_on: []
+#   uses_resources: []
+#   reads_from: []
+#   writes_to: []
+#   triggers: []
+#   scheduled_by: []
+#   imports_values: []
+#   exports_values: []
+#   permissions: []
+#   monitored_by: []
+#   deployed_by: []
+#   runbooks: []
+#   standards: []
+#   incident_learnings: []
+runbooks: []
+standards: []
+incident_learnings: []
 evidence: []
 coverage:
   level: unknown
   notes: []
-infra_package: ""
-template_path: ""
-resource_names: []
-environments: []
-promoted_resources: []
 ---
 
-# Infrastructure: <package or resource name>
+# Infrastructure: <package name>
 
-> Model the meaningful package first. Do not promote every cloud resource. Remove authoring guidance as sections are completed and use the exact not-covered marker for unsupported sections.
+## Summary and boundary
 
-## Summary
+Describe the meaningful infrastructure package and why it matters. Do not promote every resource.
 
-Describe the package/resource and why it matters to TeamA engineering context.
+## Package location and environment structure
 
-*Not covered — no evidence in current staging material.*
+Explain repository/package paths and environment differences that affect behavior, operation or risk.
 
-## Package location and structure
+## Structured infrastructure routing
 
-| Path | Type | Purpose | Evidence |
-|---|---|---|---|
-| | | | |
-
-*Not covered — no evidence in current staging material.*
-
-## Environment notes
-
-Capture only environment differences that affect behaviour, deployment, operation or risk.
-
-| Environment | Difference/note | Evidence |
-|---|---|---|
-| | | |
-
-*Not covered — no evidence in current staging material.*
-
-## Internal resources
-
-List resources defined inside the package without automatically making each one a first-class Atlas page/resource.
-
-| Resource | Type | Defined in | Purpose | Evidence |
+<!-- atlas:generated-infra-routing:start -->
+| Record/field | Target or resource | Type/action | Confidence | Evidence |
 |---|---|---|---|---|
-| | | | | |
+| — | No structured infrastructure facts captured | — | — | — |
+<!-- atlas:generated-infra-routing:end -->
 
-*Not covered — no evidence in current staging material.*
+## Ordinary resources
 
-## Promoted resources and promotion reason
+Describe unpromoted resources in prose or concise tables. They do not receive stable map identity.
 
-Promote only resources important for impact analysis: shared, independently operated, incident/security/deletion sensitive, flow-critical, monitored or otherwise significant blast-radius nodes.
+## Promoted-resource rationale
 
-| Resource | Promotion reason | Evidence |
-|---|---|---|
-| | | |
+Explain why each promoted resource deserves independent routing and impact identity.
 
-*Not covered — no evidence in current staging material.*
+## Permissions, monitoring and operational context
 
-## Resource relationships
+Record meaningful access, monitoring, trigger and operational context without secrets or copied logs.
 
-| From | Relationship | To | Evidence | Confidence |
-|---|---|---|---|---|
-| | | | | |
+## Impact context
 
-*Not covered — no evidence in current staging material.*
-
-## Components using resources
-
-| Component | Resource | Relationship | Evidence |
-|---|---|---|---|
-| | | | |
-
-*Not covered — no evidence in current staging material.*
-
-## Flows using resources
-
-| Flow | Resource/package | Role | Evidence |
-|---|---|---|---|
-| | | | |
-
-*Not covered — no evidence in current staging material.*
-
-## Parameters/imports/exports
-
-| Name | Kind | Producer | Consumer | Evidence |
-|---|---|---|---|---|
-| | | | | |
-
-*Not covered — no evidence in current staging material.*
-
-## Schedules/triggers/events
-
-| Trigger/schedule | Target | Definition | Evidence |
-|---|---|---|---|
-| | | | |
-
-*Not covered — no evidence in current staging material.*
-
-## Permissions and roles
-
-Record relevant access relationships without copying secret values or unnecessary security-sensitive detail.
-
-| Role/permission | Allows | Used by | Evidence |
-|---|---|---|---|
-| | | | |
-
-*Not covered — no evidence in current staging material.*
-
-## Monitoring
-
-List meaningful alarms, dashboards, logs or operational monitors.
-
-*Not covered — no evidence in current staging material.*
-
-## Impact if changed or deleted
-
-Separate known impact from possible impact and unknown coverage. Never equate missing evidence with "not affected".
-
-| Item/scenario | Known impact | Possible impact | Unknowns | Evidence |
-|---|---|---|---|---|
-| | | | | |
-
-*Not covered — no evidence in current staging material.*
+Explain known, possible and unknown effects without duplicating generated reverse users.
 
 ## Evidence
 
-List the IaC, staging, component/flow, operational and reviewer-confirmed evidence supporting material claims.
-
-*Not covered — no evidence in current staging material.*
-
-## Possible relationships
-
-| Relationship | Why possible | Evidence gap |
-|---|---|---|
-| | | |
-
-*Not covered — no evidence in current staging material.*
+List infrastructure, repository and reviewer-confirmed evidence.
 
 ## Open questions / coverage limits
 
-Record unknown resources, users, flows, permissions, environment differences and uninvestigated areas.
-
-*Not covered — no evidence in current staging material.*
+| Question ID | Question | Affected IDs | Evidence gap |
+|---|---|---|---|
+| unknown-user | Which additional user remains unconfirmed? | `infra.<stable-name>` | No reviewed consumer evidence. |

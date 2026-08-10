@@ -1,0 +1,114 @@
+schema_version: atlas-map-fields/1.0
+
+# Compiler-only endpoint and direction rules. Authors choose the natural field
+# on their record and never write a generic relationship name.
+fields:
+  repository:
+    depends_on_repositories:
+      action: depends-on
+      target_types: [repository]
+      qualifier: dependency_type
+      values: repository.dependency_type
+
+  component:
+    consumes:
+      action: consumes
+      target_types: [component, schema-info]
+      qualifier: asset_type
+      values: shared.asset_type
+    produces:
+      action: produces
+      target_types: [component, schema-info]
+      qualifier: asset_type
+      values: shared.asset_type
+    depends_on:
+      action: depends-on
+      target_types: [component, schema-info]
+      qualifier: dependency_type
+      values: component.dependency_type
+    uses_resources: {action: uses-resource, target_types: [infra, infra-resource]}
+    reads_from: {action: reads-from, target_types: [infra, infra-resource]}
+    writes_to: {action: writes-to, target_types: [infra, infra-resource]}
+    triggers: {action: triggers, target_types: [component, flow, infra, infra-resource]}
+    scheduled_by: {action: scheduled-by, target_types: [infra, infra-resource]}
+    deployed_by: {action: deployed-by, target_types: [infra, infra-resource]}
+    monitored_by: {action: monitored-by, target_types: [infra, infra-resource]}
+
+  flow:
+    inputs:
+      action: consumes
+      target_types: [component, schema-info]
+      qualifier: asset_type
+      values: shared.asset_type
+    outputs:
+      action: produces
+      target_types: [component, schema-info]
+      qualifier: asset_type
+      values: shared.asset_type
+    upstream_flows: {action: depends-on, target_types: [flow]}
+
+  infrastructure:
+    depends_on:
+      action: depends-on
+      target_types: [infra, infra-resource]
+      qualifier: dependency_type
+      values: infrastructure.dependency_type
+    uses_resources: {action: uses-resource, target_types: [infra, infra-resource]}
+    reads_from: {action: reads-from, target_types: [infra, infra-resource]}
+    writes_to: {action: writes-to, target_types: [infra, infra-resource]}
+    triggers: {action: triggers, target_types: [component, flow, infra, infra-resource]}
+    scheduled_by: {action: scheduled-by, target_types: [infra, infra-resource]}
+    imports_values: {action: imports-value, target_types: [infra, infra-resource]}
+    exports_values: {action: exports-value, target_types: [infra, infra-resource]}
+    permissions: {action: permission-allows, target_types: [component, flow, infra, infra-resource]}
+    monitored_by: {action: monitored-by, target_types: [infra, infra-resource]}
+    deployed_by: {action: deployed-by, target_types: [infra, infra-resource]}
+
+  routes:
+    runbooks: {action: operated-by, target_types: [runbook]}
+    standards: {action: must-follow, target_types: [standard]}
+    incident_learnings: {action: informed-by, target_types: [incident-learning]}
+
+# Existing non-architecture page links remain supported. They are deliberately
+# outside taxonomy because the values describe cross-cutting governance routes.
+page_links:
+  must-follow: {target_types: [standard]}
+  owned-by: {target_types: []}
+  implemented-by: {target_types: [repository, component, flow, infra, infra-resource]}
+  derived-from: {target_types: []}
+  supersedes: {target_types: [business-concept, schema-info, standard, runbook, incident-learning]}
+  operated-by: {target_types: [runbook]}
+  informed-by: {target_types: [incident-learning]}
+  extends: {target_types: [standard, business-concept]}
+
+# Direction is used only by the query engine to answer impact questions.
+impact_direction:
+  depends-on: dependency
+  consumes: dependency
+  uses-resource: dependency
+  reads-from: dependency
+  scheduled-by: dependency
+  monitored-by: dependency
+  deployed-by: dependency
+  imports-value: dependency
+  operated-by: dependency
+  must-follow: dependency
+  informed-by: dependency
+  produces: delivery
+  writes-to: delivery
+  triggers: delivery
+  exports-value: delivery
+  permission-allows: delivery
+  participates-in: delivery
+  contains: delivery
+
+maps:
+  flow_component:
+    map_type: flow-component-routing-map
+    source_of_truth: [_curated/flows/**/*.md]
+  repository_component:
+    map_type: repository-component-routing-map
+    source_of_truth: [_curated/repositories/**/*.md, _curated/components/**/*.md]
+  infra_dependency:
+    map_type: package-resource-impact-map
+    source_of_truth: [_curated/infra/**/*.md, _curated/components/**/*.md, _curated/flows/**/*.md]

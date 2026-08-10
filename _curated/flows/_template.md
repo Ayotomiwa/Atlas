@@ -1,6 +1,6 @@
 ---
-id: atlas-flow.<namespace>.<slug>
-type: atlas.flow
+id: flow.<stable-name>
+type: flow
 package: teama
 schema_version: atlas/1.0
 title: ""
@@ -11,142 +11,82 @@ reviewed_by: []
 owners: []
 routing:
   aliases: []
-  domains: []
-relationships: []
+primary_domain: ""
+related_domains: []
+flow_scope: ""
+diagram: false
+entry_points: []
+# - entry_point_type: schedule
+#   name: Daily schedule
+#   confidence: reviewed
+#   evidence: [path/to/schedule]
+inputs: []
+outputs: []
+upstream_flows: []
+steps: []
+# - step_id: extract
+#   order: 10
+#   name: Extract records
+#   participant: {type: component, id: comp.extract-records, name: Extract records}
+#   role: producer
+#   confidence: reviewed
+#   evidence: [path/to/extractor]
+#   onboarding_question_id: add-extract-component # required only when component id is omitted
+#   receives: []
+#   emits:
+#     - id: schema.raw-records
+#       asset_type: schema
+#       confidence: reviewed
+#       evidence: [path/to/schema]
+#   transitions:
+#     - {to: validate, on: success}
+runbooks: []
+standards: []
+incident_learnings: []
 evidence: []
 coverage:
   level: unknown
   notes: []
-flow_scope: ""
-trigger: ""
-schedule: ""
-entry_component: ""
-exit_component: ""
 ---
 
 # Flow: <flow name>
 
-> Describe only the evidenced path. Remove authoring guidance as sections are completed. Use the exact not-covered marker for genuinely unknown sections rather than inventing missing steps.
+## Summary and boundary
 
-## Summary
+Describe the end-to-end outcome, start, end, in-scope behavior and explicit exclusions.
 
-Give a short end-to-end description of the path and its outcome.
+## Entry points and boundary I/O
 
-*Not covered — no evidence in current staging material.*
-
-## Purpose and boundary
-
-Define what this flow exists to do and where it starts/stops.
-
-- Starts at:
-- Ends at:
-- In scope:
-- Out of scope:
-
-*Not covered — no evidence in current staging material.*
-
-## Entry point
-
-Describe the trigger: schedule, event, API request, file arrival, manual action or upstream completion.
-
-*Not covered — no evidence in current staging material.*
+Explain material triggers and external boundary contracts. Exact values are authored in frontmatter.
 
 ## End-to-end steps
 
-| Step | Description | Component/job/resource | Evidence | Confidence |
-|---|---|---|---|---|
-| 1 | | | | |
+<!-- atlas:generated-steps-table:start -->
+| Order | Step ID | Step | Participant | Type | Role | Receives | Emits | Transitions | Confidence |
+|---:|---|---|---|---|---|---|---|---|---|
+| — | — | No steps captured | — | — | — | — | — | — | — |
+<!-- atlas:generated-steps-table:end -->
 
-*Not covered — no evidence in current staging material.*
+## Diagram
 
-## Participating components
+<!-- atlas:generated-flow-diagram:start -->
+_No generated diagram requested._
+<!-- atlas:generated-flow-diagram:end -->
 
-| Component | Role in flow | Evidence | Confidence |
-|---|---|---|---|
-| | | | |
+## Failure and conditional paths
 
-*Not covered — no evidence in current staging material.*
+Explain branches, retries, partial completion and operational implications supported by evidence.
 
-## Inputs and outputs
+## Infrastructure and operational routes
 
-Capture important APIs, events, tables, files, schemas or job outputs that define the flow boundary or hand-offs.
-
-| Kind | Name | Producer/source | Consumer/destination | Evidence |
-|---|---|---|---|---|
-| | | | | |
-
-*Not covered — no evidence in current staging material.*
-
-## Upstream dependencies
-
-List confirmed prerequisites or preceding flows/systems. Keep inferred dependencies possible/unconfirmed.
-
-*Not covered — no evidence in current staging material.*
-
-## Downstream consumers
-
-List known consumers and what they depend on.
-
-*Not covered — no evidence in current staging material.*
-
-## Jobs and schedules
-
-| Job/orchestrator | Role | Trigger/frequency | Evidence |
-|---|---|---|---|
-| | | | |
-
-*Not covered — no evidence in current staging material.*
-
-## Infrastructure
-
-Link supporting curated infra pages/resources where material to understanding the flow.
-
-*Not covered — no evidence in current staging material.*
-
-## Failure modes
-
-Capture reviewed failure modes and observable symptoms without overstating blast radius.
-
-| Failure mode | Symptom | Known/possible impact | Evidence |
-|---|---|---|---|
-| | | | |
-
-*Not covered — no evidence in current staging material.*
-
-## Runbooks
-
-Link operational guidance relevant to this flow.
-
-*Not covered — no evidence in current staging material.*
-
-## Incident learnings
-
-Link reusable incident learnings that change how this flow should be understood or operated.
-
-*Not covered — no evidence in current staging material.*
-
-## Standards
-
-Link applicable standards.
-
-*Not covered — no evidence in current staging material.*
+Explain material infrastructure use and link relevant runbooks, monitoring and incident learnings.
 
 ## Evidence
 
-List staging, repository, orchestration, schema, infra, operational and reviewer-confirmed evidence used for the page.
-
-*Not covered — no evidence in current staging material.*
-
-## Possible relationships
-
-| Relationship | Why possible | Evidence gap |
-|---|---|---|
-| | | |
-
-*Not covered — no evidence in current staging material.*
+List sources for boundary, ordering, handoffs, participants and failure paths.
 
 ## Open questions / coverage limits
 
-Explicitly record unknown steps, participants, consumers, dependencies, compatibility assumptions and areas not investigated.
-
-*Not covered — no evidence in current staging material.*
+| Question ID | Question | Affected IDs | Evidence gap |
+|---|---|---|---|
+| missing-step | Which step or handoff remains unconfirmed? | `flow.<stable-name>` | Ordering evidence is incomplete. |

@@ -56,7 +56,7 @@ Staging does not approve joins, definitions or relationships.
 
 ## Immutability
 
-Once consumed by a curation proposal, do not alter or move the record. Capture corrections as a new staging entry.
+After first commit, only top-level frontmatter `status` may change. The body, provenance, title, description, path and ID remain immutable; corrections require a follow-up staging record.
 
 ## Security and sensitivity
 

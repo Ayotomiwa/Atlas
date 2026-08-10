@@ -1,6 +1,6 @@
 ---
-id: atlas-concept.<namespace>.<slug>
-type: atlas.business-concept
+id: concept.<stable-name>
+type: business-concept
 package: teama
 schema_version: atlas/1.0
 title: ""
@@ -12,15 +12,11 @@ owners: []
 routing:
   aliases: []
   domains: []
-relationships: []
+links: []
 evidence: []
 coverage:
   level: unknown
   notes: []
-approved_definition: ""
-inclusion_criteria: []
-exclusion_criteria: []
-approved_variants: []
 ---
 
 # Business concept: <concept name>
@@ -55,13 +51,23 @@ Use reviewed counterexamples that clarify common misunderstandings or nearby con
 
 *Not covered — no evidence in current staging material.*
 
-## Related data assets
+## Terminology and variants
 
-Link schemas/tables/events/APIs that represent or materially implement this concept. A physical asset is not itself proof of the business definition.
+Record alternate wording, disputed variants and neighbouring terms. Put only truly equivalent lookup terms in `routing.aliases`.
 
-| Asset | Relationship to concept | Evidence |
-|---|---|---|
-| | | |
+| Term or variant | Equivalent / related / disputed | Meaning or distinction | Evidence |
+|---|---|---|---|
+| | | | |
+
+*Not covered — no evidence in current staging material.*
+
+## Implementation mappings
+
+Link components, schemas, APIs, events and systems that materially implement or represent this concept. An implementation is not proof of the business definition.
+
+| Implementation target | Type | Relationship to concept | Evidence |
+|---|---|---|---|
+| | | | |
 
 *Not covered — no evidence in current staging material.*
 

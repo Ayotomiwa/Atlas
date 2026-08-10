@@ -1,6 +1,6 @@
 ---
-id: atlas-comp.<namespace>.<slug>
-type: atlas.component
+id: comp.<stable-name>
+type: component
 package: teama
 schema_version: atlas/1.0
 title: ""
@@ -11,157 +11,90 @@ reviewed_by: []
 owners: []
 routing:
   aliases: []
-  domains: []
-relationships: []
+primary_domain: ""
+related_domains: []
+component_type: unknown
+repository: repo.<stable-name>
+repository_paths: []
+parent_component: null
+consumes: []
+# - id: schema.example-input
+#   asset_type: schema
+#   confidence: reviewed
+#   evidence: [path/to/consumer]
+produces: []
+depends_on: []
+# - id: comp.shared-parser
+#   dependency_type: component
+#   confidence: possible
+#   note: Why this remains possible.
+uses_resources: []
+reads_from: []
+# - id: resource.example-bucket
+#   confidence: reviewed
+#   evidence: [path/to/config]
+writes_to: []
+triggers: []
+scheduled_by: []
+deployed_by: []
+monitored_by: []
+runbooks: []
+standards: []
+incident_learnings: []
 evidence: []
 coverage:
   level: unknown
   notes: []
-component_type: unknown
-component_scope: unknown
-repository: ""
-monorepo_path: ""
-deployed_as: []
-contains_internal_units: false
 ---
 
 # Component: <component name>
 
-> Remove authoring guidance as sections are completed. If a required section genuinely has no evidence, leave the exact not-covered marker rather than inventing content.
-
 ## Summary
 
-Describe the component in plain language: what it is, where it fits, and why an engineer would care about it.
+Describe what the component is, where it fits, and why an engineer would care.
 
-*Not covered — no evidence in current staging material.*
+## Responsibility and boundary
 
-## Responsibility
+State evidenced responsibilities, explicit non-responsibilities and whether this is an independently addressable architectural unit.
 
-State only reviewed/evidenced responsibilities. Keep boundaries explicit and avoid turning inferred behaviour into fact.
+## Source location and entrypoints
 
-*Not covered — no evidence in current staging material.*
+Explain the relevant repository paths and important code/configuration entrypoints.
 
-## Location
+## Code architecture summary
 
-Capture stable repository context without duplicating drift-prone local setup detail.
+Describe important control flow and implementation structure without function-by-function narration.
 
-| Item | Value | Evidence |
-|---|---|---|
-| Repository | | |
-| Monorepo path | | |
-| Main README / local CLAUDE | | |
-| Important source/config paths | | |
+## Structured routing
 
-*Not covered — no evidence in current staging material.*
+<!-- atlas:generated-component-routing:start -->
+| Field | Target | Qualifier/action | Confidence | Evidence |
+|---|---|---|---|---|
+| — | No structured routing facts captured | — | — | — |
+<!-- atlas:generated-component-routing:end -->
 
 ## Internal units
 
-Use this for lower-level artefacts that belong inside the component rather than creating unnecessary first-class pages.
+Keep implementation details here unless a child is independently addressable and qualifies for its own `comp.*` page.
 
-| Unit | Type | Purpose | Path | Evidence |
-|---|---|---|---|---|
-| | | | | |
+## Configuration and deployment context
 
-*Not covered — no evidence in current staging material.*
+Capture durable configuration concepts and deployment boundaries; route to infrastructure pages for resource detail.
 
-## Consumes
+## Failure and operational context
 
-Summarise confirmed inputs. Author machine-readable relationships in frontmatter using taxonomy-approved relationship types and kinds.
+Record evidenced failure modes, observable symptoms, monitoring routes and support boundaries without copying sensitive logs.
 
-| Kind | Name/target | Source | Evidence | Confidence |
-|---|---|---|---|---|
-| | | | | |
+## Diagram
 
-*Not covered — no evidence in current staging material.*
-
-## Produces
-
-Summarise confirmed outputs and known consumers where evidence exists.
-
-| Kind | Name/target | Consumer | Evidence | Confidence |
-|---|---|---|---|---|
-| | | | | |
-
-*Not covered — no evidence in current staging material.*
-
-## Flows
-
-List meaningful flow participation and link to curated flow pages when available.
-
-| Flow | Role | Evidence | Confidence |
-|---|---|---|---|
-| | | | |
-
-*Not covered — no evidence in current staging material.*
-
-## Infrastructure
-
-Summarise important deployment/resource relationships. Detailed infrastructure modelling belongs in `_curated/infra/`.
-
-| Infra/package/resource | Relationship | Evidence | Confidence |
-|---|---|---|---|
-| | | | |
-
-*Not covered — no evidence in current staging material.*
-
-## Local repository references
-
-Prefer durable links/paths to exact commands that may drift. The product repository remains the owner of build/test/run instructions.
-
-- README:
-- Local `CLAUDE.md`:
-- Build/dependency file:
-- Other:
-
-*Not covered — no evidence in current staging material.*
-
-## Operational notes
-
-Record stable operational context such as dashboards, alerts, common failure signals or support boundaries. Do not copy sensitive logs.
-
-*Not covered — no evidence in current staging material.*
-
-## Runbooks
-
-Link relevant curated runbooks.
-
-*Not covered — no evidence in current staging material.*
-
-## Standards
-
-Link standards the component must follow; use `atlas.must-follow` relationships where appropriate.
-
-*Not covered — no evidence in current staging material.*
-
-## Incident learnings
-
-Link reusable incident learnings relevant to this component.
-
-*Not covered — no evidence in current staging material.*
+Add reviewed Mermaid only when it materially clarifies internal structure or boundaries.
 
 ## Evidence
 
-List the evidence supporting material claims. Prefer staging files, repo paths, external references or reviewer-confirmed sources.
-
-- Staging evidence:
-- Repository/code/config evidence:
-- External reference:
-- Reviewer-confirmed source:
-
-*Not covered — no evidence in current staging material.*
-
-## Possible relationships
-
-Keep plausible but unconfirmed relationships separate from reviewed ones.
-
-| Relationship | Why possible | Missing evidence / reviewer question |
-|---|---|---|
-| | | |
-
-*Not covered — no evidence in current staging material.*
+List staging, repository, configuration and reviewer-confirmed sources.
 
 ## Open questions / coverage limits
 
-Be explicit about unknown consumers, producers, flows, infra, owners, contracts or areas not yet investigated.
-
-*Not covered — no evidence in current staging material.*
+| Question ID | Question | Affected IDs | Evidence gap |
+|---|---|---|---|
+| missing-consumer | Which downstream consumer is confirmed? | `comp.<stable-name>` | No consumer evidence reviewed. |

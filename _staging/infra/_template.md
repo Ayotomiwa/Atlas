@@ -1,16 +1,13 @@
 ---
 id: STG-YYYYMMDD-<slug>
-type: atlas.staging.infra
+type: staging.infra
 package: teama
-schema_version: atlas/1.0
 timestamp: YYYY-MM-DD
 title: ""
 description: ""
 status: new
 captured_by: ""
 source_type: ""
-source_links: []
-intended_curated_targets: []
 ---
 
 # Infrastructure evidence: <package or topic>
@@ -24,7 +21,8 @@ Identify the infrastructure package/resource context, why it was inspected and w
 ### Candidate package identity and scope
 
 - Package/module/template name:
-- Package/repository path:
+- Repository:
+- Package path within repository:
 - Primary IaC/service-catalogue template:
 - Metadata/deployment descriptor:
 - Helper/preconfiguration script:
@@ -80,7 +78,7 @@ Do not create separate Atlas concepts merely because a resource exists.
 
 ### Observed resource relationships
 
-Preserve source semantics. Final curated relationships must map to the approved taxonomy rather than inventing new relationship types here.
+Preserve source semantics. Final curated facts use the natural field that matches the observed action, such as `reads_from`, `writes_to`, `triggers` or `scheduled_by`; relationship verbs are not an author taxonomy.
 
 | From resource | Observed relationship/behaviour | To resource/value | Source | State |
 |---|---|---|---|---|
@@ -161,9 +159,9 @@ List only evidence-supported durable targets, for example:
 - related `_curated/flows/...`
 - related `_curated/runbooks/...`
 - related `_curated/incidents/...`
-- curated relationships that will regenerate `infra-dependency-map.json` or other relevant projections
+- curated connection fields that will regenerate `infra-dependency-map.json` or other relevant projections
 
-Do not propose direct edits to generated map JSON as relationship truth.
+Do not propose direct edits to generated map JSON as connection truth.
 
 ## Open questions
 

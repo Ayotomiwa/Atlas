@@ -19,7 +19,7 @@ jobs:
           python-version: '3.11'
       - run: pip install -e .[dev]
       - run: python scripts/atlas_lint.py .
-      - run: python scripts/rebuild_maps.py --check
+      - run: python scripts/rebuild_atlas.py --check
       - run: pytest
 
   freshness:

@@ -6,9 +6,9 @@ allowed-tools: Read, Grep, Glob, Bash, Write, Edit
 
 # implement-jira
 
-1. Resolve the home Atlas package from the product repo's managed `CLAUDE.md` block and Atlas `package.md`.
+1. Resolve the home Atlas package from the product repo's managed `CLAUDE.md` block. When package discovery is needed, read `atlas-package.json`; otherwise route directly by stable ID, map, or index.
 2. Start from `_curated/standards/jira/index.md` and resolve the applicable curated Jira implementation standard.
-3. Follow `atlas.extends` relationships when the selected standard specialises another standard.
+3. Follow `extends` relationships when the selected standard specialises another standard.
 4. Resolve relevant curated component and flow context using Atlas routing.
 5. Read the product repository's own build/test/local-development instructions; those remain repository-owned.
 6. Implement the Jira item in small, reviewable steps.

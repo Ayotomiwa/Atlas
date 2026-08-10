@@ -8,7 +8,7 @@ A runbook should help answer: **when should I use this procedure, what must I ch
 
 ## Trust level
 
-Only `status: curated` runbooks are authoritative Atlas guidance. `draft` runbooks require human review. A runbook being curated does not override live incident command, organisation policy or access controls.
+Only merged `status: curated` runbooks are authoritative Atlas guidance. Claude may author lifecycle metadata in a proposal; human-reviewed merge supplies authority. A curated runbook does not override live incident command, organisation policy or access controls.
 
 ## When to use this area
 
@@ -45,27 +45,25 @@ Use descriptive action/scenario-oriented kebab-case filenames, for example `refe
 
 ## Required frontmatter/type-specific fields
 
-Start from `_template.md`. Use `type: atlas.runbook`, the common curated envelope and:
+Start from `_template.md`. Use `type: runbook`, the common curated envelope and:
 
 ```yaml
-covers: []
-severity_scope: ""
 last_exercised: ""
 ```
 
-`covers` should reference the meaningful concepts/scenarios this procedure operates, not become an unstructured keyword dump.
+Populate `last_exercised` only with a validated `YYYY-MM-DD` date supported by evidence. Scope, environments and exclusions belong in the Scope / applicability section, where their limits can be explained.
 
 ## Relationship guidance
 
-Use only taxonomy-approved relationships.
+Use only page-link types registered in `contracts/map-fields.yaml`.
 
 Typical relationships include:
 
-- `atlas.operated-by` from a component/flow/infra concept to the runbook;
-- `atlas.depends-on` when the procedure requires another governed capability;
-- `atlas.must-follow` for standards constraining recovery behaviour;
-- `atlas.informed-by` when incident learning materially shaped the runbook;
-- `atlas.supersedes` when a runbook replaces an older procedure.
+- `operated-by` from a component/flow/infra concept to the runbook;
+- `depends-on` when the procedure requires another governed capability;
+- `must-follow` for standards constraining recovery behaviour;
+- `informed-by` when incident learning materially shaped the runbook;
+- `supersedes` when a runbook replaces an older procedure.
 
 Do not create operational relationship edges unless the procedure actually applies to the target.
 

@@ -1,10 +1,17 @@
 # Components index
 
-## Route by question
-No TeamA production knowledge is included in this public scaffold.
+## Use this index
 
-| ID | Title | Status | Domain/category | Last reviewed | Page |
+Use this catalogue to route to architectural runtime and reusable units by stable ID and primary domain.
+
+<!-- atlas:generated-catalogue:start -->
+## Catalogue
+
+| ID | Title | Status | Primary domain | Coverage | Page |
 |---|---|---|---|---|---|
+| — | No records | — | — | — | — |
+<!-- atlas:generated-catalogue:end -->
 
 ## Coverage notes
-No real TeamA concepts have been curated yet.
+
+- The generated catalogue includes every non-archived component page; absence is not evidence that a component does not exist.

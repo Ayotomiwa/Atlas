@@ -1,151 +1,147 @@
 ---
 id: STG-YYYYMMDD-<slug>
-type: atlas.staging.component
+type: staging.component
 package: teama
-schema_version: atlas/1.0
 timestamp: YYYY-MM-DD
 title: ""
 description: ""
 status: new
 captured_by: ""
 source_type: ""
-source_links: []
-intended_curated_targets: []
 ---
 
-# Component evidence: <component or repository>
+# Repository and component discovery: <repository or service>
 
-> Capture attributable discovery, not a polished component page. Keep observed/user-confirmed facts separate from possible relationships and do not create linked evidence files solely to make this record look complete.
+> Capture attributable evidence, not a polished architecture page. One record should preserve the repository scan and every candidate component that curation may later split.
 
 ## Summary
 
-Describe why this evidence was captured, which component/repository it concerns, and the investigation boundary.
+Explain why the scan was performed and what was found at a high level.
 
-### Component identity and location
+## Discovery boundary
 
-- Component name:
-- Observed type/scope:
-- Repository:
-- Monorepo path:
-- Main README / local `CLAUDE.md`:
-- Build/dependency file:
-- Important source/config/schema paths:
+- Accessible repository/checkout:
+- Revision, branch or snapshot inspected:
+- Paths included:
+- Paths excluded or inaccessible:
+- Related repositories or documentation not inspected:
+- User-confirmed boundary statements:
 
-### Responsibility / boundary
+## Repository evidence
 
-State the directly observed or user-confirmed responsibility. Record unclear boundaries under `What is possible / unconfirmed` or `Open questions`.
+### Identity, ownership and domain
 
-## Evidence
+| Attribute | Observed value | Evidence | State |
+|---|---|---|---|
+| Repository name | | | observed/user-confirmed |
+| Mutable locator or URL | | | observed/user-confirmed |
+| Repository type | standard/monorepo/nested/mirror/other/unknown | | observed/user-confirmed |
+| Default branch | | | observed/user-confirmed |
+| Owner or SME | | | observed/user-confirmed/unknown |
+| Candidate primary domain | | | observed/user-confirmed/possible |
+| Related domains | | | observed/user-confirmed/possible |
 
-List attributable sources. Prefer exact paths and references.
+### Repository topology and source dependencies
 
-- Repository/path:
-- README/docs:
-- Build/dependency metadata:
-- Code/config path:
-- Schema/API/event/data-contract path:
-- Infra/template path:
-- Scheduler/workflow definition:
-- Runbook/operational reference:
-- Jira/Confluence/other authorised reference:
-- Engineer/user-confirmed statement:
-- Other:
+| Repository or source boundary | Relationship | Path/locator | Why it matters | Evidence | State |
+|---|---|---|---|---|---|
+| | parent/nested/submodule/generated-source/shared-tooling/shared-config/build/other | | | | observed/user-confirmed |
 
-## What is known
+Keep repository-level source/build dependencies separate from runtime component dependencies.
 
-Record only observed or explicitly user-confirmed facts.
+### Important source roots
 
-### Internal units
+| Source root | Responsibility | Important entrypoints | Candidate component(s) | Evidence | State |
+|---|---|---|---|---|---|
+| | | | | | observed/user-confirmed |
 
-Use this for lower-level artefacts that belong inside the component rather than automatically creating first-class component records.
+### Source-owned guidance
 
-| Unit | Type | Purpose/role | Path | Source | State |
+| Purpose | Durable repository reference | Evidence/state |
+|---|---|---|
+| Setup/local development | | |
+| Build/dependencies | | |
+| Tests | | |
+| Deployment/release | | |
+| Local agent instructions | | |
+
+## Candidate components
+
+| Candidate | Suggested type | Responsibility | Independent boundary evidence | Parent candidate | Source roots | Candidate domain | State |
+|---|---|---|---|---|---|---|---|
+| | service/job/etl-job/lambda/api/shared-library/batch/other/unknown | | | | | | observed/user-confirmed/possible |
+
+Folders, domains, repositories and job groups are not components by default. Record internal modules below when they do not merit stable identity.
+
+### Internal modules that are not component candidates
+
+| Candidate component | Unit | Type | Purpose | Path | Evidence | State |
+|---|---|---|---|---|---|---|
+| | | | | | | observed/user-confirmed |
+
+## Detailed architectural evidence
+
+### Entrypoints and implementation behavior
+
+| Candidate component | Entrypoint/path | Trigger or caller | Concise control-flow responsibility | Evidence | State |
 |---|---|---|---|---|---|
 | | | | | | observed/user-confirmed |
 
 ### Consumes
 
-| Kind | Name/target | From/source | Evidence | State |
-|---|---|---|---|---|
-| api/event/table/file/config/library/job-output/other | | | | observed/user-confirmed |
+| Candidate component | Asset type | ID/name | From/source | Evidence | State |
+|---|---|---|---|---|---|
+| | api/event/table/file/schema/dataset/config/job-output/other | | | | observed/user-confirmed |
 
 ### Produces
 
-| Kind | Name/target | Known consumer/use | Evidence | State |
+| Candidate component | Asset type | ID/name | Known consumer/use | Evidence | State |
+|---|---|---|---|---|---|
+| | api/event/table/file/schema/dataset/job-output/other | | | | observed/user-confirmed |
+
+### Runtime and code dependencies
+
+| Candidate component | Dependency ID/name | Dependency type | Why required | Evidence | State |
+|---|---|---|---|---|---|
+| | | component/shared-library/schema-library/configuration/build-tooling/service/api/other/unknown | | | observed/user-confirmed |
+
+### Infrastructure interactions
+
+| Candidate component | Package/resource ID/name | Natural action | Why material | Evidence | State |
+|---|---|---|---|---|---|
+| | | uses/reads from/writes to/triggers/scheduled by/deployed by/monitored by | | | observed/user-confirmed |
+
+### Configuration, deployment, failures and operations
+
+| Candidate component | Concern | Finding or route | Evidence | State |
 |---|---|---|---|---|
-| api/event/table/file/log/alert/job-output/other | | | | observed/user-confirmed |
+| | configuration/deployment/failure-mode/signal/monitoring/support/runbook | | | observed/user-confirmed |
 
 ### Related flows
 
-| Flow/candidate flow | Role in flow | Evidence | State |
-|---|---|---|---|
-| | | | observed/user-confirmed |
+| Candidate component | Flow/candidate flow | Role or step | Evidence | State |
+|---|---|---|---|---|
+| | | | | observed/user-confirmed |
 
-Do not manufacture a complete flow from one component's local evidence. Stage `_staging/flows/` only when an end-to-end boundary is supported.
-
-### Related infrastructure
-
-| Package/resource | Relationship to component | Evidence | State |
-|---|---|---|---|
-| | | | observed/user-confirmed |
-
-### Local repository references
-
-Prefer durable references over copied commands that may drift.
-
-- Local README/build guidance:
-- Test guidance:
-- Runtime/deployment guidance:
-- Other stable reference:
-
-### Operational notes
-
-Capture stable evidence such as monitoring references, alerts, common failure signals or support boundaries. Do not copy sensitive logs.
-
-- 
-
-### Runbooks, standards and incident learnings
-
-- Runbook evidence/reference:
-- Standard/convention evidence/reference:
-- Incident/near-miss learning reference:
-
-### Other known findings
-
-| Finding | Source | State (`observed` / `user-confirmed`) |
-|---|---|---|
-| | | |
+Do not manufacture an end-to-end flow from one local call chain. Stage `_staging/flows/` only when a full boundary and ordering are supported.
 
 ## What is possible / unconfirmed
 
-Keep inference visibly separate from known facts.
-
-| Possible finding/relationship | Why plausible | Evidence needed |
-|---|---|---|
-| | | |
-
-Examples include a suspected consumer, possible flow participation, likely infra relationship or inferred responsibility boundary. Do not convert these into authoritative relationships.
+| Candidate/repository | Possible finding or connection | Why plausible | Evidence needed |
+|---|---|---|---|
+| | | | |
 
 ## Suggested curated targets
 
-List only targets supported by the evidence, for example:
-
-- `_curated/components/...`
-- related `_curated/flows/...`
-- related `_curated/infra/...`
-- related `_curated/schema-info/...`
-- related `_curated/runbooks/...`
-- related `_curated/standards/...`
-- related `_curated/incidents/...`
-- relationship updates that will regenerate the appropriate maps
+- `_curated/repositories/<primary-domain>/...`
+- `_curated/components/<primary-domain>/...`
+- Any evidenced related flow, infrastructure, schema, runbook, standard or incident target.
 
 ## Open questions
 
-- What responsibility or boundary still needs confirmation?
-- Which inputs/outputs or consumers/producers are uncertain?
-- Which internal units are operationally meaningful versus implementation detail?
-- Is a related flow boundary actually evidenced?
-- Is relevant infrastructure in another supplied location?
-- Which operational references or failure signals are missing?
-- Which standard-looking patterns are team policy versus repo-local/tool defaults?
-- What context is inaccessible or uninvestigated?
+- Which repository boundary, primary domain or owner still needs confirmation?
+- Which candidates are independently addressable components rather than folders or internal modules?
+- Which component parent relationships represent real architectural composition?
+- Which I/O, runtime dependencies or infrastructure actions remain possible rather than known?
+- Which related repository, infrastructure or documentation source is inaccessible?
+- Can the repository be curated safely while one or more component candidates remain deferred?

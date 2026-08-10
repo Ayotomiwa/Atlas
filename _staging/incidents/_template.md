@@ -1,22 +1,13 @@
 ---
 id: STG-YYYYMMDD-<slug>
-type: atlas.staging.incident
+type: staging.incident
 package: teama
-schema_version: atlas/1.0
 timestamp: YYYY-MM-DD
 title: ""
 description: ""
 status: new
 captured_by: ""
 source_type: ""
-source_links: []
-intended_curated_targets: []
-incident_type: unknown
-severity: unknown
-occurred_at: ""
-related_flows: []
-related_components: []
-related_infra: []
 ---
 
 # Incident evidence: <sanitised incident / near miss / exercise>
@@ -60,6 +51,18 @@ Record only the minimal timeline points needed to understand impact, detection, 
 | Signal/observation | What it revealed | Evidence | State |
 |---|---|---|---|
 | | | | observed/user-confirmed |
+
+### Diagnostic aids
+
+| Signal/query/dashboard/log pattern | How it helped | Limitations | Evidence |
+|---|---|---|---|
+| | | | |
+
+### Discovery friction / missing context
+
+| Missing or hard-to-find context | Effect on diagnosis/recovery | Where it should live | Evidence |
+|---|---|---|---|
+| | | | |
 
 ### Confirmed cause
 
@@ -105,7 +108,7 @@ Keep suspected cause, possible blast radius and uncertain dependencies here unti
 - `_curated/components/...`
 - `_curated/infra/...`
 - `_curated/standards/...`
-- relationship updates that regenerate maps
+- connection-field updates that regenerate maps
 
 ## Open questions
 

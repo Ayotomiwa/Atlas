@@ -1,0 +1,26 @@
+schema_version: atlas-concept-fields/1.0
+repository:
+  repository_type: [standard, monorepo, nested, mirror, other, unknown]
+  dependency_type: [submodule, generated-source, shared-tooling, shared-config, build, other, unknown]
+
+component:
+  component_type: [service, job, etl-job, kafka-consumer, kafka-producer, lambda, api, shared-library, infra-module, batch, other, unknown]
+  dependency_type: [component, shared-library, schema-library, configuration, build-tooling, service, api, other, unknown]
+
+flow:
+  entry_point_type: [event, schedule, file, api, manual, upstream-flow, other]
+  participant_type: [component, infra, infra-resource, external-system, manual, unknown]
+  transition_type: [success, failure, conditional, retry, always]
+
+infrastructure:
+  resource_type: [s3-bucket, s3-prefix, glue-database, glue-table, glue-job, glue-crawler, glue-workflow, glue-trigger, redshift-cluster, redshift-database, redshift-schema, redshift-table, redshift-view, athena-database, athena-table, dynamodb-table, sqs-queue, sns-topic, eventbridge-rule, eventbridge-bus, step-function, lambda, iam-role, iam-policy, kms-key, secret, ssm-parameter, lake-formation-permission, security-group, cloudwatch-alarm, dashboard, service-catalogue-template, other]
+  dependency_type: [package, resource, deployment, configuration, permission, monitoring, other, unknown]
+
+schema:
+  temporal_model: [append-only, mutable-current-state, snapshot, versioned, event-stream, slowly-changing, not-applicable, other, unknown]
+
+standard:
+  requirement_level: [required, recommended, mixed, unknown]
+
+shared:
+  asset_type: [api, event, table, view, file, schema, dataset, config, job-output, component, infra, infra-resource, other, unknown]

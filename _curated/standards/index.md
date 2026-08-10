@@ -1,8 +1,8 @@
 # Standards index
 
-## Route by question
+## Use this index
 
-Choose the primary category that best matches the question. A standard remains `type: atlas.standard`; categories are navigation only.
+Choose the primary category that best matches the question. A standard remains `type: standard`; categories are navigation only.
 
 ## Category indexes
 
@@ -18,7 +18,7 @@ Choose the primary category that best matches the question. A standard remains `
 
 ## Catalogue
 
-| ID | Title | Status | Domain/category | Last reviewed | Page |
+| ID | Title | Status | Routing context | Last reviewed | Page |
 |---|---|---|---|---|---|
 
 The parent catalogue is intentionally empty until real TeamA standards are curated; category indexes are the primary routing surface.

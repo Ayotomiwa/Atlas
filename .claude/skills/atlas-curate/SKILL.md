@@ -23,22 +23,22 @@ A status transition on a branch is proposed workflow state. It becomes durable q
 
 1. Identify the source staging bucket and preserve its bucket-specific structure rather than flattening evidence into generic prose.
 2. Read that staging bucket's `README.md` and `_template.md` whenever local capture semantics matter.
-3. Read `taxonomy/types.yaml`, `taxonomy/relationships.yaml`, and `taxonomy/statuses.yaml`.
-4. Resolve the target curated area.
+3. Read `atlas-package.json`, the registered taxonomy, and `contracts/map-fields.yaml` when controlled domains, classifications, structured map inputs or promoted resources are involved. Use the natural field for the connection and its specific qualifier when needed, such as `dependency_type`, `asset_type`, `entry_point_type`, or `resource_type`.
+4. Resolve the target curated area from the staging record's own `## Suggested curated targets` section (curation destinations are not carried as a separate frontmatter field). If curating a batch of eligible records in one pass, scan each record's `## Suggested curated targets` section to group related evidence and route work efficiently. If the user explicitly states which curated area a record should go to, that stated target takes precedence over the record's suggestion, but the chosen target still must be validated against the target README's granularity rules before use.
 5. Read the target folder `README.md` for semantic, granularity, evidence, relationship and reviewer rules.
 6. Read the target `_template.md` for exact page shape and `index.md` for existing routable content.
 7. For standards, also read `taxonomy/standard-categories.yaml` and the target category index.
 8. Search existing concept pages by ID, alias, repository path and semantic match before creating anything new.
 9. Choose exactly one curation decision per target: `CREATE`, `UPDATE`, `DEFER`, `REJECT`, or `CONFLICT`.
 10. On a material conflict, stop automatic reconciliation and surface it for human resolution.
-11. Create or update curated knowledge according to the local README/template; preserve evidence, domain-specific detail and uncertainty.
-12. Propose only taxonomy-approved relationships. Resolve reviewed local targets to real curated IDs; do not silently upgrade possible claims to reviewed edges.
+11. Create or update curated knowledge according to the local README/template; preserve evidence, domain-specific detail and uncertainty. Curating `staging.component` evidence may produce one `repo.*` page and multiple `comp.*` pages. Ask the user when the evidenced primary domain is uncertain.
+12. Author each map-bound fact in its natural typed field. Use `id` for a stable local target and `name` for an external target; never repeat a generic relationship value. Architecture pages route `runbooks`, `standards`, and `incident_learnings` directly. Resolve reviewed local targets to real curated page or embedded `resource.*` IDs; do not silently upgrade possible claims. Flow steps are the sole participation source.
 13. Use `*Not covered — no evidence in current staging material.*` in required sections where evidence is absent.
 14. Claude-created/updated curated pages should use `status: curated` directly.
-15. Update the relevant concept/category index.
-16. Run `python scripts/rebuild_maps.py`; never hand-edit `_curated/maps/*.json`.
+15. Do not hand-edit generated catalogue rows or managed page blocks.
+16. Run `python scripts/rebuild_atlas.py`; never hand-edit generated JSON below `_curated/maps/` or generated Markdown blocks.
 17. Update `_curated/status/curation-status.md` only as a compact latest checkpoint; never append a per-record history ledger.
-18. Run `python scripts/atlas_lint.py .`, `python scripts/rebuild_maps.py --check`, and tests relevant to the change.
+18. Run `python scripts/atlas_lint.py .`, `python scripts/rebuild_atlas.py --check`, and tests relevant to the change unless the user has explicitly deferred validation for the current iteration.
 
 ## 3. Staging outcome
 
@@ -57,8 +57,8 @@ Do not create a `reviews/` Markdown record. The Atlas PR/MR itself should carry 
 
 - staging record(s) consumed;
 - curation outcome per record/target;
-- curated pages/indexes changed;
-- relationships proposed and relationship confidence;
+- curated pages and generated catalogues changed;
+- structured connections/links proposed and confidence;
 - material claims not promoted and why;
 - open questions/conflicts;
 - generated map changes;

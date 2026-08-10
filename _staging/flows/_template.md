@@ -1,16 +1,13 @@
 ---
 id: STG-YYYYMMDD-<slug>
-type: atlas.staging.flow
+type: staging.flow
 package: teama
-schema_version: atlas/1.0
 timestamp: YYYY-MM-DD
 title: ""
 description: ""
 status: new
 captured_by: ""
 source_type: ""
-source_links: []
-intended_curated_targets: []
 ---
 
 # Flow evidence: <flow or candidate flow>
@@ -54,31 +51,27 @@ Record only **observed** or **user-confirmed** findings below.
 
 | Trigger/source | Kind | Target/first step | Evidence | State |
 |---|---|---|---|---|
-| | schedule/event/api/file/upstream/manual/other | | | observed/user-confirmed |
+| | event/schedule/file/api/manual/other | | | observed/user-confirmed |
+
+Represent an upstream completion by its evidenced signal (usually `event`) and name the upstream source; do not invent a separate compiled kind.
 
 ### End-to-end steps
 
-Record the meaningful sequence. A step can cross a repository, scheduler, infrastructure or data boundary.
+Record the meaningful sequence. The step table is the sole participant capture surface; do not add a second participant roster.
 
-| Step | Activity / hand-off | Component/job/resource/system | Input | Output | Evidence | State |
-|---|---|---|---|---|---|---|
-| 1 | | | | | | observed/user-confirmed |
+| Order | Candidate step ID | Activity / hand-off | Participant name | Participant type | Known Atlas ID | Role | Material receives | Material emits | Transition/condition | Evidence | State |
+|---:|---|---|---|---|---|---|---|---|---|---|---|
+| 10 | | | | component/infra/infra-resource/external-system/manual/unknown | | | | | | | observed/user-confirmed |
 
 Do not add a missing step merely because it would make the sequence easier to explain.
 
-### Participating components / jobs
+### Boundary inputs, outputs and material hand-offs
 
-| Participant | Type | Role in flow | Repository/path if known | Evidence | State |
-|---|---|---|---|---|---|
-| | component/job/external-system/other | | | | observed/user-confirmed |
-
-### Inputs, outputs and hand-offs
-
-Capture the contracts that connect material steps.
+Capture whole-flow boundary contracts here. Step-local durable hand-offs belong on the applicable step above and should not be duplicated.
 
 | Kind | Name/contract | Producer/source | Consumer/destination | Ordering/trigger if known | Evidence |
 |---|---|---|---|---|---|
-| api/event/table/file/schema/job-output/config/other | | | | | |
+| api/event/table/file/schema/dataset/job-output/other | | | | | |
 
 ### Upstream dependencies
 
@@ -100,7 +93,7 @@ Capture the contracts that connect material steps.
 
 ### Infrastructure used by the path
 
-Record only infrastructure material to understanding execution, routing, orchestration or failure. Detailed package/resource discovery belongs in `_staging/infra/`.
+Record only infrastructure material to understanding execution, routing, orchestration or failure. Use action-specific observed wording such as uses, reads, writes, schedules or monitors. Detailed package/resource discovery belongs in `_staging/infra/`.
 
 | Infra/package/resource | Role in flow | Participant/step using it | Evidence |
 |---|---|---|---|
@@ -118,7 +111,7 @@ This section captures evidence about the flow; it is not a substitute for a revi
 
 Keep plausible but unsupported sequencing, dependencies, consumers and blast-radius implications here.
 
-| Possible step/relationship/impact | Why plausible | Evidence needed to confirm |
+| Possible step/connection/impact | Why plausible | Evidence needed to confirm |
 |---|---|---|
 | | | |
 
@@ -128,13 +121,13 @@ Examples include an inferred downstream consumer, an assumed scheduler dependenc
 
 List only evidence-supported durable targets, for example:
 
-- `_curated/flows/...`
-- related `_curated/components/...`
-- related `_curated/infra/...`
-- related `_curated/schema-info/...`
+- `_curated/flows/<primary-domain>/...`
+- related `_curated/components/<primary-domain>/...`
+- related `_curated/infra/<primary-domain>/...`
+- related `_curated/schema-info/<primary-domain>/...`
 - related `_curated/runbooks/...`
 - related `_curated/incidents/...`
-- curated relationship updates that will regenerate the appropriate maps
+- curated connection fields that will regenerate the appropriate maps
 
 Do not propose direct edits to generated map JSON as the source of truth.
 

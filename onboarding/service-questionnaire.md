@@ -2,7 +2,10 @@
 
 Ask only material gaps and consolidate the first clarification round. Prioritise:
 
-- What responsibility does this service own if code/docs do not establish it clearly?
+- What is the actual repository boundary, and is it a monorepo, nested repository or ordinary repository?
+- Which primary domain owns the repository and each candidate component? Ask rather than infer when several are plausible.
+- Which source roots represent independently addressable components, and which are only folders or internal modules?
+- What responsibility and operational boundary makes each candidate component independently useful?
 - Where is the authoritative infrastructure definition if it is not in this repository?
 - Which upstream/downstream systems are known but not provable from the accessible code?
 - What end-to-end flow boundary/name should be used when several paths are plausible?

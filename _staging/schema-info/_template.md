@@ -1,22 +1,13 @@
 ---
 id: STG-YYYYMMDD-<slug>
-type: atlas.staging.schema-info
+type: staging.schema-info
 package: teama
-schema_version: atlas/1.0
 timestamp: YYYY-MM-DD
 title: ""
 description: ""
 status: new
 captured_by: ""
 source_type: ""
-source_links: []
-intended_curated_targets: []
-asset_name: ""
-asset_kind: unknown
-repository: ""
-source_path: ""
-platform: ""
-classification: unknown
 ---
 
 # Schema evidence: <asset or contract>
@@ -30,7 +21,7 @@ Describe what contract/asset was investigated, where it was found and why the ev
 | Item | Observed value | Source |
 |---|---|---|
 | Physical name/topic/path/endpoint | | |
-| Asset kind | | |
+| Asset type | | |
 | Platform/system | | |
 | Repository/schema path | | |
 
@@ -57,11 +48,17 @@ Capture only observed or explicitly user-confirmed facts.
 | Business key candidate | | | |
 | Temporal/latest-record behaviour | | | |
 
-### Important fields / compatibility / quality
+### Important fields / quality
 
 | Field or rule | Observed meaning/constraint | Source | State |
 |---|---|---|---|
 | | | | |
+
+### Compatibility / versioning
+
+| Version/change | Observed compatibility or breaking risk | Migration/consumer evidence | State |
+|---|---|---|---|
+| | | | observed/user-confirmed |
 
 ### Known producers and consumers
 

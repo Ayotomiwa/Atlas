@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import json
 import yaml
 
 
@@ -11,20 +12,52 @@ def load_yaml(path: str | Path):
 
 def load_taxonomy(root: str | Path) -> dict:
     root = Path(root)
-    return {
-        "types": load_yaml(root / "taxonomy" / "types.yaml"),
-        "relationships": load_yaml(root / "taxonomy" / "relationships.yaml"),
-        "statuses": load_yaml(root / "taxonomy" / "statuses.yaml"),
-        "categories": load_yaml(root / "taxonomy" / "standard-categories.yaml"),
+    manifest_path = root / "atlas-package.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    registered = manifest.get("taxonomy") or {}
+    required = {
+        "types": "types",
+        "statuses": "statuses",
+        "standard_categories": "categories",
+        "concept_fields": "concept_fields",
     }
+    missing = sorted(set(required) - set(registered))
+    if missing:
+        raise TaxonomyError(
+            "atlas-package.json: missing taxonomy paths for " + ", ".join(missing)
+        )
+    loaded: dict[str, object] = {}
+    for manifest_key, result_key in required.items():
+        relative = Path(registered[manifest_key])
+        if relative.is_absolute() or ".." in relative.parts:
+            raise TaxonomyError(
+                f"atlas-package.json: taxonomy path {manifest_key} must be package-relative"
+            )
+        loaded[result_key] = load_yaml(root / relative)
+    return loaded
 
 
-def relationship_names(relationships_yaml: dict) -> set[str]:
-    """Support both the concise spec examples and enriched real taxonomy entries."""
-    names: set[str] = set()
-    for item in relationships_yaml.get("relationships") or []:
-        if isinstance(item, str):
-            names.add(item)
-        elif isinstance(item, dict) and isinstance(item.get("name"), str):
-            names.add(item["name"])
-    return names
+def load_contracts(root: str | Path) -> dict:
+    root = Path(root)
+    manifest_path = root / "atlas-package.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    registered = manifest.get("contracts") or {}
+    required = {"map_fields": "map_fields"}
+    missing = sorted(set(required) - set(registered))
+    if missing:
+        raise TaxonomyError(
+            "atlas-package.json: missing contract paths for " + ", ".join(missing)
+        )
+    loaded: dict[str, object] = {}
+    for manifest_key, result_key in required.items():
+        relative = Path(registered[manifest_key])
+        if relative.is_absolute() or ".." in relative.parts:
+            raise TaxonomyError(
+                f"atlas-package.json: contract path {manifest_key} must be package-relative"
+            )
+        loaded[result_key] = load_yaml(root / relative)
+    return loaded
+
+
+class TaxonomyError(ValueError):
+    """Raised when a taxonomy contract references something it does not define."""

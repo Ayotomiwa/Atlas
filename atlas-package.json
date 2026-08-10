@@ -1,0 +1,51 @@
+{
+  "schema_version": "atlas-package/1.0",
+  "id": "package.teama",
+  "type": "package",
+  "package": "teama",
+  "title": "TeamA Atlas",
+  "description": "Governed engineering context for TeamA humans and AI agents.",
+  "status": "active",
+  "governed_branch": "main",
+  "owners": {
+    "team": "team-a-engineering",
+    "maintainers": []
+  },
+  "aliases": [
+    "teama",
+    "team-a",
+    "team a"
+  ],
+  "domains": [],
+  "entrypoints": {
+    "root": "index.md",
+    "curated": "_curated/index.md",
+    "staging": "_staging/index.md",
+    "repositories": "_curated/repositories/index.md",
+    "components": "_curated/components/index.md",
+    "flows": "_curated/flows/index.md",
+    "infra": "_curated/infra/index.md",
+    "schema_info": "_curated/schema-info/index.md",
+    "business_concepts": "_curated/business-concepts/index.md",
+    "standards": "_curated/standards/index.md",
+    "runbooks": "_curated/runbooks/index.md",
+    "incidents": "_curated/incidents/index.md",
+    "maps": "_curated/maps/index.md",
+    "status": "_curated/status/curation-status.md",
+    "onboarding": "onboarding/index.md"
+  },
+  "maps": {
+    "flow_component": "_curated/maps/flow-component/flow-component-map.json",
+    "repository_component": "_curated/maps/repository-component/repository-component-map.json",
+    "infra_dependency": "_curated/maps/infra-dependency/infra-dependency-map.json"
+  },
+  "taxonomy": {
+    "types": "taxonomy/types.yaml",
+    "statuses": "taxonomy/statuses.yaml",
+    "standard_categories": "taxonomy/standard-categories.yaml",
+    "concept_fields": "taxonomy/concept-fields.yaml"
+  },
+  "contracts": {
+    "map_fields": "contracts/map-fields.yaml"
+  }
+}

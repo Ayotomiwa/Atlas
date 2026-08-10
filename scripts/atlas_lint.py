@@ -5,47 +5,23 @@ from pathlib import Path
 import argparse
 import datetime as dt
 import json
-import os
 import re
-import subprocess
 import sys
-from typing import Iterable
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from scripts.lib.frontmatter import parse_frontmatter
+from scripts.lib.generated import build_index_outputs, build_page_view_outputs, generated_index_candidates
 from scripts.lib.ids import valid_curated_id, valid_staging_id
-from scripts.lib.links import broken_links, links_to
-from scripts.lib.maps import MapBuildError, build_maps, stable_bytes
-from scripts.lib.taxonomy import load_taxonomy, relationship_names
+from scripts.lib.links import broken_links
+from scripts.lib.maps import MapBuildError, build_maps, load_package_config, map_output_paths, stable_bytes
+from scripts.lib.taxonomy import load_taxonomy
 
-NOT_COVERED = "*Not covered — no evidence in current staging material.*"
-KINDS = {
-    "event",
-    "api",
-    "table",
-    "file",
-    "component",
-    "shared-library",
-    "schema-library",
-    "config",
-    "job-output",
-    "infra",
-    "other",
-}
-EXEMPT_NAMES = {
-    "README.md",
-    "index.md",
-    "_template.md",
-    "CLAUDE.md",
-    "log.md",
-    "service-questionnaire.md",
-    "standards-questionnaire.md",
-    "local-CLAUDE.template.md",
-    "curation-status.md",
-}
+
 SKIP_DIRS = {".git", ".pytest_cache", "__pycache__", ".venv", "node_modules", "target", "build"}
+EXEMPT_NAMES = {"README.md", "index.md", "_template.md", "curation-status.md"}
+TEXT_EXTENSIONS = {".md", ".yaml", ".yml", ".json", ".py", ".toml", ".txt", ".properties"}
 SECRET_PATTERNS = (
     re.compile(r"AKIA[0-9A-Z]{16}"),
     re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
@@ -53,72 +29,61 @@ SECRET_PATTERNS = (
         r"(?i)(?:api[_-]?key|client[_-]?secret|access[_-]?token|password)\s*[:=]\s*[\"']?[A-Za-z0-9_./+=\-]{20,}"
     ),
 )
-TEXT_EXTENSIONS = {".md", ".yaml", ".yml", ".json", ".py", ".toml", ".txt", ".properties"}
-STATUS_LINE = re.compile(r"(?m)^status:\s*[^\n]*$")
+QUESTION_HEADER = "| Question ID | Question | Affected IDs | Evidence gap |"
 
 REQUIRED_SECTIONS = {
-    "atlas.component": [
+    "repository": [
+        "Summary and boundary",
+        "Source topology",
+        "Code architecture summary",
+        "Architecture routes",
+        "Source-owned guidance",
+        "Ownership and operational context",
+        "Evidence",
+        "Open questions / coverage limits",
+    ],
+    "component": [
         "Summary",
-        "Responsibility",
-        "Location",
+        "Responsibility and boundary",
+        "Source location and entrypoints",
+        "Code architecture summary",
+        "Structured routing",
         "Internal units",
-        "Consumes",
-        "Produces",
-        "Flows",
-        "Infrastructure",
-        "Local repository references",
-        "Operational notes",
-        "Runbooks",
-        "Standards",
-        "Incident learnings",
+        "Configuration and deployment context",
+        "Failure and operational context",
+        "Diagram",
         "Evidence",
-        "Possible relationships",
         "Open questions / coverage limits",
     ],
-    "atlas.flow": [
-        "Summary",
-        "Purpose and boundary",
-        "Entry point",
+    "flow": [
+        "Summary and boundary",
+        "Entry points and boundary I/O",
         "End-to-end steps",
-        "Participating components",
-        "Inputs and outputs",
-        "Upstream dependencies",
-        "Downstream consumers",
-        "Jobs and schedules",
-        "Infrastructure",
-        "Failure modes",
-        "Runbooks",
-        "Incident learnings",
-        "Standards",
+        "Diagram",
+        "Failure and conditional paths",
+        "Infrastructure and operational routes",
         "Evidence",
-        "Possible relationships",
         "Open questions / coverage limits",
     ],
-    "atlas.infra": [
-        "Summary",
-        "Package location and structure",
-        "Environment notes",
-        "Internal resources",
-        "Promoted resources and promotion reason",
-        "Resource relationships",
-        "Components using resources",
-        "Flows using resources",
-        "Parameters/imports/exports",
-        "Schedules/triggers/events",
-        "Permissions and roles",
-        "Monitoring",
-        "Impact if changed or deleted",
+    "infra": [
+        "Summary and boundary",
+        "Package location and environment structure",
+        "Structured infrastructure routing",
+        "Ordinary resources",
+        "Promoted-resource rationale",
+        "Permissions, monitoring and operational context",
+        "Impact context",
         "Evidence",
-        "Possible relationships",
         "Open questions / coverage limits",
     ],
-    "atlas.schema-info": [
+    "schema-info": [
         "Summary",
         "Business meaning",
         "Physical identity",
         "Grain",
         "Keys",
         "Temporal model",
+        "Compatibility / versioning",
         "Important fields",
         "Producers",
         "Consumers",
@@ -128,55 +93,39 @@ REQUIRED_SECTIONS = {
         "Evidence",
         "Open questions / coverage limits",
     ],
-    "atlas.business-concept": [
-        "Definition",
-        "Boundaries",
-        "Examples",
-        "Non-examples",
-        "Related data assets",
-        "Standards",
-        "Evidence",
-        "Open questions / coverage limits",
-    ],
-    "atlas.standard": [
-        "Standard",
-        "Scope",
-        "Rationale",
-        "Required behaviour",
-        "Recommended behaviour",
-        "Examples",
-        "Anti-patterns",
-        "Exceptions",
-        "Related standards",
-        "Evidence",
-        "Open questions / coverage limits",
-    ],
-    "atlas.runbook": [
-        "Purpose",
-        "Trigger / symptom",
-        "Prerequisites",
-        "Safety",
-        "Investigation",
-        "Recovery",
-        "Validation",
-        "Rollback",
-        "Escalation",
-        "Monitoring",
-        "Evidence",
-        "Open questions / coverage limits",
-    ],
-    "atlas.incident-learning": [
-        "Sanitised summary",
-        "Impact",
-        "Cause",
-        "Detection",
-        "Recovery",
-        "Reusable learning",
-        "Runbook / standard gaps",
-        "Evidence",
-        "Sensitive-data note",
-        "Open questions / coverage limits",
-    ],
+}
+
+RETIRED_COMMON = {"relationships", "open_questions"}
+STAGING_ENVELOPE = {
+    "id",
+    "type",
+    "package",
+    "timestamp",
+    "title",
+    "description",
+    "status",
+    "captured_by",
+    "source_type",
+}
+RETIRED_FIELDS = {
+    "repository": {"repository_url", "repository_kind", "source_dependencies", "links"},
+    "component": {
+        "component_scope",
+        "domain_group",
+        "monorepo_path",
+        "deployed_as",
+        "contains_internal_units",
+        "dependencies",
+        "infrastructure_usage",
+        "links",
+    },
+    "flow": {"trigger", "schedule", "entry_component", "exit_component", "infrastructure_usage", "links"},
+    "infra": {"resource_names", "dependencies", "links"},
+    "schema-info": {"asset_kind"},
+    "business-concept": {"approved_definition", "inclusion_criteria", "exclusion_criteria", "approved_variants"},
+    "standard": {"applies_to", "mandatory", "scope", "exceptions"},
+    "runbook": {"covers", "severity_scope"},
+    "incident-learning": {"severity", "resolved"},
 }
 
 
@@ -188,25 +137,7 @@ def _is_skipped(rel: Path) -> bool:
     return any(part in SKIP_DIRS for part in rel.parts) or rel.parts[:3] == ("tests", "fixtures", "invalid")
 
 
-def _is_governed(rel: Path) -> bool:
-    if rel == Path("package.md"):
-        return True
-    if rel.name in EXEMPT_NAMES:
-        return False
-    if rel.parts and rel.parts[0] == "_curated":
-        return "maps" not in rel.parts and "status" not in rel.parts
-    if rel.parts and rel.parts[0] == "_staging":
-        return True
-    return False
-
-
-def _folder_allowed(rel: Path, spec: dict) -> bool:
-    folder = spec.get("folder")
-    if folder == "**":
-        return True
-    if folder == ".":
-        file_name = spec.get("file")
-        return rel.parent == Path(".") and (not file_name or rel.name == file_name)
+def _folder_allowed(rel: Path, folder: str) -> bool:
     try:
         rel.relative_to(Path(folder))
         return True
@@ -214,31 +145,8 @@ def _folder_allowed(rel: Path, spec: dict) -> bool:
         return False
 
 
-def _headings(body: str) -> dict[str, str]:
-    matches = list(re.finditer(r"^##\s+(.+?)\s*$", body, re.MULTILINE))
-    out: dict[str, str] = {}
-    for index, match in enumerate(matches):
-        start = match.end()
-        end = matches[index + 1].start() if index + 1 < len(matches) else len(body)
-        out[match.group(1).strip()] = body[start:end].strip()
-    return out
-
-
-def _local_evidence_paths(fm: dict) -> Iterable[str]:
-    values: list[object] = list(fm.get("evidence") or [])
-    for rel in fm.get("relationships") or []:
-        if isinstance(rel, dict):
-            values.extend(rel.get("evidence") or [])
-    local_prefixes = ("_staging/", "_curated/", "onboarding/", "taxonomy/")
-    for value in values:
-        if isinstance(value, str) and value.startswith(local_prefixes):
-            yield value.split("#", 1)[0]
-
-
 def _parse_iso_date(value: object) -> dt.date | None:
-    if isinstance(value, dt.date):
-        return value
-    if not isinstance(value, str) or not value:
+    if not isinstance(value, str):
         return None
     try:
         return dt.date.fromisoformat(value)
@@ -246,130 +154,62 @@ def _parse_iso_date(value: object) -> dt.date | None:
         return None
 
 
-def _git_base(root: Path, explicit: str | None) -> str | None:
-    if explicit:
-        return explicit
-    github_base = os.environ.get("GITHUB_BASE_REF")
-    candidates = []
-    if github_base:
-        candidates.append(f"origin/{github_base}")
-    candidates.extend(["origin/main", "origin/master", "HEAD^1"])
-    for candidate in candidates:
-        result = subprocess.run(
-            ["git", "-C", str(root), "rev-parse", "--verify", candidate],
-            capture_output=True,
-            text=True,
-        )
-        if result.returncode == 0:
-            if candidate.startswith("origin/"):
-                merge = subprocess.run(
-                    ["git", "-C", str(root), "merge-base", "HEAD", candidate],
-                    capture_output=True,
-                    text=True,
-                )
-                if merge.returncode == 0:
-                    return merge.stdout.strip()
-            return candidate
-    return None
+def _headings(body: str) -> dict[str, str]:
+    matches = list(re.finditer(r"^##\s+(.+?)\s*$", body, re.MULTILINE))
+    out: dict[str, str] = {}
+    for index, match in enumerate(matches):
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(body)
+        out[match.group(1)] = body[match.end() : end]
+    return out
 
 
-def _is_staging_record_path(value: str) -> bool:
-    rel = Path(value)
-    return (
-        len(rel.parts) >= 3
-        and rel.parts[0] == "_staging"
-        and rel.suffix == ".md"
-        and rel.name not in {"README.md", "index.md", "_template.md"}
-    )
-
-
-def _status_only_staging_change(before: str, after: str) -> bool:
-    before_match = STATUS_LINE.search(before)
-    after_match = STATUS_LINE.search(after)
-    if before_match is None or after_match is None:
-        return False
-    if before_match.group(0) == after_match.group(0):
-        return False
-    before_without_status = STATUS_LINE.sub("status: __ATLAS_STATUS__", before, count=1)
-    after_without_status = STATUS_LINE.sub("status: __ATLAS_STATUS__", after, count=1)
-    return before_without_status == after_without_status
-
-
-def _check_staging_immutability(root: Path, explicit_base: str | None) -> list[dict[str, str]]:
-    if not (root / ".git").exists():
-        return []
-    base = _git_base(root, explicit_base)
-    if not base:
-        return []
-    proc = subprocess.run(
-        ["git", "-C", str(root), "diff", "--name-status", "-M", base, "HEAD"],
-        capture_output=True,
-        text=True,
-    )
-    if proc.returncode != 0:
-        return []
-
-    issues: list[dict[str, str]] = []
-    for line in proc.stdout.splitlines():
-        fields = line.split("\t")
-        git_status = fields[0]
-        paths = fields[1:]
-        if git_status.startswith("A"):
+def _governed_markdown(root: Path) -> list[Path]:
+    out: list[Path] = []
+    for base_name in ("_curated", "_staging"):
+        base = root / base_name
+        if not base.exists():
             continue
-        staging_paths = [path for path in paths if _is_staging_record_path(path)]
-        if not staging_paths:
-            continue
-
-        if git_status.startswith("M") and len(staging_paths) == 1:
-            rel = staging_paths[0]
-            before_proc = subprocess.run(
-                ["git", "-C", str(root), "show", f"{base}:{rel}"],
-                capture_output=True,
-                text=True,
-            )
-            current_path = root / rel
-            if before_proc.returncode == 0 and current_path.exists():
-                after = current_path.read_text(encoding="utf-8")
-                if _status_only_staging_change(before_proc.stdout, after):
-                    continue
-
-        issues.append(
-            issue(
-                "ATLAS021",
-                "ERROR",
-                staging_paths[-1],
-                f"existing staging evidence may only change top-level frontmatter status after first commit (git status {git_status})",
-            )
-        )
-    return issues
+        for path in sorted(base.rglob("*.md")):
+            rel = path.relative_to(root)
+            if _is_skipped(rel) or path.name in EXEMPT_NAMES:
+                continue
+            if base_name == "_curated" and ("maps" in rel.parts or "status" in rel.parts):
+                continue
+            out.append(path)
+    return out
 
 
 def lint_repository(
     root: str | Path,
     *,
-    package_name: str = "teama",
+    package_name: str | None = None,
     warn_as_error: bool = False,
     git_base: str | None = None,
     check_maps: bool = True,
     today: dt.date | None = None,
 ) -> list[dict[str, str]]:
+    del warn_as_error, git_base  # accepted for CLI/API compatibility; staging immutability is policy-only.
     root = Path(root).resolve()
     today = today or dt.date.today()
-    taxonomy = load_taxonomy(root)
+    issues: list[dict[str, str]] = []
+
+    try:
+        package = load_package_config(root)
+    except MapBuildError as exc:
+        return [issue("ATLAS001", "ERROR", "atlas-package.json", str(exc))]
+    package_name = package_name or package["package"]
+    domain_ids = {item["id"] for item in package.get("domains") or []}
+    try:
+        taxonomy = load_taxonomy(root)
+    except Exception as exc:
+        return [issue("ATLAS001", "ERROR", "taxonomy", f"registered taxonomy cannot be loaded: {exc}")]
     type_specs = {item["name"]: item for item in taxonomy["types"]["types"]}
     active = {name: spec for name, spec in type_specs.items() if spec.get("status") == "active"}
-    reserved = {name for name, spec in type_specs.items() if spec.get("status") == "reserved"}
-    allowed_rels = relationship_names(taxonomy["relationships"])
     curated_status = set(taxonomy["statuses"]["curated_status"])
     staging_status = set(taxonomy["statuses"]["staging_status"])
-    confidence = set(taxonomy["statuses"]["relationship_confidence"])
-    categories = set(taxonomy["categories"]["categories"])
+    concept_fields = taxonomy["concept_fields"]
+    seen_ids: dict[str, Path] = {}
 
-    issues: list[dict[str, str]] = []
-    parsed_pages: list[tuple[Path, dict, str]] = []
-    curated_ids: dict[str, Path] = {}
-
-    # Link resolution applies to repository Markdown, not intentionally-invalid fixtures.
     for path in sorted(root.rglob("*.md")):
         rel = path.relative_to(root)
         if _is_skipped(rel):
@@ -377,8 +217,6 @@ def lint_repository(
         for target in broken_links(path):
             issues.append(issue("ATLAS008", "ERROR", rel, f"broken relative Markdown link: {target}"))
 
-    # Obvious secret checks apply to repository text artefacts, excluding deliberately
-    # invalid test fixtures. Test fixtures must use synthetic placeholders.
     for path in sorted(root.rglob("*")):
         if not path.is_file() or path.suffix not in TEXT_EXTENSIONS:
             continue
@@ -389,179 +227,135 @@ def lint_repository(
             text = path.read_text(encoding="utf-8")
         except UnicodeDecodeError:
             continue
-        for pattern in SECRET_PATTERNS:
-            if pattern.search(text):
-                issues.append(issue("ATLAS019", "ERROR", rel, "obvious secret pattern detected"))
-                break
+        if any(pattern.search(text) for pattern in SECRET_PATTERNS):
+            issues.append(issue("ATLAS019", "ERROR", rel, "obvious secret pattern detected"))
 
-    governed = [
-        path
-        for path in sorted(root.rglob("*.md"))
-        if not _is_skipped(path.relative_to(root)) and _is_governed(path.relative_to(root))
-    ]
-
-    for path in governed:
+    for path in _governed_markdown(root):
         rel = path.relative_to(root)
         try:
             fm, body = parse_frontmatter(path)
         except Exception as exc:
             issues.append(issue("ATLAS001", "ERROR", rel, str(exc)))
             continue
-        parsed_pages.append((path, fm, body))
-
         typ = fm.get("type")
-        if typ in reserved:
-            issues.append(issue("ATLAS005", "ERROR", rel, f"reserved type cannot have pages: {typ}"))
-            continue
         spec = active.get(typ)
-        if not spec:
+        if not spec or typ in {"package", "index"}:
             issues.append(issue("ATLAS002", "ERROR", rel, f"inactive or unknown type: {typ!r}"))
             continue
-        if not _folder_allowed(rel, spec):
+        if not _folder_allowed(rel, spec["folder"]):
             issues.append(issue("ATLAS002", "ERROR", rel, f"type {typ} is not allowed under {rel.parent}"))
-
         if fm.get("package") != package_name:
             issues.append(issue("ATLAS004", "ERROR", rel, f"package must equal {package_name}"))
 
-        if typ == "atlas.package":
+        if str(typ).startswith("staging."):
             ident = fm.get("id")
-            if not valid_curated_id(ident, spec.get("id_prefix")):
-                issues.append(issue("ATLAS003", "ERROR", rel, "invalid package id prefix/grammar"))
-            elif ident in curated_ids:
-                issues.append(issue("ATLAS003", "ERROR", rel, f"duplicate id also in {curated_ids[ident]}"))
-            else:
-                curated_ids[ident] = rel
-            continue
-
-        if typ.startswith("atlas.staging."):
-            if not valid_staging_id(fm.get("id")):
+            if not valid_staging_id(ident):
                 issues.append(issue("ATLAS003", "ERROR", rel, "invalid staging id"))
+            elif rel.name != f"{ident}.md":
+                issues.append(issue("ATLAS026", "ERROR", rel, "staging filename must be <staging-id>.md"))
             if fm.get("status") not in staging_status:
                 issues.append(issue("ATLAS006", "ERROR", rel, f"invalid staging status {fm.get('status')!r}"))
+            for field in sorted(set(fm) - STAGING_ENVELOPE):
+                issues.append(
+                    issue("ATLAS025", "ERROR", rel, f"staging frontmatter must use the common envelope; remove {field}")
+                )
+            if spec.get("grouped") == "domain":
+                inside = rel.relative_to(Path(spec["folder"]))
+                group = inside.parts[0] if len(inside.parts) > 1 else ""
+                if group not in domain_ids | {"unassigned"}:
+                    issues.append(
+                        issue("ATLAS027", "ERROR", rel, "staging component/flow must be under a registered domain or unassigned")
+                    )
             continue
 
         ident = fm.get("id")
         if not valid_curated_id(ident, spec.get("id_prefix")):
             issues.append(issue("ATLAS003", "ERROR", rel, "invalid curated id prefix/grammar"))
-        elif ident in curated_ids:
-            issues.append(issue("ATLAS003", "ERROR", rel, f"duplicate id also in {curated_ids[ident]}"))
+        elif ident in seen_ids:
+            issues.append(issue("ATLAS003", "ERROR", rel, f"duplicate id also in {seen_ids[ident]}"))
         else:
-            curated_ids[ident] = rel
+            seen_ids[ident] = rel
 
         status = fm.get("status")
         if status not in curated_status:
             issues.append(issue("ATLAS006", "ERROR", rel, f"invalid curated status {status!r}"))
         if status == "curated":
-            reviewed_date = _parse_iso_date(fm.get("last_reviewed"))
-            exemption = fm.get("evidence_exemption")
-            if not fm.get("reviewed_by") or reviewed_date is None or (not fm.get("evidence") and not exemption):
+            reviewed = _parse_iso_date(fm.get("last_reviewed"))
+            if not fm.get("reviewed_by") or reviewed is None or not (fm.get("evidence") or fm.get("evidence_exemption")):
                 issues.append(
                     issue(
                         "ATLAS007",
                         "ERROR",
                         rel,
-                        "status curated requires non-empty reviewed_by, valid last_reviewed, and evidence or a documented exemption",
+                        "status curated requires reviewed_by, ISO last_reviewed, and evidence or exemption",
                     )
                 )
-
-        if typ == "atlas.standard":
+        if spec.get("grouped") == "domain":
+            domain = fm.get("primary_domain")
+            inside = rel.relative_to(Path(spec["folder"]))
+            if domain not in domain_ids:
+                issues.append(issue("ATLAS027", "ERROR", rel, f"primary_domain is not registered: {domain!r}"))
+            elif len(inside.parts) < 2 or inside.parts[0] != domain:
+                issues.append(issue("ATLAS027", "ERROR", rel, "folder must match primary_domain"))
+        elif spec.get("grouped") == "category":
             category = fm.get("standard_category")
-            storage_category = rel.parts[2] if len(rel.parts) >= 4 else None
-            if category not in categories or storage_category != category:
-                issues.append(
-                    issue(
-                        "ATLAS017",
-                        "ERROR",
-                        rel,
-                        "standard_category is invalid or does not match the standards category folder",
-                    )
-                )
+            categories = set(taxonomy["categories"].get("categories") or [])
+            inside = rel.relative_to(Path(spec["folder"]))
+            if category not in categories:
+                issues.append(issue("ATLAS027", "ERROR", rel, f"standard_category is not registered: {category!r}"))
+            elif len(inside.parts) < 2 or inside.parts[0] != category:
+                issues.append(issue("ATLAS027", "ERROR", rel, "folder must match standard_category"))
 
-        relationships = fm.get("relationships") or []
-        if not isinstance(relationships, list):
-            relationships = []
-            issues.append(issue("ATLAS009", "ERROR", rel, "relationships must be a list"))
-        for relationship in relationships:
-            if not isinstance(relationship, dict):
-                issues.append(issue("ATLAS009", "ERROR", rel, "relationship must be an object"))
-                continue
-            rel_type = relationship.get("type")
-            if rel_type not in allowed_rels:
-                issues.append(issue("ATLAS009", "ERROR", rel, f"unknown relationship {rel_type!r}"))
-            if rel_type in {"atlas.consumes", "atlas.produces", "atlas.depends-on"} and relationship.get("kind") not in KINDS:
-                issues.append(issue("ATLAS011", "ERROR", rel, "relationship kind is missing or invalid"))
-            edge_confidence = relationship.get("confidence")
-            if edge_confidence not in confidence:
-                issues.append(issue("ATLAS012", "ERROR", rel, "relationship confidence is invalid"))
-            elif edge_confidence != "reviewed" and not str(relationship.get("note", "")).strip():
-                issues.append(issue("ATLAS012", "ERROR", rel, "non-reviewed relationship requires an explanatory note"))
+        retired = RETIRED_COMMON | RETIRED_FIELDS.get(typ, set())
+        for field in sorted(retired):
+            if field in fm:
+                issues.append(issue("ATLAS025", "ERROR", rel, f"retired field is not allowed: {field}"))
 
-        if status == "archived":
-            index_path = root / spec["folder"] / "index.md"
-            if typ == "atlas.standard" and len(rel.parts) >= 4:
-                index_path = root / "_curated" / "standards" / rel.parts[2] / "index.md"
-            if index_path.exists() and links_to(index_path, path):
-                issues.append(issue("ATLAS014", "ERROR", rel, "archived page appears in normal index/catalogue"))
-        elif status in curated_status:
-            index_path = root / spec["folder"] / "index.md"
-            if typ == "atlas.standard" and len(rel.parts) >= 4:
-                index_path = root / "_curated" / "standards" / rel.parts[2] / "index.md"
-            if not index_path.exists() or not links_to(index_path, path):
-                issues.append(issue("ATLAS013", "ERROR", rel, f"non-archived page missing from {index_path.relative_to(root)}"))
-
-        for evidence_path in _local_evidence_paths(fm):
-            if not (root / evidence_path).exists():
-                issues.append(issue("ATLAS015", "ERROR", rel, f"local evidence path does not resolve: {evidence_path}"))
+        controlled = {
+            "repository": (("repository_type", "repository", "repository_type"),),
+            "component": (("component_type", "component", "component_type"),),
+            "schema-info": (
+                ("asset_type", "shared", "asset_type"),
+                ("temporal_model", "schema", "temporal_model"),
+            ),
+            "standard": (("requirement_level", "standard", "requirement_level"),),
+        }
+        for field, group, vocabulary in controlled.get(typ, ()):
+            if fm.get(field) not in set(concept_fields[group][vocabulary]):
+                issues.append(issue("ATLAS025", "ERROR", rel, f"{field} has invalid value {fm.get(field)!r}"))
+        if typ == "standard" and status == "curated" and fm.get("requirement_level") == "unknown":
+            issues.append(issue("ATLAS025", "ERROR", rel, "curated standards cannot use requirement_level: unknown"))
 
         headings = _headings(body)
         for heading in REQUIRED_SECTIONS.get(typ, []):
-            content = headings.get(heading)
-            if content is None:
+            if heading not in headings:
                 issues.append(issue("ATLAS016", "ERROR", rel, f"missing required section: {heading}"))
-            elif not content.strip():
-                issues.append(issue("ATLAS016", "ERROR", rel, f"required section is empty: {heading}"))
-
-        reviewed_date = _parse_iso_date(fm.get("last_reviewed"))
-        if status in {"proposed", "curated"} and reviewed_date and (today - reviewed_date).days > 180:
+        question_section = headings.get("Open questions / coverage limits")
+        if question_section is not None and "|" in question_section and QUESTION_HEADER not in question_section:
+            issues.append(issue("ATLAS023", "ERROR", rel, "open-question table must use the fixed four-column header"))
+        reviewed = _parse_iso_date(fm.get("last_reviewed"))
+        if status in {"proposed", "curated"} and reviewed and (today - reviewed).days > 180:
             issues.append(issue("ATLAS020", "WARN", rel, "review older than 180 days"))
 
-        if typ == "atlas.component" and fm.get("deployed_as"):
-            infra_root = root / "_curated" / "infra"
-            infra_text = "\n".join(
-                p.read_text(encoding="utf-8")
-                for p in infra_root.rglob("*.md")
-                if p.name not in {"README.md", "index.md", "_template.md"}
-            ) if infra_root.exists() else ""
-            for deployed in fm.get("deployed_as") or []:
-                if str(deployed) not in infra_text:
-                    issues.append(issue("ATLAS022", "WARN", rel, f"deployed_as has no corresponding infra evidence/resource name: {deployed}"))
+    try:
+        generated_maps = build_maps(root)
+    except MapBuildError as exc:
+        issues.append(issue("ATLAS018", "ERROR", "_curated/maps", f"maps cannot be generated: {exc}"))
+        generated_maps = None
 
-    # Resolve reviewed local relationships after the full curated ID set is known.
-    for path, fm, _ in parsed_pages:
-        rel = path.relative_to(root)
-        typ = fm.get("type")
-        if not isinstance(typ, str) or typ.startswith("atlas.staging.") or typ == "atlas.package":
-            continue
-        for relationship in fm.get("relationships") or []:
-            if not isinstance(relationship, dict):
-                continue
-            target = relationship.get("target")
-            if relationship.get("confidence") == "reviewed" and isinstance(target, str) and target.startswith("atlas-") and target not in curated_ids:
-                issues.append(issue("ATLAS010", "ERROR", rel, f"reviewed local relationship target does not resolve: {target}"))
+    if check_maps and generated_maps is not None:
+        outputs = {map_output_paths(root)[name]: stable_bytes(value) for name, value in generated_maps.items()}
+        outputs.update(build_index_outputs(root))
+        outputs.update(build_page_view_outputs(root))
+        for path, expected in outputs.items():
+            if not path.exists() or path.read_bytes() != expected:
+                issues.append(issue("ATLAS018", "ERROR", path.relative_to(root), "generated Atlas surface drift"))
+        for path in sorted(
+            generated_index_candidates(root) - {candidate.resolve() for candidate in outputs},
+            key=lambda candidate: candidate.as_posix(),
+        ):
+            issues.append(issue("ATLAS018", "ERROR", path.relative_to(root), "stale generated domain index"))
 
-    issues.extend(_check_staging_immutability(root, git_base))
-
-    if check_maps:
-        try:
-            generated = build_maps(root)
-            for name, obj in generated.items():
-                path = root / "_curated" / "maps" / name
-                if not path.exists() or path.read_bytes() != stable_bytes(obj):
-                    issues.append(issue("ATLAS018", "ERROR", path.relative_to(root), "generated map drift"))
-        except MapBuildError as exc:
-            issues.append(issue("ATLAS018", "ERROR", "_curated/maps", f"maps cannot be generated: {exc}"))
-
-    # Keep deterministic output ordering.
     issues.sort(key=lambda item: (item["path"], item["code"], item["level"], item["message"]))
     return issues
 
@@ -571,11 +365,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("path", nargs="?", default=".")
     parser.add_argument("--format", choices=["text", "json"], default="text")
     parser.add_argument("--warn-as-error", action="store_true")
-    parser.add_argument("--package", default="teama", help=argparse.SUPPRESS)
+    parser.add_argument("--package", default=None, help=argparse.SUPPRESS)
     parser.add_argument("--git-base", default=None, help=argparse.SUPPRESS)
     parser.add_argument("--skip-map-check", action="store_true", help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
-
     issues = lint_repository(
         args.path,
         package_name=args.package,
@@ -591,7 +384,6 @@ def main(argv: list[str] | None = None) -> int:
         errors = sum(item["level"] == "ERROR" for item in issues)
         warnings = sum(item["level"] == "WARN" for item in issues)
         print(f"{errors} error(s), {warnings} warning(s)")
-
     return 1 if any(
         item["level"] == "ERROR" or (args.warn_as_error and item["level"] == "WARN")
         for item in issues

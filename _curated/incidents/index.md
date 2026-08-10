@@ -1,10 +1,14 @@
 # Incidents index
 
-## Route by question
-No TeamA production knowledge is included in this public scaffold.
+## Use this index
 
-| ID | Title | Status | Domain/category | Last reviewed | Page |
+Route sanitised reusable incident, near-miss and exercise learning here. Read [the incident-learnings policy](README.md) before authoring.
+
+## Catalogue
+
+| ID | Title | Status | Routing context | Last reviewed | Page |
 |---|---|---|---|---|---|
 
 ## Coverage notes
+
 No real TeamA concepts have been curated yet.

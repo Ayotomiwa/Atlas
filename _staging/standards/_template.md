@@ -1,20 +1,13 @@
 ---
 id: STG-YYYYMMDD-<slug>
-type: atlas.staging.standard
+type: staging.standard
 package: teama
-schema_version: atlas/1.0
 timestamp: YYYY-MM-DD
 title: ""
 description: ""
 status: new
 captured_by: ""
 source_type: ""
-source_links: []
-intended_curated_targets: []
-candidate_category: general
-applies_to_observed: []
-authority: unknown
-repositories_examined: []
 ---
 
 # Standard evidence: <candidate rule or convention>
@@ -49,6 +42,12 @@ Also record supplied team/lead/policy statements separately from observed implem
 ## What is known
 
 | Finding | Scope observed | Source | State (`observed` / `user-confirmed`) |
+|---|---|---|---|
+| | | | |
+
+### Observed applicability evidence
+
+| Context/repository/technology | Applies / does not apply / unclear | What demonstrates this | Source |
 |---|---|---|---|
 | | | | |
 
@@ -94,7 +93,7 @@ Questions such as "mandatory or recommended?", "does this apply to all Java serv
 
 - `_curated/standards/<category>/...`
 - existing standard to update/extend/supersede:
-- related components/flows that may eventually `atlas.must-follow` the standard:
+- related components/flows that may eventually `must-follow` the standard:
 
 Do not create governed applicability edges from pattern frequency alone.
 

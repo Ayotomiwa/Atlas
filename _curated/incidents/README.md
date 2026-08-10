@@ -8,7 +8,7 @@ An incident-learning page should help answer: **what reusable failure pattern or
 
 ## Trust level
 
-Only `status: curated` incident learnings are authoritative Atlas knowledge. `draft` pages require human review. The source incident system remains authoritative for the original incident timeline and governance record.
+Only merged `status: curated` incident learnings are authoritative Atlas knowledge. Claude may author lifecycle metadata in a proposal; human-reviewed merge supplies authority. The source incident system remains authoritative for the original incident timeline and governance record.
 
 ## When to use this area
 
@@ -47,27 +47,26 @@ Use descriptive, sanitised kebab-case filenames based on the learning/failure pa
 
 ## Required frontmatter/type-specific fields
 
-Start from `_template.md`. Use `type: atlas.incident-learning`, the common curated envelope and:
+Start from `_template.md`. Use `type: incident-learning`, the common curated envelope and:
 
 ```yaml
 incident_date: ""
-severity: ""
-resolved: false
+source_severity: ""
 ```
 
-Only populate values that are safe and supported by evidence. Do not embed confidential incident metadata merely because it exists upstream.
+Use a validated `YYYY-MM-DD` incident date when known. `source_severity` preserves the source authority's label without inventing an Atlas severity taxonomy. Only populate safe, evidenced values; do not embed confidential metadata merely because it exists upstream.
 
 ## Relationship guidance
 
-Use only taxonomy-approved relationships.
+Use only page-link types registered in `contracts/map-fields.yaml`.
 
 Common relationships include:
 
-- `atlas.informed-by` from a runbook/standard/component/flow to the incident learning when it materially changes understanding;
-- `atlas.depends-on` only where the incident established a real durable dependency;
-- `atlas.operated-by` when a relevant reviewed runbook applies;
-- `atlas.must-follow` for standards implicated by the learning;
-- `atlas.supersedes` if a learning record replaces a prior sanitised interpretation.
+- `informed-by` from a runbook/standard/component/flow to the incident learning when it materially changes understanding;
+- `depends-on` only where the incident established a real durable dependency;
+- `operated-by` when a relevant reviewed runbook applies;
+- `must-follow` for standards implicated by the learning;
+- `supersedes` if a learning record replaces a prior sanitised interpretation.
 
 Do not create edges from speculative blast-radius observations until supported.
 
@@ -107,7 +106,7 @@ Before approval, verify:
 - summary and impact are appropriately sanitised;
 - confirmed cause is distinguished from suspected cause;
 - detection and recovery lessons are evidence-backed;
-- runbook/standard gaps lead to useful follow-up context without inventing policy;
+- context and governance gaps lead to useful follow-up context without inventing policy;
 - relationship updates reflect proven dependencies/impact;
 - sensitive data, names and raw logs are absent unless explicitly appropriate;
 - the page is indexed and coverage gaps are clear.

@@ -8,7 +8,7 @@ A business-concept page should help answer: **what does this term mean for TeamA
 
 ## Trust level
 
-Only pages with `status: curated` are authoritative TeamA knowledge. `draft` pages require human review. A label found in code, a dashboard or an email is evidence of usage, not automatically an approved definition.
+Only merged pages with `status: curated` are authoritative TeamA knowledge. Claude may author lifecycle metadata in a proposal; human-reviewed merge supplies authority. A label found in code, a dashboard or an email is evidence of usage, not automatically an approved definition.
 
 ## When to use this area
 
@@ -46,33 +46,26 @@ Example:
 
 ```text
 _curated/business-concepts/reference-entity.md
-id: atlas-concept.reference-data.entity
+id: concept.reference-data.entity
 ```
 
 ## Required frontmatter/type-specific fields
 
-Start from `_template.md`. Use `type: atlas.business-concept`, the common curated envelope and:
+Start from `_template.md` and use `type: business-concept` with the common curated envelope. Definitions, criteria and variants need attributed explanation and therefore belong in the body rather than duplicate frontmatter fields.
 
-```yaml
-approved_definition: ""
-inclusion_criteria: []
-exclusion_criteria: []
-approved_variants: []
-```
-
-The body may explain nuance; the frontmatter fields should remain concise and routable.
+Use `routing.aliases` only for genuinely equivalent lookup terms. Disputed wording, implementation labels and broader/narrower concepts belong in Terminology and variants.
 
 ## Relationship guidance
 
-Use only taxonomy-approved relationships.
+Use only page-link types registered in `contracts/map-fields.yaml`.
 
 Typical relationships include:
 
-- `atlas.implemented-by` to components or contracts that materially implement the concept;
-- `atlas.must-follow` to standards governing the concept's use;
-- `atlas.extends` where one reviewed concept specialises another;
-- `atlas.supersedes` when a new concept definition replaces an older one without erasing history;
-- `atlas.informed-by` when reusable reviewed learning materially shaped the definition.
+- `implemented-by` to components or contracts that materially implement the concept;
+- `must-follow` to standards governing the concept's use;
+- `extends` where one reviewed concept specialises another;
+- `supersedes` when a new concept definition replaces an older one without erasing history;
+- `informed-by` when reusable reviewed learning materially shaped the definition.
 
 Do not create relationships merely because two terms appear near each other in source material.
 

@@ -1,10 +1,14 @@
-# TeamA Atlas Index
+# TeamA Atlas index
 
 Route by question or trust layer:
-- [Trusted curated knowledge](_curated/index.md)
-- [Raw staging evidence](_staging/index.md)
-- [Generated relationship maps](_curated/maps/index.md)
-- [Curation status](_curated/status/curation-status.md)
-- [Onboarding](onboarding/index.md)
-- [Taxonomy](taxonomy/README.md)
-- [Repository guide](README.md)
+
+- What package is this? Read [the repository guide](README.md); machine consumers use [`atlas-package.json`](atlas-package.json).
+- What source repository or component is involved? Start with [curated architecture](_curated/index.md) or query a stable ID with `scripts/atlas_query.py`.
+- How does an end-to-end path work? Use the [flow/component map](_curated/maps/flow-component/flow-component-map.json).
+- What could an infrastructure change affect? Use the [infrastructure map](_curated/maps/infra-dependency/infra-dependency-map.json).
+- What raw evidence is awaiting review? Use the [staging index](_staging/index.md).
+- What is the latest curation checkpoint? Open [curation status](_curated/status/curation-status.md).
+- How is new context captured? Start with [onboarding](onboarding/index.md).
+- Which controlled values apply? Read [taxonomy](taxonomy/README.md).
+
+Known-package access may route directly to a map, index, stable ID or page. Atlas-core federation uses package manifests only when package discovery is required.

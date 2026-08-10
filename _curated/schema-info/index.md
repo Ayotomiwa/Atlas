@@ -1,10 +1,17 @@
-# Schema Info index
+# Schema information index
 
-## Route by question
-No TeamA production knowledge is included in this public scaffold.
+## Use this index
 
-| ID | Title | Status | Domain/category | Last reviewed | Page |
+Use this catalogue for physical contracts. Schema records remain pages rather than a fourth generated map.
+
+<!-- atlas:generated-catalogue:start -->
+## Catalogue
+
+| ID | Title | Status | Primary domain | Coverage | Page |
 |---|---|---|---|---|---|
+| — | No records | — | — | — | — |
+<!-- atlas:generated-catalogue:end -->
 
 ## Coverage notes
-No real TeamA concepts have been curated yet.
+
+- The generated catalogue includes every non-archived schema-information page; absence is not evidence that a contract does not exist.

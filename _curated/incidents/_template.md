@@ -1,6 +1,6 @@
 ---
-id: atlas-incident.<namespace>.<slug>
-type: atlas.incident-learning
+id: incident.<stable-name>
+type: incident-learning
 package: teama
 schema_version: atlas/1.0
 title: ""
@@ -12,14 +12,13 @@ owners: []
 routing:
   aliases: []
   domains: []
-relationships: []
+links: []
 evidence: []
 coverage:
   level: unknown
   notes: []
 incident_date: ""
-severity: ""
-resolved: false
+source_severity: ""
 ---
 
 # Incident learning: <sanitised learning or failure pattern>
@@ -50,6 +49,16 @@ Explain how the issue was detected, what signals were useful and what detection 
 
 *Not covered — no evidence in current staging material.*
 
+## Diagnostic aids
+
+Record reusable signals, queries, dashboards, log patterns or decision clues that shortened diagnosis. Link to authorised sources rather than copying sensitive data.
+
+| Aid or signal | What it showed | Scope/limitations | Evidence |
+|---|---|---|---|
+| | | | |
+
+*Not covered — no evidence in current staging material.*
+
 ## Recovery
 
 Summarise what restored service/data/flow and link the relevant runbook for reusable procedure detail.
@@ -62,11 +71,11 @@ Extract durable lessons for diagnosis, dependencies, design, monitoring or opera
 
 *Not covered — no evidence in current staging material.*
 
-## Runbook / standard gaps
+## Context and governance gaps
 
 | Gap | Type | Why it matters | Suggested governed target | Evidence |
 |---|---|---|---|---|
-| | runbook/standard | | | |
+| | runbook/standard/component/flow/infra/relationship/monitoring/other | | | |
 
 *Not covered — no evidence in current staging material.*
 

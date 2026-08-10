@@ -98,7 +98,7 @@ These are capture prompts, not a requirement to fabricate completeness.
 
 Do not turn every provider-specific property into an Atlas relationship. Preserve relationships that matter for understanding routing, operation or impact.
 
-Useful evidence may show that one resource triggers, reads from, writes to, imports from, exports to, is deployed by or otherwise depends on another. The eventual curated relationship must use the approved V1 taxonomy; staging may preserve source wording while keeping unsupported mapping decisions open.
+Useful evidence may show that one resource triggers, reads from, writes to, imports from, exports to, is deployed by or otherwise depends on another. Curation chooses the matching natural field; staging may preserve source wording while keeping unsupported mapping decisions open.
 
 Keep ordinary application/API/data relationships with their semantic owner rather than forcing them into infrastructure merely because a cloud resource is involved.
 
@@ -144,13 +144,13 @@ Keep these states distinct:
 
 ## Likely curated targets
 
-Evidence may support `_curated/infra/` and linked component/flow/runbook/incident pages. Reviewed relationships may later regenerate the infra/flow projections.
+Evidence may support `_curated/infra/` and linked component/flow/runbook/incident pages. Reviewed connection fields may later regenerate the infra/flow projections.
 
-Do **not** hand-maintain generated map relationships from staging. Curated Markdown relationships remain the authoring source of truth.
+Do **not** hand-maintain generated map connections from staging. Curated Markdown fields remain the authoring source of truth.
 
 ## Immutability
 
-Once referenced by a curation proposal, do not modify, rename or move the evidence. Add a corrective/follow-up staging record instead.
+After first commit, only top-level frontmatter `status` may change. The body, provenance, title, description, path and ID remain immutable; corrections require a follow-up staging record.
 
 ## Reviewer questions
 

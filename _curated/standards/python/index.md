@@ -1,14 +1,14 @@
 # Python standards index
 
-## Route by question
+## Use this index
 
 Use this category for Python packaging, runtime, style, and test conventions. Read `_curated/standards/README.md` and `_curated/standards/_template.md` before authoring or curating a page here.
 
 ## Catalogue
 
-| ID | Title | Status | Domain/category | Last reviewed | Page |
+| ID | Title | Status | Routing context | Last reviewed | Page |
 |---|---|---|---|---|---|
 
 ## Coverage notes
 
-No real TeamA production standards are included in this public scaffold. Pages stored here remain `type: atlas.standard` with `standard_category: python`.
+No real TeamA production standards are included in this public scaffold. Pages stored here remain `type: standard` with `standard_category: python`.

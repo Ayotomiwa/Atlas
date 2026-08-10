@@ -1,10 +1,17 @@
 # Flows index
 
-## Route by question
-No TeamA production knowledge is included in this public scaffold.
+## Use this index
 
-| ID | Title | Status | Domain/category | Last reviewed | Page |
+Use this catalogue for end-to-end flow pages; use the flow-component map for compiled topology and reverse routes.
+
+<!-- atlas:generated-catalogue:start -->
+## Catalogue
+
+| ID | Title | Status | Primary domain | Coverage | Page |
 |---|---|---|---|---|---|
+| — | No records | — | — | — | — |
+<!-- atlas:generated-catalogue:end -->
 
 ## Coverage notes
-No real TeamA concepts have been curated yet.
+
+- The generated catalogue includes every non-archived flow page; absence is not evidence that a flow does not exist.

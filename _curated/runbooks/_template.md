@@ -1,6 +1,6 @@
 ---
-id: atlas-runbook.<namespace>.<slug>
-type: atlas.runbook
+id: runbook.<stable-name>
+type: runbook
 package: teama
 schema_version: atlas/1.0
 title: ""
@@ -12,13 +12,11 @@ owners: []
 routing:
   aliases: []
   domains: []
-relationships: []
+links: []
 evidence: []
 coverage:
   level: unknown
   notes: []
-covers: []
-severity_scope: ""
 last_exercised: ""
 ---
 
@@ -29,6 +27,16 @@ last_exercised: ""
 ## Purpose
 
 State what operational problem this runbook addresses, what it covers and the desired outcome.
+
+*Not covered — no evidence in current staging material.*
+
+## Scope / applicability
+
+State the components, flows, infrastructure, business contexts and environments where this procedure applies, plus explicit exclusions and when a different procedure is required.
+
+| Context | Environment | Applies/excluded | Evidence |
+|---|---|---|---|
+| | | | |
 
 *Not covered — no evidence in current staging material.*
 

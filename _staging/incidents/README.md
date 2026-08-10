@@ -54,7 +54,7 @@ Curation may create/update a sanitised `_curated/incidents/` learning page and r
 
 ## Immutability
 
-Once referenced by curation, do not edit/move the staging entry. Add a corrective/follow-up record if investigation findings change.
+After first commit, only top-level frontmatter `status` may change. The body, provenance, title, description, path and ID remain immutable; corrections require a follow-up staging record.
 
 ## Security and sensitivity
 

@@ -9,7 +9,7 @@ This repository is the TeamA Atlas package (`teama`). It is a governed engineeri
 - Never invent missing engineering context.
 
 ## How repository rules are organised
-- `package.md` defines package identity and entrypoints.
+- `atlas-package.json` defines machine package identity, domains and entrypoints; known-package lookups may route directly to maps/indexes/pages.
 - `index.md` files route to existing knowledge.
 - A target folder's `README.md` defines semantic, granularity, evidence and reviewer rules.
 - A target folder's `_template.md` defines page shape.
@@ -17,16 +17,16 @@ This repository is the TeamA Atlas package (`teama`). It is a governed engineeri
 
 ## Editing Atlas
 - Before curating into a folder, read that folder's `README.md`, `_template.md`, and `index.md`.
-- Edit relationships only on curated Markdown pages.
-- Never hand-edit generated relationship data in `_curated/maps/*.json`.
-- After relationship changes run `python scripts/rebuild_maps.py`.
+- Edit structured routing fields only on curated Markdown pages.
+- Never hand-edit generated map data below `_curated/maps/`.
+- After structured routing changes run `python scripts/rebuild_atlas.py`.
 - Before proposing changes run `python scripts/atlas_lint.py .` and tests.
 - After a staging record is first committed, do not edit its evidence content, path or ID. The only permitted later mutation is top-level frontmatter `status`; corrections are new staging evidence.
 - Treat `status: new` staging records as the normal curation queue. Do not automatically recurate terminal records.
 
 ## Curation review
 - The Atlas PR/MR is the curation review/audit record; do not duplicate it into a `reviews/` folder.
-- A curation PR/MR should identify staging consumed, outcome, curated changes, material claims not promoted, relationship decisions/open questions and validation results.
+- A curation PR/MR should identify staging consumed, outcome, curated changes, material claims not promoted, connection decisions/open questions and validation results.
 - `_curated/status/curation-status.md` is a compact latest checkpoint only, never a per-record ledger.
 
 ## Navigation
