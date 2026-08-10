@@ -11,7 +11,45 @@ owners: []
 routing:
   aliases: []
   domains: []
-relationships: []
+relationships:
+- type: atlas.depends-on
+  target: atlas-flow.fixture.upstream
+  confidence: reviewed
+  evidence:
+  - fixture://upstream-flow
+- type: atlas.consumes
+  target: atlas-schema.fixture.asset
+  kind: table
+  confidence: reviewed
+  evidence:
+  - fixture://flow-input
+- type: atlas.produces
+  target: atlas-schema.fixture.asset
+  kind: report
+  confidence: reviewed
+  evidence:
+  - fixture://flow-output
+- type: atlas.reads-from
+  target: atlas-resource.fixture.shared-bucket
+  kind: infra-resource
+  confidence: reviewed
+  evidence:
+  - fixture://flow-resource
+- type: atlas.runs-before
+  target: atlas-flow.fixture.upstream
+  confidence: reviewed
+  evidence:
+  - fixture://flow-order
+- type: atlas.operated-by
+  target: external.fixture.runbook
+  confidence: reviewed
+  evidence:
+  - fixture://runbook
+- type: atlas.informed-by
+  target: external.fixture.incident
+  confidence: reviewed
+  evidence:
+  - fixture://incident
 evidence:
 - fixture://reviewed-source
 coverage:
@@ -21,6 +59,13 @@ coverage:
 title: Fixture flow
 description: Synthetic test fixture only.
 flow_scope: fixture
+entry_points:
+- kind: schedule
+  name: Fixture nightly schedule
+  sequence: 1
+  confidence: reviewed
+  evidence:
+  - fixture://schedule
 trigger: test
 schedule: ''
 entry_component: ''

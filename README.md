@@ -2,6 +2,8 @@
 
 TeamA Atlas is a governed engineering context package for humans and AI agents. It stores attributable raw evidence in `_staging/`, reviewed reusable knowledge in `_curated/`, and deterministic routing views in generated maps.
 
+Claude workflows in `.claude/` are canonical and load from this live checkout with `claude --add-dir <ATLAS_ROOT>`. Codex adaptations live in `.agents/skills/` and `.codex/agents/`.
+
 ## Start by question
 
 - Source repository or monorepo orientation: [`_curated/repositories/index.md`](_curated/repositories/index.md)
@@ -16,7 +18,7 @@ Known-package access starts directly at the appropriate index, map, stable ID or
 
 ## Package federation
 
-[`atlas-package.json`](atlas-package.json) is the machine-only package manifest. It declares identity, ownership, governed branch, aliases, controlled domains, entrypoints, map paths, taxonomy paths and compiler-contract paths. Human routing explanation stays in this README and [`index.md`](index.md).
+[`atlas-package.json`](atlas-package.json) is the machine-only package manifest. It declares identity, ownership, aliases, controlled domains, entrypoints, map paths, taxonomy paths and compiler-contract paths. Human routing explanation stays in this README and [`index.md`](index.md).
 
 Domains are registered inline before architecture records use them:
 
@@ -47,8 +49,8 @@ The registry discovers packages. Once a package is known, direct access uses tha
 ## Trust and lifecycle
 
 - `_staging/` is raw, attributable evidence and never authoritative.
-- `_curated/` contains reviewable knowledge; local `status: curated` may be used for routing.
-- Governed authority should be checked on the manifest's governed branch. Working branches may contain legitimate new proposals not yet present there.
+- `_curated/` contains reviewable knowledge; local records may be used for routing with their lifecycle status preserved.
+- Only human-reviewed, merged `status: curated` content is authoritative. The package manifest does not prescribe a branch. The query tool gives a non-blocking warning outside `main` or `master` because results may include unmerged work.
 - Agents stage and propose; they never self-approve or merge.
 - Missing evidence remains unknown. Absence from a map never proves no dependency or impact.
 
@@ -56,11 +58,12 @@ Committed staging evidence is treated as immutable by policy. Only top-level lif
 
 ## Repository, component and flow boundaries
 
-- A `repo.*` record describes an actual source repository, important roots and source/build topology.
+- A `repo.*` record describes an independently useful source boundary: a standalone Git repository, useful monorepo root, evidenced logical monorepo project, nested project, mirror, or classified alternative.
 - A `comp.*` record describes an independently addressable runtime or reusable architectural unit.
 - A `flow.*` record owns ordered participation and material handoffs.
 - Repository/folder/domain/job-group containers are not automatically components.
 - Stable IDs are never derived from repository names or paths. They may resemble a locator when the semantic name is also appropriate, but they do not change when that locator changes.
+- `repository_root` is a mutable path relative to the physical Git root. Component paths are relative to their most-specific referenced `repo.*` boundary.
 
 Architecture pages are grouped by one controlled primary domain. Secondary involvement is metadata, not duplicate pages. If the primary domain cannot be evidenced, curation asks the user.
 
@@ -96,13 +99,18 @@ python scripts/rebuild_atlas.py --check
 
 ```powershell
 python scripts/atlas_query.py resolve comp.example
+python scripts/atlas_query.py context .
 python scripts/atlas_query.py route orders
 python scripts/atlas_query.py neighbors comp.example
 python scripts/atlas_query.py impact comp.example --direction downstream
 python scripts/atlas_query.py --format json impact comp.example --max-depth 4
 ```
 
-The query tool loads map paths from `atlas-package.json`, preserves confidence/evidence, reports direct versus transitive paths, avoids cycles and warns about local branch trust. Map traversal does not open narrative pages; an exact unmapped-ID fallback reads curated frontmatter only. Discovery/impact workflows open a map-provided page body only when narrative or evidence context is required. An unmapped starting schema/standard/runbook uses its exact stable ID or domain index; ambiguous title matches are never selected silently.
+The query tool loads map paths from `atlas-package.json`, preserves confidence/evidence, reports direct versus transitive paths and avoids cycles. It reports record lifecycle status but does not determine whether a change has been human-reviewed or merged. Outside `main` or `master` it emits an advisory warning and continues. Map traversal does not open narrative pages; an exact unmapped-ID fallback reads curated frontmatter only. Discovery/impact workflows open a map-provided page body only when narrative or evidence context is required. An unmapped starting schema/standard/runbook uses its exact stable ID or domain index; ambiguous title matches are never selected silently.
+
+`context [path]` discovers the physical Git root/remote and returns logical repository and component candidates ordered by path specificity. It preserves ambiguity; the skill chooses context based on the question and discloses that selection.
+
+Every substantive Atlas-assisted answer cites the curated page or repository source for its material claims and includes a compact route/file-hop disclosure when traversal matters. Generated/query output explains routes but is never cited as semantic authority.
 
 ## Folder responsibilities
 

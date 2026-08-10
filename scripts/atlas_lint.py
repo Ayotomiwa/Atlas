@@ -163,7 +163,7 @@ def _headings(body: str) -> dict[str, str]:
     return out
 
 
-def _governed_markdown(root: Path) -> list[Path]:
+def _atlas_records(root: Path) -> list[Path]:
     out: list[Path] = []
     for base_name in ("_curated", "_staging"):
         base = root / base_name
@@ -230,7 +230,7 @@ def lint_repository(
         if any(pattern.search(text) for pattern in SECRET_PATTERNS):
             issues.append(issue("ATLAS019", "ERROR", rel, "obvious secret pattern detected"))
 
-    for path in _governed_markdown(root):
+    for path in _atlas_records(root):
         rel = path.relative_to(root)
         try:
             fm, body = parse_frontmatter(path)

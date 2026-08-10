@@ -6,7 +6,6 @@
   "title": "TeamA Atlas",
   "description": "Governed engineering context for TeamA humans and AI agents.",
   "status": "active",
-  "governed_branch": "main",
   "owners": {
     "team": "team-a-engineering",
     "maintainers": []

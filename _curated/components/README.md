@@ -10,7 +10,7 @@ A component can be a service, job, Lambda, API, consumer/producer, batch unit, s
 
 ## Domain and source placement
 
-Store each page at `_curated/components/<primary-domain>/<record>.md`. The domain must be registered in `atlas-package.json` and match `primary_domain`. `repository` must use a stable `repo.*` ID; `repository_paths` are mutable locators and never identity.
+Store each page at `_curated/components/<primary-domain>/<record>.md`. The domain must be registered in `atlas-package.json` and match `primary_domain`. `repository` must use the most specific useful `repo.*` source boundary. `repository_paths` are relative to that repository's `repository_root`; they are mutable locators and never identity.
 
 ## Structured authoring
 

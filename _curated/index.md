@@ -13,4 +13,4 @@
 
 For direct and transitive routing, use `python scripts/atlas_query.py`. Maps should answer first; open linked pages only when narrative, evidence or unresolved context is necessary.
 
-Local `status: curated` pages may be used for routing. When not on the governed branch, treat them as local reviewed proposals and check `main`/`master` before claiming governed authority.
+Local pages may be used for routing with their lifecycle status preserved. Treat only human-reviewed, merged `status: curated` content as authoritative. A query warning outside `main` or `master` is advisory and does not block local discovery.

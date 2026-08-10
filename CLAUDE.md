@@ -4,7 +4,7 @@ This repository is the TeamA Atlas package (`teama`). It is a governed engineeri
 
 ## Trust
 - `_staging/` is raw evidence and is never authoritative.
-- `_curated/` is reviewed knowledge; only `status: curated` on the governed/default branch is authoritative.
+- `_curated/` is reviewed knowledge; only human-reviewed, merged `status: curated` content is authoritative.
 - Claude may stage and propose; Claude never self-approves or merges knowledge.
 - Never invent missing engineering context.
 

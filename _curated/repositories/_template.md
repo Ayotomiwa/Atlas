@@ -14,6 +14,7 @@ routing:
 primary_domain: ""
 related_domains: []
 repository_locator: ""
+repository_root: "."
 repository_type: unknown
 default_branch: ""
 parent_repository: null
@@ -39,7 +40,7 @@ coverage:
 
 ## Summary and boundary
 
-Describe why the repository exists, what source boundary it represents, and what is explicitly outside it.
+Describe why the source boundary exists, what makes it independently useful, and what is explicitly outside it.
 
 ## Source topology
 
@@ -49,7 +50,7 @@ Describe why the repository exists, what source boundary it represents, and what
 | — | No source roots captured | — |
 <!-- atlas:generated-source-roots:end -->
 
-Explain meaningful monorepo or nested-repository structure that the compact table cannot convey.
+Explain meaningful physical-monorepo, logical-project or nested-project structure that the compact table cannot convey. `repository_root` is relative to the physical Git root.
 
 ## Code architecture summary
 

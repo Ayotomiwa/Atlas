@@ -75,15 +75,12 @@ def _write_staging_fixture(root: Path) -> Path:
 id: STG-20260807-fixture
 type: atlas.staging.component
 package: fixtures
-schema_version: atlas/1.0
 timestamp: 2026-08-07
 title: Fixture evidence
 description: Synthetic
 status: new
 captured_by: fixture
 source_type: test
-source_links: []
-intended_curated_targets: []
 ---
 
 ## Summary
@@ -119,12 +116,16 @@ def test_canonical_repository_structure_and_contract_counts():
         "taxonomy/types.yaml",
         "taxonomy/relationships.yaml",
         "taxonomy/statuses.yaml",
+        "taxonomy/maps.yaml",
         "taxonomy/standard-categories.yaml",
         "_curated/README.md",
         "_curated/index.md",
-        "_curated/maps/flow-component-map.json",
-        "_curated/maps/repo-dependency-map.json",
-        "_curated/maps/infra-dependency-map.json",
+        "_curated/maps/flow-component/flow-component-map.json",
+        "_curated/maps/repo-dependency/repo-dependency-map.json",
+        "_curated/maps/infra-dependency/infra-dependency-map.json",
+        "_curated/maps/flow-component/README.md",
+        "_curated/maps/repo-dependency/README.md",
+        "_curated/maps/infra-dependency/README.md",
         "_curated/status/curation-status.md",
         "_staging/README.md",
         "_staging/index.md",
@@ -173,6 +174,7 @@ def test_real_scaffold_contains_no_fabricated_teama_concept_or_staging_pages():
         p
         for p in (ROOT / "_curated").rglob("*.md")
         if p.name not in {"README.md", "index.md", "_template.md", "curation-status.md"}
+        and "maps" not in p.parts
     ]
     staging_pages = [
         p
@@ -194,6 +196,30 @@ def test_valid_fixture_exists_for_every_active_curated_concept_type(tmp_path: Pa
         _install_page(root, VALID / source_name, destination)
     issues = lint_repository(root, package_name="fixtures", check_maps=False, today=date(2026, 8, 7))
     assert issues == []
+
+
+def test_lint_reads_package_identity_from_package_md(tmp_path: Path):
+    root = _base_root(tmp_path)
+    (root / "package.md").write_text(
+        """---
+id: atlas-package.fixtures
+type: atlas.package
+package: fixtures
+schema_version: atlas/1.0
+title: Fixture Atlas
+description: Synthetic package.
+status: active
+maps:
+  flow_component: _curated/maps/flow-component/flow-component-map.json
+  repo_dependency: _curated/maps/repo-dependency/repo-dependency-map.json
+  infra_dependency: _curated/maps/infra-dependency/infra-dependency-map.json
+---
+""",
+        encoding="utf-8",
+    )
+    _install_page(root, VALID / "component.md", "_curated/components/component.md")
+    issues = lint_repository(root, check_maps=False, today=date(2026, 8, 7))
+    assert "ATLAS004" not in _codes(issues), issues
 
 
 def test_atlas001_frontmatter_failure(tmp_path: Path):
@@ -354,3 +380,55 @@ def test_atlas022_warns_when_component_deployment_has_no_infra_evidence(tmp_path
     page.write_text(text, encoding="utf-8")
     issues = lint_repository(root, package_name="fixtures", check_maps=False, today=date(2026, 8, 7))
     assert any(item["code"] == "ATLAS022" and item["level"] == "WARN" for item in issues)
+
+
+def test_atlas023_validates_structured_flow_entry_points(tmp_path: Path):
+    root = _base_root(tmp_path)
+    page = _install_page(root, VALID / "flow.md", "_curated/flows/flow.md")
+    text = page.read_text(encoding="utf-8").replace(
+        "trigger: test",
+        "entry_points:\n- kind: invented\n  name: Fixture trigger\n  confidence: reviewed\n  evidence: [fixture://trigger]\ntrigger: test",
+    )
+    page.write_text(text, encoding="utf-8")
+    issues = lint_repository(root, package_name="fixtures", check_maps=False, today=date(2026, 8, 7))
+    assert "ATLAS023" in _codes(issues)
+
+
+def test_atlas023_requires_structured_promoted_resources(tmp_path: Path):
+    root = _base_root(tmp_path)
+    page = _install_page(root, VALID / "infra.md", "_curated/infra/infra.md")
+    text = page.read_text(encoding="utf-8").replace(
+        "promoted_resources: []", "promoted_resources:\n- fixture-resource"
+    )
+    page.write_text(text, encoding="utf-8")
+    issues = lint_repository(root, package_name="fixtures", check_maps=False, today=date(2026, 8, 7))
+    assert "ATLAS023" in _codes(issues)
+
+
+def test_atlas024_rejects_relationship_outside_its_map_contract(tmp_path: Path):
+    root = _base_root(tmp_path)
+    page = _install_page(root, VALID / "component.md", "_curated/components/component.md")
+    text = page.read_text(encoding="utf-8").replace(
+        "relationships: []",
+        "relationships:\n- type: atlas.triggers\n  target: external.fixture.flow\n  kind: event\n  confidence: reviewed\n  evidence: [fixture://relationship]",
+    )
+    page.write_text(text, encoding="utf-8")
+    issues = lint_repository(root, package_name="fixtures", check_maps=False, today=date(2026, 8, 7))
+    assert "ATLAS024" in _codes(issues)
+
+
+def test_reviewed_relationships_resolve_embedded_resource_ids(tmp_path: Path):
+    root = _base_root(tmp_path)
+    projection = ROOT / "tests" / "fixtures" / "valid" / "map-projection"
+    destinations = {
+        "component.md": "_curated/components/component.md",
+        "library.md": "_curated/components/library.md",
+        "flow.md": "_curated/flows/flow.md",
+        "upstream-flow.md": "_curated/flows/upstream-flow.md",
+        "infra.md": "_curated/infra/infra.md",
+        "schema-info.md": "_curated/schema-info/schema-info.md",
+    }
+    for source_name, destination in destinations.items():
+        _install_page(root, projection / source_name, destination)
+    issues = lint_repository(root, package_name="fixtures", check_maps=False, today=date(2026, 8, 7))
+    assert "ATLAS010" not in _codes(issues), issues

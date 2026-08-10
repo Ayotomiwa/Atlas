@@ -124,4 +124,4 @@ This example belongs to the same fictional Orders system used by the other map R
 
 ## Traversal and maintenance
 
-Use `steps` for “who/what performs this flow?” and `atlas_query.py` for reverse or transitive impact. Trust only `status: curated` records on the governed branch. Edit the flow Markdown and run `python scripts/rebuild_atlas.py`; never edit this JSON directly.
+Use `steps` for “who/what performs this flow?” and `atlas_query.py` for reverse or transitive impact. Trust only human-reviewed, merged `status: curated` records. Edit the flow Markdown and run `python scripts/rebuild_atlas.py`; never edit this JSON directly.

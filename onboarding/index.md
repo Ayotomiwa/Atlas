@@ -1,7 +1,10 @@
-# Onboarding index
+# New developer onboarding index
 
-- [Service questionnaire](service-questionnaire.md)
-- [Standards questionnaire](standards-questionnaire.md)
-- [Local Claude guidance template](local-CLAUDE.template.md)
+- [Start here](README.md)
+- [Root Atlas routes](../index.md)
+- [Curated knowledge routes](../_curated/index.md)
+- [Staging evidence routes](../_staging/index.md)
+- [Map routes](../_curated/maps/index.md)
+- [Taxonomy ownership](../taxonomy/README.md)
 
-No routing-test report is currently retained. The synthetic customer-orders repository will be onboarded again after the redesigned interfaces are reviewed.
+Agent procedures and questionnaires live with the canonical Claude skills rather than in developer onboarding.

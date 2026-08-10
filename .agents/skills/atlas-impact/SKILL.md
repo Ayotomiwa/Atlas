@@ -1,19 +1,13 @@
 ---
 name: atlas-impact
-description: Use for blast-radius questions such as what may break when a TeamA repository, component, flow, schema or infrastructure item changes, fails or is deleted.
-allowed-tools: Read, Grep, Glob, Bash
+description: Use for explicit TeamA change-risk, deletion, migration, failure, or blast-radius questions involving a file, repository, component, flow, schema, or infrastructure item.
 ---
 
 # atlas-impact
 
-This is a read-only impact-analysis workflow.
+Read `../_shared/runtime.md`, `answer-provenance.md` and `agent-handoffs.md`. This is read-only.
 
-1. Resolve the starting record with `python scripts/atlas_query.py resolve <id>` or an exact stable-ID search. Use a domain index only when the ID is unknown.
-2. Run `python scripts/atlas_query.py impact <id> --direction downstream` with an appropriate depth. Use `--format json` when stable machine-readable paths are useful.
-3. Preserve every direct/transitive distinction, `via` path, confidence value, and evidence route returned by the query library. Do not invent a link to close a traversal gap.
-4. Open only the smallest useful set of map-routed pages for narrative meaning, evidence context, coverage limits, operational detail, or unresolved questions.
-5. Bucket results as **known affected**, **possibly affected**, and **unknown or not covered**. Possible, unconfirmed, and conflicting links do not become reviewed facts through traversal.
-6. Cite the supporting Atlas page ID/path and evidence route for each material result.
-7. Never claim `not affected` merely because a connection is absent. Never use staging evidence as authority and never write Atlas or product files.
-
-If the starting record is not covered by curated Atlas, report that limitation instead of constructing a confident graph from staging evidence.
+1. Start from the file/diff/artifact/current path, resolve candidates with `context`, preserve ambiguity and establish the exact starting boundary.
+2. Delegate substantive analysis to `atlas-impact-analyst`. Inspect direct neighbors before transitive traversal. Default downstream; include upstream only for causes, prerequisites, recovery or explicit request.
+3. Separate confirmed, possible/conflicting, external and unknown impact. Preserve direction, depth, confidence, evidence and one material path per result.
+4. Cite claims and disclose every material hop plus the Atlas-to-source fallback boundary. Never claim safety from absence. Offer upstream analysis when useful but outside scope.

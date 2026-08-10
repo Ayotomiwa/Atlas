@@ -4,12 +4,12 @@
 
 ## Trust
 
-- `curated` — locally reviewed content usable for routing; governed authority is strongest on the declared governed branch.
+- `curated` — reviewed content usable for routing; it is authoritative only after human review and merge.
 - `draft` / `proposed` — reviewable but not authoritative.
 - `deprecated` — retained for transition/history but no longer preferred.
 - `archived` — excluded from normal routing and generated maps.
 
-Agents may prepare `status: curated` proposals but never self-approve or merge them. Query tooling warns when local curated content is read away from the governed branch because new knowledge may exist only on a working branch.
+Agents may prepare `status: curated` proposals but never self-approve or merge them. Query tooling reports lifecycle status but does not infer human approval or merge state; its warning outside `main` or `master` is advisory and never blocks routing.
 
 ## Concept responsibilities
 

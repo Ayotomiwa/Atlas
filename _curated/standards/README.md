@@ -2,7 +2,7 @@
 
 ## Purpose
 
-`_curated/standards/` stores reviewed, reusable TeamA engineering rules and conventions. Standards are team knowledge consumed by humans and skills such as `implement-jira`; reusable skill procedures should resolve standards from Atlas rather than hard-code team-specific choices.
+`_curated/standards/` stores reviewed, reusable TeamA engineering rules and conventions. Standards are team knowledge consumed by humans and engineering workflows; reusable procedures should resolve standards from Atlas rather than hard-code team-specific choices.
 
 A standard page should help answer: **what rule applies, to whom, how strong is it, why does it exist, what behaviour is required or recommended, and what exceptions are valid?**
 

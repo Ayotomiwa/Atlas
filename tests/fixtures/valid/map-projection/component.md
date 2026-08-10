@@ -14,6 +14,8 @@ routing:
 relationships:
 - type: atlas.participates-in
   target: atlas-flow.fixture.flow
+  role: primary processor
+  sequence: 1
   confidence: reviewed
   evidence:
   - fixture://flow
@@ -23,6 +25,40 @@ relationships:
   confidence: reviewed
   evidence:
   - fixture://schema
+- type: atlas.produces
+  target: atlas-schema.fixture.asset
+  kind: table
+  confidence: reviewed
+  evidence:
+  - fixture://schema-output
+- type: atlas.consumes
+  target: external.fixture.api
+  kind: api
+  confidence: possible
+  note: Synthetic unresolved external route.
+- type: atlas.depends-on
+  target: atlas-comp.fixture.library
+  kind: shared-library
+  confidence: reviewed
+  evidence:
+  - fixture://library
+- type: atlas.uses-resource
+  target: atlas-resource.fixture.shared-bucket
+  kind: infra-resource
+  confidence: reviewed
+  evidence:
+  - fixture://resource
+- type: atlas.scheduled-by
+  target: atlas-resource.fixture.queue
+  kind: schedule
+  confidence: reviewed
+  evidence:
+  - fixture://schedule-resource
+- type: atlas.runs-before
+  target: atlas-comp.fixture.library
+  confidence: reviewed
+  evidence:
+  - fixture://component-order
 - type: atlas.deployed-by
   target: atlas-infra.fixture.stack
   confidence: reviewed
@@ -38,6 +74,7 @@ title: Fixture component
 description: Synthetic test fixture only.
 component_type: service
 component_scope: fixture
+domain_group: fixture-domain
 repository: fixture-service
 monorepo_path: ''
 deployed_as: []

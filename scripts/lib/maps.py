@@ -67,7 +67,7 @@ def load_package_config(root: str | Path) -> dict:
         raise MapBuildError(f"{MANIFEST_NAME}: type/id must identify a package.* record")
     if not isinstance(config.get("package"), str) or not config["package"]:
         raise MapBuildError(f"{MANIFEST_NAME}: package is required")
-    for required in ("status", "governed_branch"):
+    for required in ("status",):
         if not isinstance(config.get(required), str) or not config[required]:
             raise MapBuildError(f"{MANIFEST_NAME}: {required} is required")
     if not isinstance(config.get("owners"), dict):
@@ -126,7 +126,7 @@ def map_output_paths(root: str | Path) -> dict[str, Path]:
     return {name: root / config["maps"][key] for name, key in MAP_KEYS.items()}
 
 
-def governed_pages(root: str | Path) -> list[tuple[Path, dict, str]]:
+def curated_pages(root: str | Path) -> list[tuple[Path, dict, str]]:
     root = Path(root)
     curated = root / "_curated"
     out: list[tuple[Path, dict, str]] = []
@@ -157,6 +157,19 @@ def _string_list(value: object) -> list[str]:
     if not isinstance(value, list):
         return []
     return sorted({str(item) for item in value if str(item).strip()})
+
+
+def _repository_root(path: Path, value: object) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise MapBuildError(f"{path}: repository_root is required")
+    root = value.strip().rstrip("/") or "."
+    if root == ".":
+        return root
+    if "\\" in root or root.startswith("/") or re.match(r"^[A-Za-z]:", root):
+        raise MapBuildError(f"{path}: repository_root must be a POSIX path relative to the physical Git root")
+    if any(part in {"", ".", ".."} for part in root.split("/")):
+        raise MapBuildError(f"{path}: repository_root contains an invalid path segment")
+    return root
 
 
 def _aliases(fm: dict) -> list[str]:
@@ -645,7 +658,7 @@ def build_maps(
     active_types = {name: spec for name, spec in type_specs.items() if spec.get("status") == "active"}
     domain_ids = {item["id"] for item in config.get("domains") or []}
 
-    pages = governed_pages(root)
+    pages = curated_pages(root)
     page_by_id: dict[str, tuple[Path, dict, str]] = {}
     for absolute_path, fm, body in pages:
         rel = absolute_path.relative_to(root)
@@ -744,6 +757,7 @@ def build_maps(
             repositories[ident] = {
                 **common,
                 "repository_locator": fm.get("repository_locator", ""),
+                "repository_root": _repository_root(path, fm.get("repository_root")),
                 "repository_type": repository_type,
                 "default_branch": fm.get("default_branch", ""),
                 "parent_repository": _parent_id(fm.get("parent_repository"), "repository", page_by_id),

@@ -4,7 +4,7 @@ This repository is the TeamA Atlas package (`teama`). It is a governed engineeri
 
 ## Trust
 - `_staging/` is raw evidence and is never authoritative.
-- `_curated/` is reviewed knowledge; only `status: curated` on the governed/default branch is authoritative.
+- `_curated/` is reviewed knowledge; only human-reviewed, merged `status: curated` content is authoritative.
 - Codex may stage and propose; Codex never self-approves or merges knowledge.
 - Never invent missing engineering context.
 
@@ -13,7 +13,7 @@ This repository is the TeamA Atlas package (`teama`). It is a governed engineeri
 - `index.md` files route to existing knowledge.
 - A target folder's `README.md` defines semantic, granularity, evidence and reviewer rules.
 - A target folder's `_template.md` defines page shape.
-- Skills in `.Codex/skills/` define workflows.
+- Codex skills in `.agents/skills/` define workflows; specialist agent profiles live in `.codex/agents/`.
 
 ## Editing Atlas
 - Before curating into a folder, read that folder's `README.md`, `_template.md`, and `index.md`.

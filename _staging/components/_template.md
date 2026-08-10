@@ -20,7 +20,9 @@ Explain why the scan was performed and what was found at a high level.
 
 ## Discovery boundary
 
-- Accessible repository/checkout:
+- Accessible physical Git repository/checkout:
+- Git locator or remote:
+- Logical repository root relative to the Git root:
 - Revision, branch or snapshot inspected:
 - Paths included:
 - Paths excluded or inaccessible:
@@ -34,8 +36,11 @@ Explain why the scan was performed and what was found at a high level.
 | Attribute | Observed value | Evidence | State |
 |---|---|---|---|
 | Repository name | | | observed/user-confirmed |
-| Mutable locator or URL | | | observed/user-confirmed |
-| Repository type | standard/monorepo/nested/mirror/other/unknown | | observed/user-confirmed |
+| Physical Git locator or URL | | | observed/user-confirmed |
+| Logical repository root | `.` or Git-relative path | | observed/user-confirmed |
+| Boundary evidence | ownership/build/release/source/config/test/docs/child-product | | observed/user-confirmed/possible |
+| Repository type | standalone/monorepo-root/monorepo-project/nested-project/mirror/other/unknown | | observed/user-confirmed |
+| Enclosing repository candidate | | | observed/user-confirmed/possible |
 | Default branch | | | observed/user-confirmed |
 | Owner or SME | | | observed/user-confirmed/unknown |
 | Candidate primary domain | | | observed/user-confirmed/possible |
@@ -67,11 +72,13 @@ Keep repository-level source/build dependencies separate from runtime component 
 
 ## Candidate components
 
-| Candidate | Suggested type | Responsibility | Independent boundary evidence | Parent candidate | Source roots | Candidate domain | State |
+| Candidate | Suggested type | Responsibility | Independent boundary evidence | Parent candidate | Repository-relative paths | Candidate domain | State |
 |---|---|---|---|---|---|---|---|
 | | service/job/etl-job/lambda/api/shared-library/batch/other/unknown | | | | | | observed/user-confirmed/possible |
 
 Folders, domains, repositories and job groups are not components by default. Record internal modules below when they do not merit stable identity.
+
+All candidate component paths are relative to the candidate logical repository root, not necessarily the physical Git root.
 
 ### Internal modules that are not component candidates
 

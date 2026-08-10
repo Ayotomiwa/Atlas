@@ -1,0 +1,22 @@
+# Specialist-agent handoffs
+
+Give an analyst:
+
+- objective and requested output;
+- absolute Atlas root, product Git root and current path;
+- path-context candidates or exact stable IDs;
+- authorised scan boundary, exclusions and fallback limits;
+- known user-confirmed facts and unresolved ambiguity;
+- validation deferrals and write prohibition where applicable.
+
+Every analyst returns:
+
+1. findings in the clearest presentation for the question;
+2. a claim ledger with claim, source classification, supporting references, confidence, lifecycle status, direct/inferred state and all premises for inference;
+3. material route hops with source, target, natural field/step, confidence and reference;
+4. materially consulted paths;
+5. checked-but-not-found paths when negative findings depend on them;
+6. coverage limits, conflicts, inaccessible context and remaining questions;
+7. recommended next routes only when they add value.
+
+The parent skill verifies that references support the exact claims, preserves the analyst's chosen presentation, adds no unsupported synthesis, and exposes the material file hops to the user.

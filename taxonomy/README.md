@@ -16,6 +16,8 @@ The current record supplies the source and the field supplies the natural connec
 
 Qualifiers only classify what the field genuinely needs. Examples are `dependency_type`, `asset_type`, `entry_point_type`, `participant.type` and `resource_type`. Their values are grouped under the relevant node type in `concept-fields.yaml`, so authors can see who owns each vocabulary.
 
+Repository types distinguish a standalone Git boundary, an optional physical monorepo root, an evidenced logical monorepo project, a genuinely nested project, a mirror, other and unknown. `repository_root` is a locator rather than taxonomy: it is `.` or a POSIX path relative to the physical Git root and may change without changing the stable ID.
+
 ## IDs
 
 Curated IDs use a registered prefix plus one or more semantic kebab-case segments. Add segments only to remove ambiguity. IDs are never derived from repository/package paths, domain folders, URLs or filenames and do not change when those locators move.

@@ -6,7 +6,7 @@
 
 The common `metadata` object is described in the maps overview. `repositories` and `components` are keyed by stable IDs.
 
-Repository records may contain mutable locator/default-branch data, `repository_type`, source roots, an authored `parent_repository`, authored `depends_on_repositories`, compact derived `components` IDs, one typed `used_by` reverse view, governed routes and compact question routes.
+Repository records may contain mutable locator/default-branch data, `repository_root`, `repository_type`, source roots, an authored `parent_repository`, authored `depends_on_repositories`, compact derived `components` IDs, one typed `used_by` reverse view, governed routes and compact question routes.
 
 Component records may contain `component_type`, repository ID and paths, an authored `parent_component`, durable `consumes`/`produces`, `depends_on`, natural infrastructure fields, one typed `used_by` view, governed routes and compact question routes.
 
@@ -40,11 +40,12 @@ There are no child arrays, source-dependent arrays, cross-repository aggregates,
       "coverage": "good",
       "primary_domain": "orders",
       "repository_locator": "https://example.invalid/orders-platform",
-      "repository_type": "monorepo",
+      "repository_root": "products/orders",
+      "repository_type": "monorepo-project",
       "default_branch": "main",
       "source_roots": [
-        {"path": "src/api", "purpose": "Order submission API", "evidence": ["src/api/README.md"]},
-        {"path": "src/worker", "purpose": "Order fulfilment worker", "evidence": ["src/worker/README.md"]}
+        {"path": "src/api", "purpose": "Order submission API", "evidence": ["products/orders/src/api/README.md"]},
+        {"path": "src/worker", "purpose": "Order fulfilment worker", "evidence": ["products/orders/src/worker/README.md"]}
       ],
       "components": ["comp.orders-api", "comp.orders-worker"]
     }

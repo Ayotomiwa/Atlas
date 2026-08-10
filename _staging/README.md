@@ -76,7 +76,7 @@ Before using a staging record for curation, confirm that its filename matches it
 
 ## Lifecycle status
 
-The staging record itself is the queue. On the default branch:
+The staging record itself is the queue. In merged Atlas state:
 
 | Status | Meaning | Automatic curation behaviour |
 |---|---|---|
@@ -87,7 +87,7 @@ The staging record itself is the queue. On the default branch:
 | `deferred` | insufficient evidence or a deliberate blocker remains | skip until explicitly reset/reconsidered |
 | `rejected` | not suitable for durable Atlas knowledge | skip |
 
-A branch or open Atlas PR/MR may contain a proposed status transition before it exists on the default branch. For queue decisions, prefer the default branch and also check active Atlas work for the same staging ID when concurrent curation is plausible.
+A branch or open Atlas PR/MR may contain a proposed status transition before it is merged. For queue decisions, use the latest merged state and also check active Atlas work for the same staging ID when concurrent curation is plausible.
 
 `curated` is a **staging workflow outcome**, not a statement that every claim in the staging file was accepted. Curated knowledge remains governed by `_curated/` page status and evidence.
 

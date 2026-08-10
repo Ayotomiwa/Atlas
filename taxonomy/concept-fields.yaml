@@ -1,6 +1,6 @@
 schema_version: atlas-concept-fields/1.0
 repository:
-  repository_type: [standard, monorepo, nested, mirror, other, unknown]
+  repository_type: [standalone, monorepo-root, monorepo-project, nested-project, mirror, other, unknown]
   dependency_type: [submodule, generated-source, shared-tooling, shared-config, build, other, unknown]
 
 component:

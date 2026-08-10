@@ -32,10 +32,27 @@ def _emit(payload: dict, output_format: str) -> None:
     elif command == "route":
         for record in payload["results"]:
             print(f"{record['id']} [{record.get('status', 'unknown')}] {record.get('title', '')} -> {record.get('page', '')}")
+    elif command == "context":
+        context = payload["context"]
+        print(f"Git-relative path: {context.get('git_relative_path', '.')}")
+        for warning in context.get("warnings") or []:
+            print(f"WARNING: {warning}")
+        print("Repository candidates:")
+        for record in context.get("repositories") or []:
+            print(
+                f"  {record['id']} [{record.get('status', 'unknown')}] "
+                f"via {record['match_basis']}={record['matched_path']} -> {record.get('page', '')}"
+            )
+        print("Component candidates:")
+        for record in context.get("components") or []:
+            print(
+                f"  {record['id']} [{record.get('status', 'unknown')}] "
+                f"via {record['match_basis']}={record['matched_path']} -> {record.get('page', '')}"
+            )
     elif command == "neighbors":
         for item in payload["results"]:
             edge = item["edge"]
-            print(f"{item['direction']}: {item['peer']} via {edge['relationship']} ({edge['confidence']})")
+            print(f"{item['direction']}: {item['peer']} via {edge['field']} ({edge['confidence']})")
     elif command == "impact":
         for item in payload["results"]:
             route = item.get("route") or {}
@@ -55,6 +72,9 @@ def main(argv: list[str] | None = None) -> int:
     route_parser = subparsers.add_parser("route")
     route_parser.add_argument("query")
 
+    context_parser = subparsers.add_parser("context")
+    context_parser.add_argument("path", nargs="?", default=".")
+
     neighbors_parser = subparsers.add_parser("neighbors")
     neighbors_parser.add_argument("identifier")
 
@@ -70,7 +90,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Atlas query failed: {exc}", file=sys.stderr)
         return 1
 
-    payload: dict = {"command": args.command, "warnings": query.warnings}
+    payload: dict = {"command": args.command}
+    if query.warnings:
+        payload["warnings"] = query.warnings
     if args.command == "resolve":
         payload["record"] = query.resolve(args.identifier)
         if payload["record"] is None:
@@ -80,6 +102,8 @@ def main(argv: list[str] | None = None) -> int:
             )
     elif args.command == "route":
         payload["results"] = query.route(args.query)
+    elif args.command == "context":
+        payload["context"] = query.context(args.path)
     elif args.command == "neighbors":
         payload["starting_record"] = query.resolve(args.identifier)
         if payload["starting_record"] is None:

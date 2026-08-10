@@ -4,9 +4,11 @@ from collections import deque
 from dataclasses import asdict, dataclass
 from pathlib import Path
 import json
+import re
 import subprocess
+from urllib.parse import urlsplit
 
-from scripts.lib.maps import governed_pages, load_package_config
+from scripts.lib.maps import curated_pages, load_package_config
 from scripts.lib.taxonomy import load_contracts
 
 
@@ -25,6 +27,50 @@ class Edge:
 CONFIDENCE_RANK = {"reviewed": 0, "possible": 1, "unconfirmed": 2, "conflicting": 3}
 
 
+def _normalise_locator(value: str) -> str:
+    locator = value.strip().replace("\\", "/")
+    if not locator:
+        return ""
+    if locator.startswith("git@") and ":" in locator:
+        host, path = locator[4:].split(":", 1)
+        locator = f"{host}/{path}"
+    elif "://" in locator:
+        parsed = urlsplit(locator)
+        locator = f"{parsed.hostname or parsed.netloc}{parsed.path}"
+    locator = re.sub(r"/+", "/", locator).rstrip("/")
+    if locator.casefold().endswith(".git"):
+        locator = locator[:-4]
+    return locator.casefold()
+
+
+def _normalise_relative_path(value: object) -> str:
+    if not isinstance(value, str):
+        return "."
+    path = value.strip().replace("\\", "/").strip("/")
+    return path or "."
+
+
+def _contains_path(parent: str, child: str) -> bool:
+    parent = _normalise_relative_path(parent)
+    child = _normalise_relative_path(child)
+    return parent == "." or child == parent or child.startswith(parent + "/")
+
+
+def _join_relative(parent: str, child: str) -> str:
+    parent = _normalise_relative_path(parent)
+    child = _normalise_relative_path(child)
+    if parent == ".":
+        return child
+    if child == ".":
+        return parent
+    return f"{parent}/{child}"
+
+
+def _specificity(path: str) -> int:
+    path = _normalise_relative_path(path)
+    return 0 if path == "." else len(path.split("/"))
+
+
 class AtlasQuery:
     def __init__(self, root: str | Path):
         self.root = Path(root).resolve()
@@ -33,13 +79,10 @@ class AtlasQuery:
         self.records: dict[str, dict] = {}
         self.routes: dict[str, dict] = {}
         self.edges: list[Edge] = []
-        self.warnings = self._trust_warnings()
+        self.warnings = self._branch_warnings()
         self._load()
 
-    def _trust_warnings(self) -> list[str]:
-        governed = self.config.get("governed_branch")
-        if not governed:
-            return ["The package manifest does not declare a governed branch; local curated status is unverified."]
+    def _branch_warnings(self) -> list[str]:
         try:
             result = subprocess.run(
                 ["git", "branch", "--show-current"],
@@ -51,17 +94,13 @@ class AtlasQuery:
             )
             current = result.stdout.strip()
         except (OSError, subprocess.SubprocessError):
-            return [
-                f"Could not determine the current Git branch; check {governed} for governed authority."
-            ]
+            return ["Could not determine the current Git branch; Atlas routing will continue."]
         if not current:
+            return ["The checkout is detached or its branch is unknown; Atlas routing will continue."]
+        if current not in {"main", "master"}:
             return [
-                f"The checkout is detached or its branch is unknown; check {governed} for governed authority."
-            ]
-        if current != governed:
-            return [
-                f"Using local status:curated content on branch {current}; check {governed} for governed authority. "
-                "New knowledge may intentionally exist only on this working branch."
+                f"Current branch {current} is not main or master; results may include unmerged Atlas work. "
+                "Routing will continue."
             ]
         return []
 
@@ -88,7 +127,7 @@ class AtlasQuery:
                         "page": record.get("page", ""),
                         "status": record.get("status"),
                     }
-        for path, frontmatter, _ in governed_pages(self.root):
+        for path, frontmatter, _ in curated_pages(self.root):
             identifier = frontmatter.get("id")
             if isinstance(identifier, str):
                 self.routes.setdefault(
@@ -276,7 +315,7 @@ class AtlasQuery:
         routed = self.routes.get(identifier)
         if routed:
             return routed
-        for path, frontmatter, _ in governed_pages(self.root):
+        for path, frontmatter, _ in curated_pages(self.root):
             if frontmatter.get("id") == identifier:
                 route = {
                     "id": identifier,
@@ -304,9 +343,11 @@ class AtlasQuery:
                 record.get("description", ""),
                 record.get("primary_domain", ""),
                 record.get("repository_locator", ""),
+                record.get("repository_root", ""),
                 record.get("package_path", ""),
                 *(record.get("aliases") or []),
                 *(record.get("repository_paths") or []),
+                *(root.get("path", "") for root in record.get("source_roots") or [] if isinstance(root, dict)),
             ]
             if any(
                 candidate in str(value).casefold()
@@ -315,6 +356,128 @@ class AtlasQuery:
             ):
                 matches.append(record)
         return sorted(matches, key=lambda item: item["id"])
+
+    def context(self, path: str | Path = ".") -> dict:
+        requested = Path(path).expanduser().resolve()
+        start = requested.parent if requested.is_file() else requested
+        context_warnings: list[str] = []
+        git_root: Path | None = None
+        git_remote = ""
+        try:
+            result = subprocess.run(
+                ["git", "-C", str(start), "rev-parse", "--show-toplevel"],
+                check=True,
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            git_root = Path(result.stdout.strip()).resolve()
+        except (OSError, subprocess.SubprocessError):
+            context_warnings.append("Could not discover a physical Git root for the requested path.")
+
+        if git_root is not None:
+            try:
+                remote = subprocess.run(
+                    ["git", "-C", str(git_root), "remote", "get-url", "origin"],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                    timeout=5,
+                )
+                git_remote = remote.stdout.strip()
+            except (OSError, subprocess.SubprocessError):
+                context_warnings.append("The physical Git repository has no readable origin remote.")
+
+        if git_root is None:
+            relative_path = "."
+        else:
+            try:
+                relative_path = requested.relative_to(git_root).as_posix() or "."
+            except ValueError:
+                relative_path = "."
+                context_warnings.append("The requested path is outside the discovered physical Git root.")
+
+        normalised_remote = _normalise_locator(git_remote)
+        repository_candidates: list[dict] = []
+        for identifier, record in self.records.items():
+            if record.get("collection") != "repositories":
+                continue
+            locator = str(record.get("repository_locator") or "")
+            normalised_locator = _normalise_locator(locator)
+            if normalised_remote and normalised_locator and normalised_remote != normalised_locator:
+                continue
+            repository_root = _normalise_relative_path(record.get("repository_root"))
+            if git_root is not None and not _contains_path(repository_root, relative_path):
+                continue
+            locator_state = (
+                "matched"
+                if normalised_remote and normalised_locator and normalised_remote == normalised_locator
+                else "not-verified"
+            )
+            repository_candidates.append(
+                {
+                    "id": identifier,
+                    "page": record.get("page", ""),
+                    "status": record.get("status"),
+                    "repository_type": record.get("repository_type"),
+                    "repository_root": repository_root,
+                    "matched_path": repository_root,
+                    "match_basis": "repository_root",
+                    "locator_match": locator_state,
+                    "specificity": _specificity(repository_root),
+                }
+            )
+        repository_candidates.sort(key=lambda item: (-item["specificity"], item["id"]))
+        repository_ids = {item["id"]: item for item in repository_candidates}
+
+        component_candidates: list[dict] = []
+        for identifier, record in self.records.items():
+            if record.get("collection") != "components" or record.get("repository") not in repository_ids:
+                continue
+            repository_candidate = repository_ids[record["repository"]]
+            repository_root = repository_candidate["repository_root"]
+            paths = record.get("repository_paths") or []
+            matched_paths = [
+                _join_relative(repository_root, component_path)
+                for component_path in paths
+                if _contains_path(_join_relative(repository_root, component_path), relative_path)
+            ]
+            if matched_paths:
+                matched_path = max(matched_paths, key=lambda value: (_specificity(value), value))
+                basis = "repository_path"
+            else:
+                matched_path = repository_root
+                basis = "repository_membership"
+            component_candidates.append(
+                {
+                    "id": identifier,
+                    "page": record.get("page", ""),
+                    "status": record.get("status"),
+                    "component_type": record.get("component_type"),
+                    "repository": record.get("repository"),
+                    "repository_paths": paths,
+                    "matched_path": matched_path,
+                    "match_basis": basis,
+                    "specificity": _specificity(matched_path) if basis == "repository_path" else -1,
+                }
+            )
+        component_candidates.sort(key=lambda item: (-item["specificity"], item["id"]))
+
+        top_repo_specificity = repository_candidates[0]["specificity"] if repository_candidates else None
+        top_component_specificity = component_candidates[0]["specificity"] if component_candidates else None
+        return {
+            "requested_path": str(requested),
+            "git_root": str(git_root) if git_root is not None else None,
+            "git_remote": git_remote or None,
+            "git_relative_path": relative_path,
+            "repositories": repository_candidates,
+            "components": component_candidates,
+            "ambiguous": {
+                "repositories": sum(item["specificity"] == top_repo_specificity for item in repository_candidates) > 1,
+                "components": sum(item["specificity"] == top_component_specificity for item in component_candidates) > 1,
+            },
+            "warnings": context_warnings,
+        }
 
     def neighbors(self, identifier: str) -> list[dict]:
         out: list[dict] = []

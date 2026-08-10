@@ -34,8 +34,9 @@ Query direct and transitive routes without expanding JSON manually:
 
 ```powershell
 python scripts/atlas_query.py resolve comp.example-ingest
+python scripts/atlas_query.py context .
 python scripts/atlas_query.py neighbors comp.example-ingest
 python scripts/atlas_query.py impact comp.example-ingest --direction downstream
 ```
 
-The query tool uses local `status: curated` records but warns when the checkout is not the governed branch. Open linked pages only when the map cannot answer the question completely.
+The query tool reports each record's lifecycle status but does not infer human approval or merge state. `context` resolves physical Git/path information to ordered repository/component candidates without hiding ambiguity. It warns outside `main` or `master` and continues normally. Open linked pages only when the map cannot answer the question completely.
