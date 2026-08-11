@@ -11,3 +11,7 @@
 - [standards](standards/README.md) — Candidate reusable engineering standards
 
 New findings not caused by a change go directly to the appropriate semantic bucket. Staging remains evidence-only and never authoritative.
+
+Use `python scripts/atlas_query.py staging` for one read-only view across every bucket. It defaults to active `new` and `curating` records; use its filters or `--include-terminal` for narrower or historical inspection.
+
+Merged-source observation and consideration state is separate from evidence. See [change intake](../_intake/README.md) or use `/atlas-stage-changes`; `_intake/` is not another staging bucket.

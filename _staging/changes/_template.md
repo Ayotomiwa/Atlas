@@ -8,6 +8,15 @@ description: ""
 status: new
 captured_by: ""
 source_type: ""
+# Required when source_type is merged-change; remove the commented marker lines
+# and supply exact Git provenance. Leave merge_requests empty for direct commits.
+# change_source:
+#   source_key: datalens-monorepo
+#   branch: main
+#   commit_range:
+#     from_exclusive: null
+#     through_inclusive: "<full-lowercase-commit-sha>"
+#   merge_requests: []
 ---
 
 # Change evidence: <logical change>
@@ -25,6 +34,7 @@ Describe the logical change, why this evidence is worth keeping, and the boundar
 - Repositories/local paths:
 - Final/default-branch state inspected:
 - Relevant merged MR/PR/commit/release references (if any):
+- Intake source key and exact default-branch commit range (for merged changes):
 - Material changed files/config/contracts:
 - If multiple MRs/PRs are grouped, why they form one logical change:
 - If one broad MR/PR was split, what independent boundary this record owns:

@@ -8,6 +8,8 @@ Route by question or trust layer:
 - How does an end-to-end path work? Use the [flow/component map](_curated/maps/flow-component/flow-component-map.json).
 - What could an infrastructure change affect? Use the [infrastructure map](_curated/maps/infra-dependency/infra-dependency-map.json).
 - What raw evidence is awaiting review? Use the [staging index](_staging/index.md).
+- What staging evidence is active or historical across all buckets? Use `python scripts/atlas_query.py staging` with status, bucket, domain, date or target filters.
+- Which merged monorepo changes have Atlas considered, or what should be staged next? Use `/atlas-stage-changes`; shared cursors are explained in [change intake](_intake/README.md).
 - What is the latest curation checkpoint? Open [curation status](_curated/status/curation-status.md).
 - How is new context captured? Start with [onboarding](onboarding/index.md).
 - Which controlled values apply? Read [taxonomy](taxonomy/README.md).

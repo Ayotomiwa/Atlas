@@ -30,3 +30,8 @@ def test_parse_frontmatter_from_path(tmp_path: Path):
 def test_invalid_frontmatter_is_rejected(text: str, message: str):
     with pytest.raises(ValueError, match=message):
         parse_frontmatter(text)
+
+
+def test_non_mapping_frontmatter_is_rejected():
+    with pytest.raises(ValueError, match="must be a mapping"):
+        parse_frontmatter("---\n- one\n- two\n---\n")

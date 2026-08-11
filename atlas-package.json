@@ -20,6 +20,7 @@
     "root": "index.md",
     "curated": "_curated/index.md",
     "staging": "_staging/index.md",
+    "intake": "_intake/README.md",
     "repositories": "_curated/repositories/index.md",
     "components": "_curated/components/index.md",
     "flows": "_curated/flows/index.md",

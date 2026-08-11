@@ -7,7 +7,7 @@ description: Onboard one datalens logical source boundary through broad inventor
 
 Read the shared runtime/provenance/handoff references, `references/clarification-checklist.md`, and staging component README/template.
 
-1. Establish one logical boundary, physical Git root/remote, candidate `repository_root`, enclosing boundary, scope and exclusions. Check existing coverage with typed repository/component `find` plus `context`; preserve ambiguity and `not-verified` status.
+1. Establish one logical boundary, physical Git root/remote, candidate `repository_root`, enclosing boundary, scope and exclusions. Check existing coverage with typed repository/component `find` plus `context`; preserve ambiguity and `not-verified` status. Route incremental merged-change processing for an already-onboarded boundary to `atlas-stage-changes`.
 2. Always delegate to `atlas-repo-analyst`. Require complete lenses with targeted sources: boundary/ownership/domain, build/release, components/entrypoints, I/O/dependencies, infrastructure, flows, schemas and operations.
 3. Follow only explicit shared/infra references; report sibling products as follow-ups. Exclude VCS internals, dependencies, environments, generated/build/vendor/large-data content unless relevant.
 4. Ask one consolidated material clarification round; ask again only if safe staging is blocked.

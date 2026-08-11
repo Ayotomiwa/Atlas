@@ -4,6 +4,7 @@
 - [Root Atlas routes](../index.md)
 - [Curated knowledge routes](../_curated/index.md)
 - [Staging evidence routes](../_staging/index.md)
+- [Merged-change intake and source cursors](../_intake/README.md)
 - [Map routes](../_curated/maps/index.md)
 - [Taxonomy ownership](../taxonomy/README.md)
 

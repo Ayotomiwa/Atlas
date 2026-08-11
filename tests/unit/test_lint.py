@@ -253,3 +253,146 @@ def test_unquoted_transition_key_has_actionable_error(tmp_path: Path):
     _write(root, "_curated/flows/test/flow.md", flow)
     issues = lint_repository(root)
     assert any('quote the reserved YAML key "on"' in item["message"] for item in issues)
+
+
+def _merged_change(identifier: str = "STG-20260811-merged-change") -> dict:
+    return {
+        "id": identifier,
+        "type": "staging.change",
+        "package": "fixtures",
+        "timestamp": "2026-08-11",
+        "title": "Merged change",
+        "description": "Evidence captured from a merged change.",
+        "status": "new",
+        "captured_by": "Fixture Curator",
+        "source_type": "merged-change",
+        "change_source": {
+            "source_key": "fixture-monorepo",
+            "branch": "main",
+            "commit_range": {
+                "from_exclusive": "1" * 40,
+                "through_inclusive": "a" * 40,
+            },
+            "merge_requests": [{"id": "1420", "merged_commit": "a" * 40}],
+        },
+    }
+
+
+def _intake_checkpoint(staging_id: str = "STG-20260811-merged-change") -> dict:
+    return {
+        "schema_version": "atlas-intake/1.0",
+        "source": {
+            "key": "fixture-monorepo",
+            "locator": "https://example.invalid/fixture.git",
+            "default_branch": "main",
+        },
+        "observed_through": {"commit": "a" * 40, "merge_request": "1420"},
+        "considered_through": {"commit": "a" * 40, "merge_request": "1420"},
+        "last_run": {
+            "from_exclusive": "1" * 40,
+            "through_inclusive": "a" * 40,
+            "dispositions": [{
+                "change_key": "mr:1420",
+                "commit": "a" * 40,
+                "merge_request": "1420",
+                "outcome": "staged",
+                "staging_ids": [staging_id],
+            }],
+        },
+        "unresolved": [],
+        "updated_at": "2026-08-11T12:30:00+00:00",
+        "updated_by": "Fixture Curator",
+    }
+
+
+def test_lint_accepts_merged_change_provenance_and_checkpoint_join(tmp_path: Path):
+    root = _root(tmp_path)
+    change = _merged_change()
+    _write(root, f"_staging/changes/{change['id']}.md", change)
+    checkpoint = root / "_intake/checkpoints/fixture-monorepo.json"
+    checkpoint.parent.mkdir(parents=True)
+    checkpoint.write_text(json.dumps(_intake_checkpoint()), encoding="utf-8")
+
+    assert lint_repository(root) == []
+
+
+def test_lint_requires_and_validates_merged_change_provenance(tmp_path: Path):
+    root = _root(tmp_path)
+    change = _merged_change()
+    del change["change_source"]
+    _write(root, f"_staging/changes/{change['id']}.md", change)
+
+    issues = lint_repository(root)
+    assert any(
+        item["code"] == "ATLAS025" and "change_source is required" in item["message"]
+        for item in issues
+    )
+
+    change["change_source"] = {
+        "source_key": "fixture-monorepo",
+        "branch": "main",
+        "commit_range": {"from_exclusive": None, "through_inclusive": "ABC"},
+        "merge_requests": [
+            {"id": "1420", "merged_commit": "a" * 40},
+            {"id": "1420", "merged_commit": "b" * 40},
+        ],
+    }
+    _write(root, f"_staging/changes/{change['id']}.md", change)
+    messages = [item["message"] for item in lint_repository(root) if item["code"] == "ATLAS025"]
+    assert any("through_inclusive" in item and "lowercase hexadecimal" in item for item in messages)
+    assert any("duplicate id 1420" in item for item in messages)
+
+
+def test_lint_attributes_checkpoint_schema_and_join_errors(tmp_path: Path):
+    root = _root(tmp_path)
+    checkpoint = root / "_intake/checkpoints/wrong-name.json"
+    checkpoint.parent.mkdir(parents=True)
+    checkpoint.write_text(json.dumps(_intake_checkpoint("STG-20260811-missing")), encoding="utf-8")
+
+    issues = [item for item in lint_repository(root) if item["code"] == "ATLAS028"]
+    assert issues
+    assert all(item["path"] == "_intake/checkpoints/wrong-name.json" for item in issues)
+    assert any("filename" in item["message"] for item in issues)
+    assert any("missing staging ID" in item["message"] for item in issues)
+
+
+def test_lint_checkpoint_join_matches_exact_commit_and_merge_request(tmp_path: Path):
+    root = _root(tmp_path)
+    change = _merged_change()
+    change["change_source"]["merge_requests"].append(
+        {"id": "1421", "merged_commit": "b" * 40}
+    )
+    _write(root, f"_staging/changes/{change['id']}.md", change)
+    checkpoint_value = _intake_checkpoint()
+    checkpoint_value["observed_through"]["merge_request"] = "1421"
+    checkpoint_value["considered_through"]["merge_request"] = "1421"
+    checkpoint_value["last_run"]["dispositions"][0]["merge_request"] = "1421"
+    checkpoint = root / "_intake/checkpoints/fixture-monorepo.json"
+    checkpoint.parent.mkdir(parents=True)
+    checkpoint.write_text(json.dumps(checkpoint_value), encoding="utf-8")
+
+    issues = [item for item in lint_repository(root) if item["code"] == "ATLAS028"]
+    assert any("merge request does not match" in item["message"] for item in issues)
+
+    checkpoint_value["last_run"]["dispositions"][0].update(
+        {"commit": "b" * 40, "merge_request": "1421"}
+    )
+    checkpoint_value["last_run"]["through_inclusive"] = "b" * 40
+    checkpoint_value["observed_through"]["commit"] = "b" * 40
+    checkpoint_value["considered_through"]["commit"] = "b" * 40
+    checkpoint.write_text(json.dumps(checkpoint_value), encoding="utf-8")
+    issues = [item for item in lint_repository(root) if item["code"] == "ATLAS028"]
+    assert any("commit does not match" in item["message"] for item in issues)
+
+
+def test_lint_checkpoint_join_rejects_ambiguous_staging_id(tmp_path: Path):
+    root = _root(tmp_path)
+    change = _merged_change()
+    _write(root, f"_staging/changes/{change['id']}.md", change)
+    _write(root, f"_staging/changes/duplicate/{change['id']}.md", change)
+    checkpoint = root / "_intake/checkpoints/fixture-monorepo.json"
+    checkpoint.parent.mkdir(parents=True)
+    checkpoint.write_text(json.dumps(_intake_checkpoint()), encoding="utf-8")
+
+    issues = [item for item in lint_repository(root) if item["code"] == "ATLAS028"]
+    assert any("references ambiguous staging ID" in item["message"] for item in issues)

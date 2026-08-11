@@ -14,6 +14,24 @@ For working-code changes, **capture into Atlas after the relevant code PR/MR has
 
 MR/PR identifiers are optional provenance. They do not control Atlas lifecycle state and they are not required for findings that did not originate from a code review.
 
+When `source_type: merged-change`, frontmatter must identify the exact considered Git range:
+
+```yaml
+change_source:
+  source_key: datalens-monorepo
+  branch: main
+  commit_range:
+    from_exclusive: "0123456789abcdef0123456789abcdef01234567"
+    through_inclusive: "89abcdef0123456789abcdef0123456789abcdef"
+  merge_requests:
+    - id: "1420"
+      merged_commit: "89abcdef0123456789abcdef0123456789abcdef"
+```
+
+Use `from_exclusive: null` only for an explicitly bounded first range. Use an empty `merge_requests` list for direct commits. Commit IDs must be full 40- or 64-character lowercase hexadecimal values, and MR/PR IDs are strings. `change_source` may also preserve exact Git provenance for another change `source_type`, but it is not accepted on other staging buckets.
+
+The matching `_intake/checkpoints/<source-key>.json` file owns mutable scan progress and resulting staging-ID joins. Do not put cursor state or a later consumption ledger into this immutable evidence record.
+
 If useful knowledge is discovered independently of a code change — for example during investigation, onboarding, architecture discussion, incident follow-up or an engineer-supplied clarification — stage it directly in the most appropriate bucket instead of manufacturing a change record.
 
 ## Default MR/PR-to-staging rule

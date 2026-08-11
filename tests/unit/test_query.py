@@ -234,3 +234,31 @@ def test_feature_branch_detached_untracked_and_archived_checkout_state(tmp_path:
     archived = AtlasQuery(root, compiled_maps={})
     assert archived.resolve("schema.fixture") is None
     assert archived.resolve("asset.fixture.output") is None
+
+
+def test_non_mapping_staging_frontmatter_does_not_break_other_queries(tmp_path: Path):
+    root, schema_path = _root(tmp_path)
+    schema_path.write_text(
+        schema_path.read_text(encoding="utf-8")
+        + """
+## Open questions / coverage limits
+
+| Question ID | Question | Affected IDs | Evidence gap |
+|---|---|---|---|
+| ownership | Who owns this schema? | schema.fixture | Ownership evidence. |
+""",
+        encoding="utf-8",
+    )
+    invalid = root / "_staging/changes/STG-20260811-invalid.md"
+    invalid.parent.mkdir(parents=True)
+    invalid.write_text(
+        "---\n- not\n- a-mapping\n---\n\nschema.fixture#ownership\n",
+        encoding="utf-8",
+    )
+
+    query = AtlasQuery(root, compiled_maps=build_maps(root))
+
+    assert query.find("fixture schema")["candidates"][0]["id"] == "schema.fixture"
+    assert [item["id"] for item in query.questions("schema.fixture")["results"]] == [
+        "schema.fixture#ownership"
+    ]

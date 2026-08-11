@@ -8,9 +8,9 @@ import re
 import subprocess
 from urllib.parse import urlsplit
 
-from scripts.lib.frontmatter import parse_frontmatter
 from scripts.lib.maps import curated_pages, load_package_config
 from scripts.lib.questions import QuestionParseError, parse_open_questions
+from scripts.lib.staging import ACTIVE_STAGING_STATUSES, read_staging_pages
 from scripts.lib.structured import StructuredFrontmatterError, parse_conflicts, parse_data_assets
 from scripts.lib.taxonomy import load_contracts, load_taxonomy
 
@@ -28,7 +28,6 @@ class Edge:
 
 
 CONFIDENCE_RANK = {"reviewed": 0, "possible": 1, "unconfirmed": 2, "conflicting": 3}
-ACTIVE_STAGING_STATUSES = {"new", "curating"}
 SEARCH_STOPWORDS = {
     "a",
     "an",
@@ -483,26 +482,20 @@ class AtlasQuery:
 
     def _pending_question_evidence(self, question_ids: set[str]) -> dict[str, list[dict]]:
         matches: dict[str, list[dict]] = {}
-        staging = self.root / "_staging"
-        if not staging.exists() or not question_ids:
+        if not question_ids:
             return matches
-        for path in sorted(staging.rglob("*.md")):
-            if path.name in {"README.md", "index.md", "_template.md"}:
-                continue
-            try:
-                frontmatter, body = parse_frontmatter(path)
-            except Exception:
-                continue
-            status = frontmatter.get("status")
+        pages, _ = read_staging_pages(self.root)
+        for page in pages:
+            status = page.frontmatter.get("status")
             if status not in ACTIVE_STAGING_STATUSES:
                 continue
             route = {
-                "id": frontmatter.get("id", ""),
+                "id": page.frontmatter.get("id", ""),
                 "status": status,
-                "page": path.relative_to(self.root).as_posix(),
+                "page": page.page,
             }
             for question_id in question_ids:
-                if question_id in body:
+                if question_id in page.body:
                     matches.setdefault(question_id, []).append(route)
         return matches
 

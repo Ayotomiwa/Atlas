@@ -56,6 +56,8 @@ source_type: ""
 
 Evidence sources and suggested curation destinations are captured in the body (`## Evidence` and `## Suggested curated targets`), not duplicated as frontmatter fields. `atlas-curate` reads the full record, and may bulk-scan the `## Suggested curated targets` section across multiple eligible staging records when routing curation work, rather than relying on a machine-only frontmatter field.
 
+`staging.change` has one type-specific exception: it may add a validated `change_source` block for Git range provenance. The block is required when `source_type: merged-change` and optional for other change source types. No other staging bucket accepts it.
+
 The filename must be exactly `<staging-id>.md`, for example `STG-20260809-retry-evidence.md`. Use a deterministic `-2`, `-3`, etc. ID suffix when the same-day slug already exists.
 
 ## Source-type recommendations

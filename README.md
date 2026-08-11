@@ -1,6 +1,6 @@
 # Datalens Atlas
 
-Datalens Atlas is a governed engineering context package for humans and AI agents. It stores attributable raw evidence in `_staging/`, reviewed reusable knowledge in `_curated/`, and deterministic routing views in generated maps.
+Datalens Atlas is a governed engineering context package for humans and AI agents. It stores attributable raw evidence in `_staging/`, reviewed reusable knowledge in `_curated/`, deterministic routing views in generated maps, and non-authoritative merged-source processing cursors in `_intake/`.
 
 Claude workflows in `.claude/` are canonical and load from this live checkout with `claude --add-dir <ATLAS_ROOT>`. Codex adaptations live in `.agents/skills/` and `.codex/agents/`.
 
@@ -15,6 +15,8 @@ Claude workflows in `.claude/` are canonical and load from this live checkout wi
 - Direct or transitive machine routing: `python scripts/atlas_query.py ...`
 - Open questions you can help answer: `/atlas-questions [path|stable-id|domain|topic]`
 - Raw review queue: [`_staging/index.md`](_staging/index.md)
+- Active or historical evidence across every staging bucket: `python scripts/atlas_query.py staging`
+- Merged default-branch changes not yet considered for staging: `/atlas-stage-changes [path|repo-id] [--base <commit>]`
 
 Known-package access starts directly at the appropriate index, map, stable ID or page. It does not need to route through the package manifest.
 
@@ -53,6 +55,7 @@ The registry discovers packages. Once a package is known, direct access uses tha
 ## Trust and lifecycle
 
 - `_staging/` is raw, attributable evidence and never authoritative.
+- `_intake/` is shared mutable processing state. It records what Atlas observed and considered but is neither evidence nor authority.
 - `_curated/` contains active authoritative or historical knowledge; every `status: curated` page is authoritative.
 - Git does not change semantic authority. Query reports a compact checkout advisory for modified, untracked, detached or off-main pages so newly curated or possibly unmerged work remains visible.
 - Agents stage and curate through evidence and independent review; they never merge or publish.
@@ -113,6 +116,9 @@ python scripts/atlas_query.py questions repo.orders-platform
 python scripts/atlas_query.py questions --path .
 python scripts/atlas_query.py questions orders --scope domain
 python scripts/atlas_query.py questions --scope package --format json
+python scripts/atlas_query.py staging
+python scripts/atlas_query.py staging --status deferred --target comp.example
+python scripts/atlas_query.py staging --include-terminal --format json
 python scripts/atlas_query.py neighbors comp.example
 python scripts/atlas_query.py impact comp.example --direction downstream
 python scripts/atlas_query.py --format json impact comp.example --max-depth 4
@@ -123,6 +129,10 @@ python scripts/atlas_query.py --format json impact comp.example --max-depth 4
 The query tool loads map paths from `atlas-package.json`, preserves confidence/evidence, reports direct versus transitive paths and avoids cycles. Lifecycle determines trust: `status: curated` is `authoritative`, while deprecated content is `historical`. Git is reported separately as `checkout_state` (`main-clean`, `off-main`, `modified`, `untracked`, `detached` or `git-unknown`) and never blocks or downgrades authority. Outside `main` or `master` it emits one short advisory and continues. A `not-verified` path match remains available but must be disclosed as routing rather than repository-identity proof. Maps are used after stable-ID selection for reverse or multi-hop traversal; curated pages and their generated direct links remain the semantic navigation surface.
 
 `questions` reads the common open-question table from curated pages, qualifies each question as `<record-id>#<question-id>`, and can route by current path, exact target, domain, topic or package. It suppresses questions already referenced by active staging evidence unless `--include-pending` is used. The command returns candidates and evidence routes; `atlas-questions` decides what is useful to ask and never treats a query match as authority.
+
+`staging` provides one deterministic, read-only view across every evidence bucket. It defaults to `new` and `curating`, supports lifecycle/bucket/domain/date/suggested-target filters, and can include terminal records. Its output describes matching records only; an empty result does not prove that no evidence or engineering context exists.
+
+`atlas-stage-changes` is the explicit incremental monorepo workflow. It fetches the selected source's remote default branch, compares it with the shared `_intake/` cursor, interprets the bounded change range, previews dispositions and writes `staging.change` evidence only after approval. It never curates or publishes. On first use it requires an explicit base or locally provable merged-MR commit, and it does not advance the considered cursor when remote completeness, ancestry or assessment is unresolved.
 
 `context [path]` discovers the physical Git root/remote and returns logical repository and component candidates ordered by path specificity. It preserves ambiguity; the skill chooses context based on the question and discloses that selection.
 
@@ -135,6 +145,7 @@ Every substantive Atlas-assisted answer cites the curated page or repository sou
 | `atlas-package.json` | Machine package/federation/compiler contract |
 | `index.md` | Root human/agent routing |
 | `_staging/` | Immutable-by-policy evidence queue |
+| `_intake/` | Mutable, non-authoritative merged-source observation and consideration checkpoints |
 | `_curated/*/README.md` | Semantic, evidence and review rules |
 | `_curated/*/_template.md` | Authoring interface |
 | `_curated/*/index.md` | Generated catalogue plus coverage notes |
@@ -142,6 +153,7 @@ Every substantive Atlas-assisted answer cites the curated page or repository sou
 | `taxonomy/` | Controlled author classifications and allowed values |
 | `contracts/` | Compiler-only map field and impact-direction rules |
 | `scripts/atlas_query.py` | Supported candidate lookup and routing/traversal CLI |
+| `scripts/atlas_intake.py` | Read and compare-and-swap shared merged-source checkpoints |
 | `scripts/rebuild_atlas.py` | Unified deterministic generator |
 | `scripts/atlas_review_snapshot.py` | Temporary review-input fingerprinting; manifests never enter Atlas |
 | `scripts/atlas_eval.py` | Reusable sealed-evaluation preparation, answer freezing, validation and scoring contract |

@@ -23,6 +23,7 @@ This repository is the Datalens Atlas package (`datalens`). It is a governed eng
 - Before proposing changes run `python scripts/atlas_lint.py .` plus currently authorised relevant validation, and disclose any deferred tests or freshness checks.
 - After a staging record is first committed, do not edit its evidence content, path or ID. The only permitted later mutation is top-level frontmatter `status`; corrections are new staging evidence.
 - Treat `status: new` staging records as the normal curation queue. Do not automatically recurate terminal records.
+- `_intake/` is mutable, non-authoritative source-processing state and is not governed by staging immutability. Use `/atlas-stage-changes` and its deterministic helper rather than hand-editing checkpoints.
 
 ## Curation review
 - Independent review completes semantic curation. The Atlas PR/MR is the later publication/human-audit record and does not change page authority; do not duplicate it into a `reviews/` folder.
@@ -32,8 +33,11 @@ This repository is the Datalens Atlas package (`datalens`). It is a governed eng
 ## Navigation
 Do not read the entire Atlas repository. Start from `index.md` or the relevant skill and open the smallest useful set of files.
 
+Use `python scripts/atlas_query.py staging` for the cross-bucket evidence queue. Use `/atlas-stage-changes` when asked to assess merged default-branch changes since a shared source cursor; it stages approved evidence but never curates it.
+
 ## Operational records
 - staging lifecycle/queue state → each `_staging/` record's `status`
+- merged-source observation/consideration cursor → `_intake/checkpoints/<source-key>.json`
 - latest curation checkpoint → `_curated/status/curation-status.md`
 - publication and later human-review history → Atlas PR/MR and Git history
 - significant Atlas milestones only → `log.md`

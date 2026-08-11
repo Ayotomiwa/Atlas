@@ -11,6 +11,7 @@ sys.path.insert(0, str(ROOT))
 
 from scripts.lib.maps import MapBuildError
 from scripts.lib.query import AtlasQuery
+from scripts.lib.staging import query_staging
 
 
 def _no_results(reason: str) -> str:
@@ -31,6 +32,41 @@ def _record_state(record: dict) -> str:
     if checkout and checkout != "main-clean":
         values.append(f"checkout={checkout}")
     return "; ".join(values)
+
+
+def _short_git_ref(value: object) -> str:
+    if value is None or value == "":
+        return "start"
+    text = str(value)
+    return text[:12] if len(text) > 12 else text
+
+
+def _change_source_summary(value: object) -> str:
+    if not isinstance(value, dict):
+        return ""
+    parts = []
+    source_key = value.get("source_key")
+    branch = value.get("branch")
+    if source_key:
+        parts.append(f"source={source_key}")
+    if branch:
+        parts.append(f"branch={branch}")
+    commit_range = value.get("commit_range")
+    if isinstance(commit_range, dict):
+        before = _short_git_ref(commit_range.get("from_exclusive"))
+        through = _short_git_ref(commit_range.get("through_inclusive"))
+        parts.append(f"range={before}..{through}")
+    merge_requests = value.get("merge_requests")
+    if isinstance(merge_requests, list):
+        mr_ids = []
+        for item in merge_requests:
+            if not isinstance(item, dict):
+                continue
+            mr_id = item.get("id")
+            if isinstance(mr_id, (str, int)) and str(mr_id).strip():
+                mr_ids.append(str(mr_id))
+        parts.append(f"MRs={','.join(mr_ids) if mr_ids else 'none'}")
+    return "; ".join(parts)
 
 
 def _emit(payload: dict, output_format: str) -> None:
@@ -168,6 +204,39 @@ def _emit(payload: dict, output_format: str) -> None:
             )
         for diagnostic in payload.get("diagnostics") or []:
             print(f"QUESTION DIAGNOSTIC: {diagnostic['page']}: {diagnostic['message']}")
+    elif command == "staging":
+        results = payload.get("results") or []
+        if results:
+            print(f"Matching staging records: {len(results)}")
+        for record in results:
+            print(
+                f"{record['id']} [{record.get('status', '')}] "
+                f"{record.get('title', '')}"
+            )
+            context = [
+                f"type={record.get('type') or 'unknown'}",
+                f"bucket={record.get('bucket', '')}",
+                f"captured_by={record.get('captured_by') or 'unknown'}",
+            ]
+            if record.get("candidate_domain"):
+                context.append(f"domain={record['candidate_domain']}")
+            if record.get("timestamp"):
+                context.append(f"date={record['timestamp']}")
+            if record.get("source_type"):
+                context.append(f"source={record['source_type']}")
+            print(f"  {'; '.join(context)}")
+            if record.get("description"):
+                print(f"  {record['description']}")
+            if record.get("suggested_targets"):
+                print(f"  Suggested targets: {', '.join(record['suggested_targets'])}")
+            change_source = _change_source_summary(record.get("change_source"))
+            if change_source:
+                print(f"  Change source: {change_source}")
+            print(f"  Page: {record.get('page', '')}")
+        if not results:
+            print("No matching staging records were found.")
+        for diagnostic in payload.get("diagnostics") or []:
+            print(f"STAGING DIAGNOSTIC: {diagnostic['page']}: {diagnostic['message']}")
     elif command == "neighbors":
         for item in payload["results"]:
             edge = item["edge"]
@@ -227,6 +296,20 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
     )
 
+    staging_parser = subparsers.add_parser("staging")
+    staging_parser.add_argument("--status", dest="statuses", action="append", default=[])
+    staging_parser.add_argument("--bucket", dest="buckets", action="append", default=[])
+    staging_parser.add_argument("--domain")
+    staging_parser.add_argument("--date")
+    staging_parser.add_argument("--target", dest="targets", action="append", default=[])
+    staging_parser.add_argument("--include-terminal", action="store_true")
+    staging_parser.add_argument(
+        "--format",
+        dest="staging_format",
+        choices=("human", "json"),
+        default=None,
+    )
+
     neighbors_parser = subparsers.add_parser("neighbors")
     neighbors_parser.add_argument("identifier")
 
@@ -236,6 +319,25 @@ def main(argv: list[str] | None = None) -> int:
     impact_parser.add_argument("--max-depth", type=int, default=6)
 
     args = parser.parse_args(argv)
+    if args.command == "staging":
+        payload: dict = {"command": "staging"}
+        try:
+            payload.update(
+                query_staging(
+                    Path(args.root),
+                    statuses=args.statuses,
+                    buckets=args.buckets,
+                    domain=args.domain,
+                    timestamp=args.date,
+                    targets=args.targets,
+                    include_terminal=args.include_terminal,
+                )
+            )
+        except (OSError, ValueError) as exc:
+            payload.update({"error": str(exc), "results": [], "diagnostics": []})
+        _emit(payload, args.staging_format or args.format)
+        return 1 if payload.get("error") else 0
+
     try:
         query = AtlasQuery(Path(args.root))
     except (MapBuildError, OSError, json.JSONDecodeError) as exc:
@@ -358,6 +460,7 @@ def main(argv: list[str] | None = None) -> int:
     output_format = (
         getattr(args, "question_format", None)
         or getattr(args, "find_format", None)
+        or getattr(args, "staging_format", None)
         or args.format
     )
     _emit(payload, output_format)

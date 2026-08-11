@@ -13,6 +13,7 @@ sys.path.insert(0, str(ROOT))
 
 from scripts.lib.frontmatter import parse_frontmatter
 from scripts.lib.ids import valid_curated_id, valid_staging_id
+from scripts.lib.intake import checkpoint_references, validate_change_source, validate_checkpoint
 from scripts.lib.links import broken_links
 from scripts.lib.maps import (
     MapBuildError,
@@ -38,6 +39,7 @@ STAGING_ENVELOPE = {
     "captured_by",
     "source_type",
 }
+STAGING_TYPE_FIELDS = {"staging.change": {"change_source"}}
 # Fields an author might still write that nothing reads. Structured metadata earns
 # its place by being machine-consumed; anything that only restates a required body
 # section is authored twice and reconciled nowhere.
@@ -163,6 +165,7 @@ def lint_repository(
     staging_status = set(taxonomy["statuses"]["staging_status"])
     concept_fields = taxonomy["concept_fields"]
     seen_ids: dict[str, Path] = {}
+    staging_records: dict[str, list[tuple[Path, dict]]] = {}
 
     for path in sorted(root.rglob("*.md")):
         rel = path.relative_to(root)
@@ -209,12 +212,21 @@ def lint_repository(
                 issues.append(issue("ATLAS003", "ERROR", rel, "invalid staging id"))
             elif rel.name != f"{ident}.md":
                 issues.append(issue("ATLAS026", "ERROR", rel, "staging filename must be <staging-id>.md"))
+            else:
+                staging_records.setdefault(ident, []).append((rel, fm))
             if fm.get("status") not in staging_status:
                 issues.append(issue("ATLAS006", "ERROR", rel, f"invalid staging status {fm.get('status')!r}"))
-            for field in sorted(set(fm) - STAGING_ENVELOPE):
+            allowed_fields = STAGING_ENVELOPE | STAGING_TYPE_FIELDS.get(typ, set())
+            for field in sorted(set(fm) - allowed_fields):
                 issues.append(
                     issue("ATLAS025", "ERROR", rel, f"staging frontmatter must use the common envelope; remove {field}")
                 )
+            if typ == "staging.change":
+                for message in validate_change_source(
+                    fm.get("change_source"),
+                    required=fm.get("source_type") == "merged-change",
+                ):
+                    issues.append(issue("ATLAS025", "ERROR", rel, message))
             if spec.get("grouped") == "domain":
                 inside = rel.relative_to(Path(spec["folder"]))
                 group = inside.parts[0] if len(inside.parts) > 1 else ""
@@ -324,6 +336,130 @@ def lint_repository(
                 issues.append(issue("ATLAS025", "ERROR", rel, f"{field} has invalid value {fm.get(field)!r}"))
         if typ == "standard" and status == "curated" and fm.get("requirement_level") == "unknown":
             issues.append(issue("ATLAS025", "ERROR", rel, "curated standards cannot use requirement_level: unknown"))
+
+    checkpoint_root = root / "_intake" / "checkpoints"
+    if checkpoint_root.exists():
+        for path in sorted(checkpoint_root.rglob("*.json")):
+            rel = path.relative_to(root)
+            if path.parent != checkpoint_root:
+                issues.append(
+                    issue("ATLAS028", "ERROR", rel, "intake checkpoints must be direct children of _intake/checkpoints")
+                )
+            try:
+                checkpoint = json.loads(path.read_text(encoding="utf-8"))
+            except OSError as exc:
+                issues.append(issue("ATLAS028", "ERROR", rel, f"cannot read intake checkpoint: {exc}"))
+                continue
+            except json.JSONDecodeError as exc:
+                issues.append(issue("ATLAS028", "ERROR", rel, f"invalid intake checkpoint JSON: {exc}"))
+                continue
+            checkpoint_errors = validate_checkpoint(checkpoint)
+            for message in checkpoint_errors:
+                issues.append(issue("ATLAS028", "ERROR", rel, message))
+            source = checkpoint.get("source") if isinstance(checkpoint, dict) else None
+            source_key = source.get("key") if isinstance(source, dict) else None
+            if isinstance(source_key, str) and path.name != f"{source_key}.json":
+                issues.append(
+                    issue("ATLAS028", "ERROR", rel, "checkpoint filename must be <source.key>.json")
+                )
+            if checkpoint_errors or not isinstance(checkpoint, dict):
+                continue
+            source_branch = source.get("default_branch") if isinstance(source, dict) else None
+            checked_references: set[tuple[str, str, str | None]] = set()
+            for reference in checkpoint_references(checkpoint):
+                reference_key = (
+                    reference.staging_id,
+                    reference.commit,
+                    reference.merge_request,
+                )
+                if reference_key in checked_references:
+                    continue
+                checked_references.add(reference_key)
+                candidates = staging_records.get(reference.staging_id) or []
+                if not candidates:
+                    issues.append(
+                        issue(
+                            "ATLAS028",
+                            "ERROR",
+                            rel,
+                            f"{reference.location} references missing staging ID {reference.staging_id}",
+                        )
+                    )
+                    continue
+                if len(candidates) != 1:
+                    candidate_paths = ", ".join(path.as_posix() for path, _ in candidates)
+                    issues.append(
+                        issue(
+                            "ATLAS028",
+                            "ERROR",
+                            rel,
+                            f"{reference.location} references ambiguous staging ID {reference.staging_id}: {candidate_paths}",
+                        )
+                    )
+                    continue
+                staging_path, staging = candidates[0]
+                if staging.get("type") != "staging.change":
+                    issues.append(
+                        issue(
+                            "ATLAS028",
+                            "ERROR",
+                            rel,
+                            f"{reference.location} must reference staging.change, found {staging_path.as_posix()}",
+                        )
+                    )
+                    continue
+                change_source = staging.get("change_source")
+                if not isinstance(change_source, dict) or change_source.get("source_key") != reference.source_key:
+                    issues.append(
+                        issue(
+                            "ATLAS028",
+                            "ERROR",
+                            rel,
+                            f"{reference.location} source key does not match {staging_path.as_posix()}",
+                        )
+                    )
+                elif change_source.get("branch") != source_branch:
+                    issues.append(
+                        issue(
+                            "ATLAS028",
+                            "ERROR",
+                            rel,
+                            f"{reference.location} branch does not match {staging_path.as_posix()}",
+                        )
+                    )
+                else:
+                    commit_range = change_source.get("commit_range")
+                    through = (
+                        commit_range.get("through_inclusive")
+                        if isinstance(commit_range, dict)
+                        else None
+                    )
+                    if through != reference.commit:
+                        issues.append(
+                            issue(
+                                "ATLAS028",
+                                "ERROR",
+                                rel,
+                                f"{reference.location} commit does not match {staging_path.as_posix()} change_source range",
+                            )
+                        )
+                    if reference.merge_request is not None:
+                        merge_requests = change_source.get("merge_requests")
+                        matched = [
+                            item
+                            for item in (merge_requests if isinstance(merge_requests, list) else [])
+                            if isinstance(item, dict)
+                            and item.get("id") == reference.merge_request
+                        ]
+                        if len(matched) != 1 or matched[0].get("merged_commit") != reference.commit:
+                            issues.append(
+                                issue(
+                                    "ATLAS028",
+                                    "ERROR",
+                                    rel,
+                                    f"{reference.location} merge request does not match {staging_path.as_posix()} change_source provenance",
+                                )
+                            )
 
     # Structured map inputs are frontmatter. Validate them without reading body
     # headings/tables and without comparing or writing generated artifacts.

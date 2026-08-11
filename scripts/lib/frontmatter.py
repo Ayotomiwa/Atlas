@@ -17,4 +17,7 @@ def parse_frontmatter(path_or_text):
     end = text.find("\n---\n", 4)
     if end < 0:
         raise ValueError("unterminated YAML frontmatter")
-    return yaml.safe_load(text[4:end]) or {}, text[end + 5 :]
+    frontmatter = yaml.safe_load(text[4:end]) or {}
+    if not isinstance(frontmatter, dict):
+        raise ValueError("YAML frontmatter must be a mapping")
+    return frontmatter, text[end + 5 :]

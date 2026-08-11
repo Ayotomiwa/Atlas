@@ -64,6 +64,12 @@ The reminder only suggests `/atlas-questions`; it never starts a conversation or
 
 Use `atlas-stage` to capture one explicitly requested reusable fact. Use `atlas-onboard-repository` for one logical source-boundary investigation and `atlas-onboard-standards` for explicit standards discovery. Onboarding creates staging evidence, not curated knowledge.
 
+For an already known monorepo source, use `/atlas-stage-changes [path|repo-id] [--base <commit>]` to assess merged default-branch changes since the shared cursor. It fetches the source, preserves one disposition for every change in the range, delegates substantial diff interpretation, and previews all staging/checkpoint effects before writing. The first run requires an explicit base or locally provable merged-MR commit. MR identity may come from local Git metadata or explicit user confirmation tied to the relevant default-branch commit; user-supplied identity remains labelled `user-confirmed`. The workflow never depends on a hosting API.
+
+`_intake/` is mutable operational state, separate from immutable-by-policy `_staging/` evidence. Its checkpoint distinguishes the latest commit observed from the latest contiguous commit considered. Deferred changes remain explicitly unresolved; an unreadable, ambiguous or unassessed change prevents cursor advancement. Git history recovers checkpoint edits, while structured `change_source` on merged-change staging records prevents a failed checkpoint update from producing duplicate evidence on the next run.
+
+Use `python scripts/atlas_query.py staging` for one read-only queue across all staging buckets. It defaults to active records and can filter by lifecycle, bucket, candidate domain, date or suggested curated target; `--include-terminal` includes historical outcomes. The command reports matches, not semantic duplicates or curation decisions.
+
 ## Reproducible evaluation
 
 Use `/atlas-evaluate prepare|run|score` only for a sealed end-to-end benchmark. It keeps fixture source, personas, ground truth, frozen answers, baselines and results in an explicit external directory while Datalens Atlas retains only reusable tooling. The control arm has no Atlas or managed product instructions, both arms include impact questions, and only the independent judge opens ground truth after answer freeze. Missing telemetry is recorded as unavailable rather than estimated.
@@ -87,6 +93,7 @@ python scripts/rebuild_atlas.py
 3. Confirm whether the answer is authoritative curated Atlas, historical Atlas, repository-derived, user-confirmed, inferred or unknown; note checkout state once when it is not clean on `main`/`master`.
 4. Approve a staging preview only when the new fact is reusable and correctly bounded.
 5. Review the staged source references and coverage limits.
-6. Curate through evidence reconciliation and independent review; later merge/publication does not require a lifecycle update.
+6. For ongoing source maintenance, run `/atlas-stage-changes` from the relevant product boundary and review its proposed dispositions before approving writes.
+7. Curate through evidence reconciliation and independent review; later merge/publication does not require a lifecycle update.
 
 Workflow procedures, clarification checklists and managed-block assets live with their skills. Collection READMEs own semantic policy and templates own capture shape.
