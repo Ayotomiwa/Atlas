@@ -13,6 +13,15 @@ from scripts.lib.maps import MapBuildError
 from scripts.lib.query import AtlasQuery
 
 
+def _no_results(reason: str) -> str:
+    """Say nothing was found, out loud.
+
+    Silent output cannot be told apart from a command that did not run, and Atlas
+    never lets absence stand in for evidence.
+    """
+    return f"{reason}. Absence from the maps is not evidence that none exists."
+
+
 def _emit(payload: dict, output_format: str) -> None:
     if output_format == "json":
         print(json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False))
@@ -32,32 +41,46 @@ def _emit(payload: dict, output_format: str) -> None:
     elif command == "route":
         for record in payload["results"]:
             print(f"{record['id']} [{record.get('status', 'unknown')}] {record.get('title', '')} -> {record.get('page', '')}")
+        if not payload["results"]:
+            print(_no_results("No curated record routes from this query"))
     elif command == "context":
         context = payload["context"]
         print(f"Git-relative path: {context.get('git_relative_path', '.')}")
         for warning in context.get("warnings") or []:
             print(f"WARNING: {warning}")
         print("Repository candidates:")
-        for record in context.get("repositories") or []:
+        repositories = context.get("repositories") or []
+        for record in repositories:
             print(
                 f"  {record['id']} [{record.get('status', 'unknown')}] "
                 f"via {record['match_basis']}={record['matched_path']} -> {record.get('page', '')}"
             )
+        if not repositories:
+            print("  No repository candidates found.")
         print("Component candidates:")
-        for record in context.get("components") or []:
+        components = context.get("components") or []
+        for record in components:
             print(
                 f"  {record['id']} [{record.get('status', 'unknown')}] "
                 f"via {record['match_basis']}={record['matched_path']} -> {record.get('page', '')}"
             )
+        if not components:
+            print("  No component candidates found.")
+        if not repositories and not components:
+            print(_no_results("No repository or component context is recorded for this path"))
     elif command == "neighbors":
         for item in payload["results"]:
             edge = item["edge"]
             print(f"{item['direction']}: {item['peer']} via {edge['field']} ({edge['confidence']})")
+        if not payload["results"]:
+            print(_no_results("No direct connection is recorded for this record"))
     elif command == "impact":
         for item in payload["results"]:
             route = item.get("route") or {}
             label = "direct" if item["direct"] else f"depth {item['depth']}"
             print(f"{item['id']} [{label}; {item['confidence']}] -> {route.get('page', '')}")
+        if not payload["results"]:
+            print(_no_results("No impact path is recorded from this record"))
 
 
 def main(argv: list[str] | None = None) -> int:

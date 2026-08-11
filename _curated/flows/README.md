@@ -25,3 +25,16 @@ An infrastructure package or promoted resource that performs work is simply a ty
 `python scripts/rebuild_atlas.py` renders the step table. Set `diagram: true` only when a generated Mermaid view helps; diagram necessity remains curator judgment. The map does not duplicate steps into later component or infrastructure rosters. It derives only `downstream_flows`; the query tool derives participant and impact views from the steps.
 
 Maps connect; pages explain boundary, failure behavior, evidence and question context.
+
+## Review
+
+Before approving a flow page, confirm that:
+
+- the start and end of the flow are stated, and everything outside them is explicitly out of scope;
+- step order reflects evidenced execution rather than reading order of the source;
+- each participant is typed correctly, and an unonboarded participant keeps a readable name instead of an invented `comp.*` ID;
+- transitions exist only where a branch, retry or failure path is evidenced;
+- boundary `inputs`/`outputs` and step `receives`/`emits` describe durable handoffs, and missing handoff data is recorded as not captured rather than none;
+- entry points match real triggers, with `entry_point_type` supported by a schedule, event or caller;
+- failure paths and their operational consequences are evidenced, not inferred from the happy path;
+- gaps in the chain are declared as coverage limits, so a partial flow is never read as complete.

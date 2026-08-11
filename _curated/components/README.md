@@ -27,3 +27,18 @@ Each connection entry uses `id` for a stable Atlas target or `name` for an exter
 Document purpose, responsibility, source entrypoints, concise control flow, durable interfaces, dependencies, configuration concepts, deployment context, failures and operational routes. Exact setup/build/run commands remain owned by the source repository. Add reviewed Mermaid only when it materially clarifies structure.
 
 Run `python scripts/rebuild_atlas.py` after structured changes. Never edit generated maps or managed tables.
+
+## Review
+
+Before approving a component page, confirm that:
+
+- the unit is independently addressable, and `parent_component` reflects real architectural composition rather than folder nesting;
+- `component_type` and the responsibility statement agree, and explicit non-responsibilities are recorded;
+- `repository` names the most specific useful source boundary and `repository_paths` resolve within it;
+- `consumes`/`produces` describe durable contracts, not incidental internal calls, and each carries a correct `asset_type`;
+- `depends_on` separates component, library, configuration and build requirements through `dependency_type`;
+- infrastructure actions use the field that matches what the code actually does — reading is not writing, and triggering is not scheduling;
+- every non-reviewed entry keeps its confidence and an explanatory note instead of being quietly upgraded;
+- no flow participation is authored here;
+- failure and operational context routes to runbooks and monitoring without copying sensitive logs;
+- coverage limits and open questions name what is unknown rather than leaving it blank.

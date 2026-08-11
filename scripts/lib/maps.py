@@ -34,7 +34,16 @@ ROUTE_FIELDS = ("runbooks", "standards", "incident_learnings")
 
 
 class MapBuildError(ValueError):
-    pass
+    def __init__(self, message: str, *, path: str | Path | None = None):
+        super().__init__(message)
+        self.path = Path(path).as_posix() if path is not None else None
+
+
+@dataclass(frozen=True)
+class MapValidationIssue:
+    path: str
+    record_id: str | None
+    message: str
 
 
 @dataclass(frozen=True)
@@ -126,7 +135,11 @@ def map_output_paths(root: str | Path) -> dict[str, Path]:
     return {name: root / config["maps"][key] for name, key in MAP_KEYS.items()}
 
 
-def curated_pages(root: str | Path) -> list[tuple[Path, dict, str]]:
+def curated_pages(
+    root: str | Path,
+    *,
+    collect_errors: list[MapValidationIssue] | None = None,
+) -> list[tuple[Path, dict, str]]:
     root = Path(root)
     curated = root / "_curated"
     out: list[tuple[Path, dict, str]] = []
@@ -141,7 +154,11 @@ def curated_pages(root: str | Path) -> list[tuple[Path, dict, str]]:
         try:
             fm, body = parse_frontmatter(path)
         except Exception as exc:
-            raise MapBuildError(f"{rel}: invalid frontmatter: {exc}") from exc
+            error = MapBuildError(f"{rel}: invalid frontmatter: {exc}", path=rel)
+            if collect_errors is None:
+                raise error from exc
+            collect_errors.append(MapValidationIssue(rel.as_posix(), None, f"invalid frontmatter: {exc}"))
+            continue
         if fm.get("status") != "archived":
             out.append((path, fm, body))
     return out
@@ -157,6 +174,13 @@ def _string_list(value: object) -> list[str]:
     if not isinstance(value, list):
         return []
     return sorted({str(item) for item in value if str(item).strip()})
+
+
+def _list_field(path: Path, source: dict, field: str) -> list:
+    value = source.get(field, [])
+    if not isinstance(value, list):
+        raise MapBuildError(f"{path}: {field} must be a list")
+    return value
 
 
 def _repository_root(path: Path, value: object) -> str:
@@ -207,15 +231,56 @@ def _local_prefixes(taxonomy: dict) -> tuple[str, ...]:
     )
 
 
-def _enum_values(taxonomy: dict, dotted: str) -> set[str]:
-    value: object = taxonomy["concept_fields"]
+def _lookup_values(taxonomy: dict, source: str, dotted: str) -> set[str]:
+    value: object = taxonomy[source]
     for part in dotted.split("."):
         if not isinstance(value, dict) or part not in value:
-            raise MapBuildError(f"concept taxonomy does not define {dotted}")
+            raise MapBuildError(f"{source} does not define {dotted}")
         value = value[part]
     if not isinstance(value, list):
-        raise MapBuildError(f"concept taxonomy {dotted} must be a list")
+        raise MapBuildError(f"{source} {dotted} must be a list")
     return set(value)
+
+
+def _enum_values(taxonomy: dict, dotted: str) -> set[str]:
+    return _lookup_values(taxonomy, "concept_fields", dotted)
+
+
+def domain_hint(typ: object, domain: object, domain_ids: set[str]) -> str:
+    """Point an unregistered-domain failure at the file that actually needs editing."""
+    if not domain_ids:
+        return (
+            f"no domains are registered yet, so no {typ} page can be stored; add the first domain to "
+            "the atlas-package.json `domains` array before curating architecture records"
+        )
+    known = ", ".join(sorted(domain_ids))
+    return (
+        f"grouped {typ} requires a primary_domain registered in atlas-package.json; "
+        f"got {domain!r}, registered domains are: {known}"
+    )
+
+
+def _record_error(
+    collect: list[MapValidationIssue] | None,
+    path: Path,
+    exc: MapBuildError,
+    record_id: str | None = None,
+) -> None:
+    """Attribute a per-record failure to its own page, or re-raise for strict callers.
+
+    Strict callers (the generator) must still fail hard, because a skipped record
+    would silently produce an incomplete map. Lint passes a collector so an author
+    sees every offending page in one run instead of one error per rebuild.
+    """
+    if collect is None:
+        raise exc
+    text = str(exc)
+    # Messages embed the path via str(Path), which is backslashed on Windows.
+    for prefix in (f"{path}: ", f"{path.as_posix()}: "):
+        if text.startswith(prefix):
+            text = text[len(prefix) :]
+            break
+    collect.append(MapValidationIssue(path.as_posix(), record_id, text))
 
 
 def _resolved_type(identifier: str, page_by_id: dict[str, tuple[Path, dict, str]], resources: dict[str, dict]) -> str | None:
@@ -296,9 +361,7 @@ def _project_entries(
     taxonomy: dict,
     map_contract: dict,
 ) -> list[dict]:
-    values = fm.get(field) or []
-    if not isinstance(values, list):
-        raise MapBuildError(f"{path}: {field} must be a list")
+    values = _list_field(path, fm, field)
     spec = map_contract["fields"][source_type][field]
     qualifier = spec.get("qualifier")
     allowed_qualifiers = _enum_values(taxonomy, spec["values"]) if qualifier else set()
@@ -332,9 +395,7 @@ def _route_entries(
 ) -> dict[str, list[dict]]:
     out: dict[str, list[dict]] = {}
     for field in ROUTE_FIELDS:
-        values = fm.get(field) or []
-        if not isinstance(values, list):
-            raise MapBuildError(f"{path}: {field} must be a list")
+        values = _list_field(path, fm, field)
         spec = map_contract["fields"]["routes"][field]
         out[field] = sorted(
             [
@@ -411,9 +472,7 @@ def _entry_points(
     page_by_id: dict[str, tuple[Path, dict, str]],
     resources: dict[str, dict],
 ) -> list[dict]:
-    values = fm.get("entry_points") or []
-    if not isinstance(values, list):
-        raise MapBuildError(f"{path}: entry_points must be a list")
+    values = _list_field(path, fm, "entry_points")
     allowed = _enum_values(taxonomy, "flow.entry_point_type")
     out: list[dict] = []
     for entry in values:
@@ -444,11 +503,9 @@ def _flow_steps(
     taxonomy: dict,
     page_by_id: dict[str, tuple[Path, dict, str]],
     resources: dict[str, dict],
-    question_ids: set[str],
+    question_ids: set[str] | None,
 ) -> list[dict]:
-    values = fm.get("steps") or []
-    if not isinstance(values, list):
-        raise MapBuildError(f"{path}: steps must be a list")
+    values = _list_field(path, fm, "steps")
     participant_types = _enum_values(taxonomy, "flow.participant_type")
     transition_types = _enum_values(taxonomy, "flow.transition_type")
     asset_types = _enum_values(taxonomy, "shared.asset_type")
@@ -486,13 +543,15 @@ def _flow_steps(
             projected_participant["id"] = participant_id
         elif participant_type in {"infra", "infra-resource"}:
             raise MapBuildError(f"{path}: flow step {step_id} onboarded infrastructure requires id")
-        elif participant_type == "component" and step.get("onboarding_question_id") not in question_ids:
+        elif (
+            participant_type == "component"
+            and question_ids is not None
+            and step.get("onboarding_question_id") not in question_ids
+        ):
             raise MapBuildError(f"{path}: unonboarded component step {step_id} requires a valid onboarding_question_id")
 
         def handoffs(field: str) -> list[dict]:
-            handoff_values = step.get(field) or []
-            if not isinstance(handoff_values, list):
-                raise MapBuildError(f"{path}: flow step {step_id} {field} must be a list")
+            handoff_values = _list_field(path, step, field)
             return sorted(
                 [
                     _project_entry(
@@ -511,9 +570,7 @@ def _flow_steps(
                 key=_item_sort_key,
             )
 
-        transitions = step.get("transitions") or []
-        if not isinstance(transitions, list):
-            raise MapBuildError(f"{path}: flow step {step_id} transitions must be a list")
+        transitions = _list_field(path, step, "transitions")
         raw_transitions.append((step_id, transitions))
         projected = {
             "step_id": step_id,
@@ -558,15 +615,23 @@ def _parent_id(target: object, expected_type: str, page_by_id: dict[str, tuple[P
     return target
 
 
-def _detect_parent_cycles(records: dict[str, dict], parent_field: str, label: str) -> None:
-    for start in records:
-        seen: set[str] = set()
+def _parent_cycles(records: dict[str, dict], parent_field: str) -> list[tuple[str, ...]]:
+    """Return each parent cycle once, normalised to its lowest stable ID."""
+    found: set[tuple[str, ...]] = set()
+    for start in sorted(records):
+        positions: dict[str, int] = {}
+        chain: list[str] = []
         current = start
-        while current in records:
-            if current in seen:
-                raise MapBuildError(f"{label} hierarchy contains a cycle at {current}")
-            seen.add(current)
+        while current in records and current not in positions:
+            positions[current] = len(chain)
+            chain.append(current)
             current = records[current].get(parent_field) or ""
+        if current not in positions:
+            continue
+        cycle = chain[positions[current] :]
+        lowest = min(range(len(cycle)), key=lambda index: cycle[index])
+        found.add(tuple(cycle[lowest:] + cycle[:lowest]))
+    return sorted(found)
 
 
 def _item_sort_key(item: object) -> tuple:
@@ -646,44 +711,66 @@ def build_maps(
     root: str | Path,
     *,
     include_diagnostics: bool = False,
+    collect_errors: list[MapValidationIssue] | None = None,
+    include_body_questions: bool = True,
 ) -> dict[str, dict] | tuple[dict[str, dict], list[MapDiagnostic]]:
+    """Compile the generated maps from curated pages.
+
+    With `collect_errors`, per-record failures retain their page and stable ID and
+    the record is skipped, so a caller can report every bad page at once. Set
+    `include_body_questions=False` for frontmatter-only validation. The resulting
+    maps are incomplete when errors are collected and must not be written.
+    """
     root = Path(root).resolve()
     config = load_package_config(root)
     try:
         taxonomy = load_taxonomy(root)
+    except Exception as exc:
+        raise MapBuildError(
+            f"registered taxonomy cannot be loaded: {exc}",
+            path=getattr(exc, "path", None) or "taxonomy",
+        ) from exc
+    try:
         map_contract = load_contracts(root)["map_fields"]
     except Exception as exc:
-        raise MapBuildError(f"registered taxonomy/contracts cannot be loaded: {exc}") from exc
+        contract_path = getattr(exc, "path", None) or config.get("contracts", {}).get(
+            "map_fields", "contracts/map-fields.yaml"
+        )
+        raise MapBuildError(f"registered map contract cannot be loaded: {exc}", path=contract_path) from exc
     type_specs = _type_specs(taxonomy)
     active_types = {name: spec for name, spec in type_specs.items() if spec.get("status") == "active"}
     domain_ids = {item["id"] for item in config.get("domains") or []}
 
-    pages = curated_pages(root)
+    pages = curated_pages(root, collect_errors=collect_errors)
     page_by_id: dict[str, tuple[Path, dict, str]] = {}
     for absolute_path, fm, body in pages:
         rel = absolute_path.relative_to(root)
-        typ = fm.get("type")
-        spec = active_types.get(typ)
-        if not spec or typ in {"package", "index"} or str(typ).startswith("staging."):
-            raise MapBuildError(f"{rel}: inactive or non-concept type {typ!r}")
-        ident = fm.get("id")
-        if not valid_curated_id(ident, spec.get("id_prefix")):
-            raise MapBuildError(f"{rel}: invalid id {ident!r} for {typ}")
-        if ident in page_by_id:
-            raise MapBuildError(f"{rel}: duplicate curated id {ident}")
-        if spec.get("grouped") == "domain":
-            domain = fm.get("primary_domain")
-            if not isinstance(domain, str) or domain not in domain_ids:
-                raise MapBuildError(f"{rel}: grouped {typ} requires a registered primary_domain")
-            folder = Path(spec["folder"])
-            inside = rel.relative_to(folder)
-            if len(inside.parts) < 2 or inside.parts[0] != domain:
-                raise MapBuildError(f"{rel}: folder must match primary_domain {domain}")
-            related_domains = fm.get("related_domains") or []
-            if not isinstance(related_domains, list) or any(
-                related not in domain_ids or related == domain for related in related_domains
-            ):
-                raise MapBuildError(f"{rel}: related_domains must contain other registered domain IDs")
+        try:
+            typ = fm.get("type")
+            spec = active_types.get(typ)
+            if not spec or typ == "package" or str(typ).startswith("staging."):
+                raise MapBuildError(f"{rel}: inactive or non-concept type {typ!r}")
+            ident = fm.get("id")
+            if not valid_curated_id(ident, spec.get("id_prefix")):
+                raise MapBuildError(f"{rel}: invalid id {ident!r} for {typ}")
+            if ident in page_by_id:
+                raise MapBuildError(f"{rel}: duplicate curated id {ident}")
+            if spec.get("grouped") == "domain":
+                domain = fm.get("primary_domain")
+                if not isinstance(domain, str) or domain not in domain_ids:
+                    raise MapBuildError(f"{rel}: {domain_hint(typ, domain, domain_ids)}")
+                folder = Path(spec["folder"])
+                inside = rel.relative_to(folder)
+                if len(inside.parts) < 2 or inside.parts[0] != domain:
+                    raise MapBuildError(f"{rel}: folder must match primary_domain {domain}")
+                related_domains = fm.get("related_domains", [])
+                if not isinstance(related_domains, list) or any(
+                    related not in domain_ids or related == domain for related in related_domains
+                ):
+                    raise MapBuildError(f"{rel}: related_domains must contain other registered domain IDs")
+        except MapBuildError as exc:
+            _record_error(collect_errors, rel, exc, fm.get("id") if isinstance(fm.get("id"), str) else None)
+            continue
         page_by_id[ident] = (rel, fm, body)
 
     allowed_coverage = set(taxonomy["statuses"]["map_coverage"])
@@ -694,24 +781,34 @@ def build_maps(
     for parent_id, (path, fm, _) in page_by_id.items():
         if fm.get("type") != "infra":
             continue
-        promoted = fm.get("promoted_resources") or []
+        promoted = fm.get("promoted_resources", [])
         if not isinstance(promoted, list):
-            raise MapBuildError(f"{path}: promoted_resources must be a list")
+            _record_error(
+                collect_errors,
+                path,
+                MapBuildError(f"{path}: promoted_resources must be a list"),
+                parent_id,
+            )
+            continue
         for resource in promoted:
-            if not isinstance(resource, dict):
-                raise MapBuildError(f"{path}: promoted resource must be an object")
-            ident = resource.get("id")
-            if not valid_curated_id(ident, resource_spec.get("id_prefix")) or ident in page_by_id or ident in resources:
-                raise MapBuildError(f"{path}: invalid or duplicate promoted resource id {ident!r}")
-            if resource.get("resource_type") not in allowed_resource_types:
-                raise MapBuildError(f"{path}: promoted resource {ident} has invalid resource_type")
-            if not all(str(resource.get(field, "")).strip() for field in ("name", "defined_in_path", "promotion_reason")):
-                raise MapBuildError(f"{path}: promoted resource {ident} requires name, defined_in_path and promotion_reason")
-            if not isinstance(resource.get("environments"), list):
-                raise MapBuildError(f"{path}: promoted resource {ident} environments must be a list")
-            _validate_confidence(path, f"promoted resource {ident}", resource, taxonomy)
-            if _coverage(resource.get("coverage")) not in allowed_coverage:
-                raise MapBuildError(f"{path}: promoted resource {ident} has invalid coverage")
+            try:
+                if not isinstance(resource, dict):
+                    raise MapBuildError(f"{path}: promoted resource must be an object")
+                ident = resource.get("id")
+                if not valid_curated_id(ident, resource_spec.get("id_prefix")) or ident in page_by_id or ident in resources:
+                    raise MapBuildError(f"{path}: invalid or duplicate promoted resource id {ident!r}")
+                if resource.get("resource_type") not in allowed_resource_types:
+                    raise MapBuildError(f"{path}: promoted resource {ident} has invalid resource_type")
+                if not all(str(resource.get(field, "")).strip() for field in ("name", "defined_in_path", "promotion_reason")):
+                    raise MapBuildError(f"{path}: promoted resource {ident} requires name, defined_in_path and promotion_reason")
+                if not isinstance(resource.get("environments"), list):
+                    raise MapBuildError(f"{path}: promoted resource {ident} environments must be a list")
+                _validate_confidence(path, f"promoted resource {ident}", resource, taxonomy)
+                if _coverage(resource.get("coverage")) not in allowed_coverage:
+                    raise MapBuildError(f"{path}: promoted resource {ident} has invalid coverage")
+            except MapBuildError as exc:
+                _record_error(collect_errors, path, exc, parent_id)
+                continue
             resources[ident] = {
                 "name": resource["name"],
                 "resource_type": resource["resource_type"],
@@ -734,19 +831,17 @@ def build_maps(
     packages: dict[str, dict] = {}
     diagnostics: list[MapDiagnostic] = []
 
-    for ident, (path, fm, body) in page_by_id.items():
+    def project_page(ident: str, path: Path, fm: dict, body: str) -> None:
         typ = fm["type"]
         common = _common_record(root, root / path, fm)
-        questions = _open_questions(path, body, ident)
+        questions = _open_questions(path, body, ident) if include_body_questions else []
         if typ in ARCHITECTURE_TYPES and "links" in fm:
             raise MapBuildError(f"{path}: architecture pages use runbooks/standards/incident_learnings, not links")
         if typ == "repository":
             repository_type = fm.get("repository_type", "unknown")
             if repository_type not in _enum_values(taxonomy, "repository.repository_type"):
                 raise MapBuildError(f"{path}: invalid repository_type {repository_type!r}")
-            source_roots = fm.get("source_roots") or []
-            if not isinstance(source_roots, list):
-                raise MapBuildError(f"{path}: source_roots must be a list")
+            source_roots = _list_field(path, fm, "source_roots")
             projected_roots = []
             for source_root in source_roots:
                 if not isinstance(source_root, dict) or not str(source_root.get("path", "")).strip():
@@ -782,7 +877,7 @@ def build_maps(
                 **common,
                 "component_type": component_type,
                 "repository": repository_id,
-                "repository_paths": _string_list(fm.get("repository_paths")),
+                "repository_paths": _string_list(_list_field(path, fm, "repository_paths")),
                 "parent_component": _parent_id(fm.get("parent_component"), "component", page_by_id),
                 **{
                     field: _project_entries(
@@ -815,7 +910,9 @@ def build_maps(
                 "downstream_flows": [],
                 "steps": _flow_steps(
                     path, fm, taxonomy, page_by_id, resources,
-                    {question["id"].split("#", 1)[1] for question in questions},
+                    {question["id"].split("#", 1)[1] for question in questions}
+                    if include_body_questions
+                    else None,
                 ),
                 **_route_entries(path, fm, page_by_id=page_by_id, resources=resources, taxonomy=taxonomy, map_contract=map_contract),
                 "open_questions": questions,
@@ -830,7 +927,7 @@ def build_maps(
                 "repository": repository_id,
                 "package_path": fm.get("package_path", ""),
                 "template_path": fm.get("template_path", ""),
-                "environments": _string_list(fm.get("environments")),
+                "environments": _string_list(_list_field(path, fm, "environments")),
                 "resources": sorted(
                     resource_id for resource_id, record in resources.items() if record["parent_package"] == ident
                 ),
@@ -845,7 +942,7 @@ def build_maps(
                 **_route_entries(path, fm, page_by_id=page_by_id, resources=resources, taxonomy=taxonomy, map_contract=map_contract),
                 "open_questions": questions,
             }
-        elif fm.get("links"):
+        elif "links" in fm:
             links = fm["links"]
             if not isinstance(links, list):
                 raise MapBuildError(f"{path}: links must be a list")
@@ -873,8 +970,21 @@ def build_maps(
                     )
                 )
 
-    _detect_parent_cycles(repositories, "parent_repository", "repository")
-    _detect_parent_cycles(components, "parent_component", "component")
+    for ident, (path, fm, body) in page_by_id.items():
+        try:
+            project_page(ident, path, fm, body)
+        except MapBuildError as exc:
+            _record_error(collect_errors, path, exc, ident)
+
+    for records, parent_field, label in (
+        (repositories, "parent_repository", "repository"),
+        (components, "parent_component", "component"),
+    ):
+        for cycle in _parent_cycles(records, parent_field):
+            record_id = cycle[0]
+            path = page_by_id[record_id][0]
+            error = MapBuildError(f"{path}: {label} hierarchy contains cycle: {' -> '.join((*cycle, cycle[0]))}")
+            _record_error(collect_errors, path, error, record_id)
 
     for repo_id, repo in repositories.items():
         for dependency in repo["depends_on_repositories"]:
@@ -883,7 +993,10 @@ def build_maps(
                 _append(repositories[target]["used_by"], _used_by(repo_id, "repository", "depends_on_repositories", dependency))
 
     for component_id, component in components.items():
-        repositories[component["repository"]]["components"].append(component_id)
+        owning_repository = repositories.get(component["repository"])
+        if owning_repository is not None:
+            # Absent only in collect mode, where the repository page itself failed.
+            owning_repository["components"].append(component_id)
         for dependency in component["depends_on"]:
             target = dependency.get("id")
             if target in components:
@@ -933,19 +1046,24 @@ def build_maps(
         add_infra_users(component_id, "component", component, component_infra_fields)
 
     for resource_id, (path, source) in resource_sources.items():
-        source.update({field: source.get(field) or [] for field in map_contract["fields"]["infrastructure"]})
-        resources[resource_id].update(
-            {
+        for field in map_contract["fields"]["infrastructure"]:
+            source.setdefault(field, [])
+        try:
+            projected_actions = {
                 field: _project_entries(
                     path, source, "infrastructure", field,
                     page_by_id=page_by_id, resources=resources, taxonomy=taxonomy, map_contract=map_contract,
                 )
                 for field in map_contract["fields"]["infrastructure"]
             }
-        )
-        resources[resource_id].update(
-            _route_entries(path, source, page_by_id=page_by_id, resources=resources, taxonomy=taxonomy, map_contract=map_contract)
-        )
+            projected_routes = _route_entries(
+                path, source, page_by_id=page_by_id, resources=resources, taxonomy=taxonomy, map_contract=map_contract
+            )
+        except MapBuildError as exc:
+            _record_error(collect_errors, path, exc, resource_id)
+            continue
+        resources[resource_id].update(projected_actions)
+        resources[resource_id].update(projected_routes)
 
     infra_fields = list(map_contract["fields"]["infrastructure"])
     for package_id, package in packages.items():
@@ -977,3 +1095,10 @@ def build_maps(
     if include_diagnostics:
         return maps, diagnostics
     return maps
+
+
+def validate_map_frontmatter(root: str | Path) -> list[MapValidationIssue]:
+    """Validate structured curated frontmatter without inspecting page-body shape."""
+    issues: list[MapValidationIssue] = []
+    build_maps(root, collect_errors=issues, include_body_questions=False)
+    return issues

@@ -16,13 +16,16 @@ Choose the primary category that best matches the question. A standard remains `
 - [testing](testing/index.md) — testing strategy, minimum validation, and test organisation.
 - [git](git/index.md) — branching, commit, review, and source-control conventions.
 
+<!-- atlas:generated-catalogue:start -->
 ## Catalogue
 
-| ID | Title | Status | Routing context | Last reviewed | Page |
+| ID | Title | Status | Category | Last reviewed | Page |
 |---|---|---|---|---|---|
-
-The parent catalogue is intentionally empty until real TeamA standards are curated; category indexes are the primary routing surface.
+| — | No records | — | — | — | — |
+<!-- atlas:generated-catalogue:end -->
 
 ## Coverage notes
 
-No real TeamA production standards are included in this public scaffold. Do not duplicate the same standard across categories; select a primary category and link related standards.
+- The generated catalogue lists every non-archived standard across all categories; the category indexes are the primary routing surface.
+- No real TeamA production standards are included in this public scaffold.
+- Do not duplicate the same standard across categories; select a primary category and link related standards.

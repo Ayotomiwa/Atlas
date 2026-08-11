@@ -11,7 +11,6 @@ reviewed_by: []
 owners: []
 routing:
   aliases: []
-  domains: []
 links: []
 evidence: []
 coverage:

@@ -132,13 +132,13 @@ Record only impact directly observed or explicitly user-confirmed here. Put plau
 |---|---|---|---|
 | | | | |
 
-### Resource promotion signals
+### Resource promotion evidence
 
-This records **why a resource might deserve first-class impact-analysis treatment later**; it is not a promotion decision.
+Use the canonical [curated resource-promotion criteria](../../_curated/infra/README.md#resource-promotion). Record evidence for later review; do not decide promotion in staging.
 
-| Resource | Signal | Evidence |
-|---|---|---|
-| | shared / independently-operated / monitored / incident-relevant / security-sensitive / deletion-sensitive / data-routing / flow-critical / other | |
+| Resource | Applicable criterion/observation | Evidenced users or operational route | Confidence/gap | Evidence |
+|---|---|---|---|---|
+| | | | observed / user-confirmed / possible / not covered | |
 
 ## What is possible / unconfirmed
 

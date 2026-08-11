@@ -13,7 +13,10 @@ def load_yaml(path: str | Path):
 def load_taxonomy(root: str | Path) -> dict:
     root = Path(root)
     manifest_path = root / "atlas-package.json"
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        raise TaxonomyError(f"cannot read taxonomy registration: {exc}", path="atlas-package.json") from exc
     registered = manifest.get("taxonomy") or {}
     required = {
         "types": "types",
@@ -33,14 +36,20 @@ def load_taxonomy(root: str | Path) -> dict:
             raise TaxonomyError(
                 f"atlas-package.json: taxonomy path {manifest_key} must be package-relative"
             )
-        loaded[result_key] = load_yaml(root / relative)
+        try:
+            loaded[result_key] = load_yaml(root / relative)
+        except Exception as exc:
+            raise TaxonomyError(f"cannot load registered taxonomy: {exc}", path=relative) from exc
     return loaded
 
 
 def load_contracts(root: str | Path) -> dict:
     root = Path(root)
     manifest_path = root / "atlas-package.json"
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        raise TaxonomyError(f"cannot read contract registration: {exc}", path="atlas-package.json") from exc
     registered = manifest.get("contracts") or {}
     required = {"map_fields": "map_fields"}
     missing = sorted(set(required) - set(registered))
@@ -55,9 +64,16 @@ def load_contracts(root: str | Path) -> dict:
             raise TaxonomyError(
                 f"atlas-package.json: contract path {manifest_key} must be package-relative"
             )
-        loaded[result_key] = load_yaml(root / relative)
+        try:
+            loaded[result_key] = load_yaml(root / relative)
+        except Exception as exc:
+            raise TaxonomyError(f"cannot load registered contract: {exc}", path=relative) from exc
     return loaded
 
 
 class TaxonomyError(ValueError):
     """Raised when a taxonomy contract references something it does not define."""
+
+    def __init__(self, message: str, *, path: str | Path | None = None):
+        super().__init__(message)
+        self.path = Path(path).as_posix() if path is not None else None

@@ -21,12 +21,8 @@ coverage:
 asset_type: unknown
 physical_name: ""
 platform: ""
-grain: ""
-primary_keys: []
-business_keys: []
 temporal_model: unknown
-latest_record_rule: ""
-classification: unknown
+classification: ""
 ---
 
 # Schema info: <asset or contract name>

@@ -15,7 +15,14 @@
     "team-a",
     "team a"
   ],
-  "domains": [],
+  "domains": [
+    {
+      "id": "orders",
+      "title": "Orders",
+      "aliases": ["order-platform", "orders-platform"],
+      "routing_description": "Order capture, ingest, enrichment and warehouse delivery architecture."
+    }
+  ],
   "entrypoints": {
     "root": "index.md",
     "curated": "_curated/index.md",

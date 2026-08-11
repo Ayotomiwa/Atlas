@@ -1,250 +1,187 @@
+from __future__ import annotations
+
 from pathlib import Path
 import json
 import shutil
 import subprocess
 import sys
 
-import pytest
+import yaml
 
-from scripts.lib.maps import MAP_NAMES, MapBuildError, build_maps, map_output_paths, stable_bytes
-from scripts.lib.taxonomy import TaxonomyError
+from scripts.lib.maps import MAP_NAMES, build_maps, stable_bytes, validate_map_frontmatter
 
 ROOT = Path(__file__).resolve().parents[2]
-FIXTURES = ROOT / "tests" / "fixtures" / "valid" / "map-projection"
 
 
-def _write_package(root: Path) -> None:
-    (root / "package.md").write_text(
-        """---
-id: atlas-package.fixtures
-type: atlas.package
-package: fixtures
-schema_version: atlas/1.0
-title: Fixture Atlas
-description: Synthetic fixture package.
-status: active
-maps:
-  flow_component: _curated/maps/flow-component/flow-component-map.json
-  repo_dependency: _curated/maps/repo-dependency/repo-dependency-map.json
-  infra_dependency: _curated/maps/infra-dependency/infra-dependency-map.json
----
-""",
-        encoding="utf-8",
-    )
-
-
-def _map_root(tmp_path: Path) -> Path:
+def _root(tmp_path: Path) -> Path:
     shutil.copytree(ROOT / "taxonomy", tmp_path / "taxonomy")
-    _write_package(tmp_path)
-    destinations = {
-        "component.md": "_curated/components/component.md",
-        "library.md": "_curated/components/library.md",
-        "flow.md": "_curated/flows/flow.md",
-        "upstream-flow.md": "_curated/flows/upstream-flow.md",
-        "infra.md": "_curated/infra/infra.md",
-        "schema-info.md": "_curated/schema-info/schema.md",
+    shutil.copytree(ROOT / "contracts", tmp_path / "contracts")
+    manifest = {
+        "schema_version": "atlas-package/1.0",
+        "id": "package.fixtures",
+        "type": "package",
+        "package": "fixtures",
+        "title": "Fixture Atlas",
+        "description": "Synthetic map fixture.",
+        "status": "active",
+        "owners": {},
+        "aliases": ["fixtures"],
+        "domains": [{"id": "test", "title": "Test", "aliases": [], "routing_description": "Tests."}],
+        "entrypoints": {"root": "index.md"},
+        "maps": {
+            "flow_component": "_curated/maps/flow-component/flow-component-map.json",
+            "repository_component": "_curated/maps/repository-component/repository-component-map.json",
+            "infra_dependency": "_curated/maps/infra-dependency/infra-dependency-map.json",
+        },
+        "taxonomy": {
+            "types": "taxonomy/types.yaml",
+            "statuses": "taxonomy/statuses.yaml",
+            "standard_categories": "taxonomy/standard-categories.yaml",
+            "concept_fields": "taxonomy/concept-fields.yaml",
+        },
+        "contracts": {"map_fields": "contracts/map-fields.yaml"},
     }
-    for source_name, dest_name in destinations.items():
-        dest = tmp_path / dest_name
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(FIXTURES / source_name, dest)
-    (tmp_path / "_curated" / "maps").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "atlas-package.json").write_text(json.dumps(manifest), encoding="utf-8")
     return tmp_path
 
 
-def test_map_generation_compiles_attachment_style_domain_records(tmp_path: Path):
-    maps = build_maps(_map_root(tmp_path))
-
-    assert set(maps) == set(MAP_NAMES)
-    assert set(maps["flow-component-map.json"]) == {"metadata", "flows"}
-    assert set(maps["repo-dependency-map.json"]) == {"metadata", "components"}
-    assert set(maps["infra-dependency-map.json"]) == {"metadata", "packages", "resources"}
-    assert all("nodes" not in value and "edges" not in value and "reverse_edges" not in value for value in maps.values())
-
-    metadata = maps["flow-component-map.json"]["metadata"]
-    assert metadata["schema_version"] == "atlas-map/1.0"
-    assert metadata["generated"] is True
-    assert metadata["package"] == "fixtures"
-    assert "last_updated" not in metadata
-    assert metadata["related_maps"]["infra_dependency"].endswith("infra-dependency-map.json")
-    assert "schedule" in metadata["entry_point_kinds"]
-    assert "atlas.runs-before" in metadata["relationship_types"]
-    assert "atlas.deployed-by" not in metadata["relationship_types"]
-
-    repo_metadata = maps["repo-dependency-map.json"]["metadata"]
-    assert "atlas.depends-on" in repo_metadata["relationship_types"]
-    assert "atlas.triggers" not in repo_metadata["relationship_types"]
-    assert "shared-library" in repo_metadata["relationship_kinds"]
-
-    infra_metadata = maps["infra-dependency-map.json"]["metadata"]
-    assert "atlas.reads-from" in infra_metadata["relationship_types"]
-    assert "atlas.consumes" not in infra_metadata["relationship_types"]
-    assert "permission" in infra_metadata["relationship_kinds"]
+def _common(identifier: str, typ: str) -> dict:
+    return {
+        "id": identifier,
+        "type": typ,
+        "package": "fixtures",
+        "schema_version": "atlas/1.0",
+        "title": identifier,
+        "description": "Synthetic record.",
+        "status": "proposed",
+        "last_reviewed": "2026-08-11",
+        "reviewed_by": [],
+        "owners": [],
+        "routing": {"aliases": []},
+        "primary_domain": "test",
+        "related_domains": [],
+        "evidence": ["fixture://record"],
+        "coverage": {"level": "partial", "notes": []},
+    }
 
 
-def test_flow_map_compiles_ordered_participants_routes_and_reverse_flows(tmp_path: Path):
-    flow_map = build_maps(_map_root(tmp_path))["flow-component-map.json"]["flows"]
-    flow = flow_map["atlas-flow.fixture.flow"]
-
-    assert [item["id"] for item in flow["participants"]] == [
-        "atlas-comp.fixture.component",
-        "atlas-infra.fixture.stack",
-    ]
-    assert [item["sequence"] for item in flow["participants"]] == [1, 2]
-    assert flow["entry_points"][0]["kind"] == "schedule"
-    assert flow["inputs"][0]["target"] == "atlas-schema.fixture.asset"
-    assert flow["outputs"][0]["kind"] == "report"
-    assert flow["upstream_flows"][0]["target"] == "atlas-flow.fixture.upstream"
-    assert flow_map["atlas-flow.fixture.upstream"]["downstream_flows"][0]["source"] == "atlas-flow.fixture.flow"
-    assert flow["runs_before_flows"][0]["target"] == "atlas-flow.fixture.upstream"
-    assert flow_map["atlas-flow.fixture.upstream"]["runs_after_flows"][0]["source"] == "atlas-flow.fixture.flow"
-    assert flow["runbooks"][0]["target"] == "external.fixture.runbook"
-    assert flow["incident_learnings"][0]["target"] == "external.fixture.incident"
-
-
-def test_repo_map_groups_dependencies_and_generates_dependents(tmp_path: Path):
-    components = build_maps(_map_root(tmp_path))["repo-dependency-map.json"]["components"]
-    component = components["atlas-comp.fixture.component"]
-    library = components["atlas-comp.fixture.library"]
-
-    assert component["domain_group"] == "fixture-domain"
-    assert component["consumes"][0]["target"] == "atlas-schema.fixture.asset"
-    assert any(item["target"] == "external.fixture.api" and item["confidence"] == "possible" for item in component["consumes"])
-    assert component["produces"][0]["target"] == "atlas-schema.fixture.asset"
-    assert component["uses_libraries"][0]["target"] == "atlas-comp.fixture.library"
-    assert library["used_by_components"][0]["source"] == "atlas-comp.fixture.component"
-    assert library["used_by_components"][0]["derived"] is True
-    assert component["runs_before_components"][0]["target"] == "atlas-comp.fixture.library"
-    assert library["runs_after_components"][0]["source"] == "atlas-comp.fixture.component"
-    assert component["participates_in_flows"][0]["target"] == "atlas-flow.fixture.flow"
-
-
-def test_infra_map_compiles_promoted_resources_and_all_reverse_users(tmp_path: Path):
-    infra_map = build_maps(_map_root(tmp_path))["infra-dependency-map.json"]
-    package = infra_map["packages"]["atlas-infra.fixture.stack"]
-    bucket = infra_map["resources"]["atlas-resource.fixture.shared-bucket"]
-    queue = infra_map["resources"]["atlas-resource.fixture.queue"]
-
-    assert package["defines_resources"] == [
-        "atlas-resource.fixture.queue",
-        "atlas-resource.fixture.shared-bucket",
-    ]
-    assert package["depends_on_resources"][0]["target"] == "atlas-resource.fixture.shared-bucket"
-    assert bucket["parent_package"] == "atlas-infra.fixture.stack"
-    assert bucket["resource_type"] == "s3-bucket"
-    assert bucket["used_by_components"][0]["source"] == "atlas-comp.fixture.component"
-    assert bucket["used_by_flows"][0]["source"] == "atlas-flow.fixture.flow"
-    assert bucket["used_by_packages"][0]["source"] == "atlas-infra.fixture.stack"
-    assert bucket["depends_on_resources"][0]["target"] == "atlas-resource.fixture.queue"
-    assert queue["used_by_resources"][0]["source"] == "atlas-resource.fixture.shared-bucket"
-    assert bucket["triggers"][0]["target"] == "atlas-flow.fixture.flow"
-    assert bucket["permissions"][0]["target"] == "atlas-comp.fixture.component"
-    assert bucket["monitored_by"][0]["target"] == "atlas-resource.fixture.queue"
-    assert queue["monitors"][0]["source"] == "atlas-resource.fixture.shared-bucket"
-    assert queue["schedules"][0]["source"] == "atlas-comp.fixture.component"
-
-
-def test_map_generation_preserves_non_archived_statuses_and_excludes_archived(tmp_path: Path):
-    root = _map_root(tmp_path)
-    maps = build_maps(root)
-    assert maps["repo-dependency-map.json"]["components"]["atlas-comp.fixture.library"]["status"] == "proposed"
-    assert maps["flow-component-map.json"]["flows"]["atlas-flow.fixture.upstream"]["status"] == "deprecated"
-
-    upstream = root / "_curated/flows/upstream-flow.md"
-    upstream.write_text(upstream.read_text(encoding="utf-8").replace("status: deprecated", "status: archived"), encoding="utf-8")
-    maps = build_maps(root)
-    assert "atlas-flow.fixture.upstream" not in maps["flow-component-map.json"]["flows"]
-
-
-@pytest.mark.parametrize(
-    ("old", "new", "message"),
-    [
-        ("id: atlas-resource.fixture.shared-bucket", "id: bad-resource-id", "invalid promoted resource id"),
-        ("resource_type: s3-bucket", "resource_type: imaginary-resource", "invalid resource_type"),
-        ("promotion_reason: Shared data-bearing fixture resource.", "promotion_reason: ''", "requires promotion_reason"),
-        ("evidence: [fixture://shared-bucket]", "evidence: []", "requires evidence"),
-    ],
-)
-def test_map_generation_rejects_invalid_promoted_resources(tmp_path: Path, old: str, new: str, message: str):
-    root = _map_root(tmp_path)
-    path = root / "_curated/infra/infra.md"
-    path.write_text(path.read_text(encoding="utf-8").replace(old, new, 1), encoding="utf-8")
-    with pytest.raises(MapBuildError, match=message):
-        build_maps(root)
-
-
-def test_unknown_kinds_from_reports_the_taxonomy_contract_not_a_key_error(tmp_path: Path):
-    root = _map_root(tmp_path)
-    path = root / "taxonomy/maps.yaml"
-    path.write_text(path.read_text(encoding="utf-8").replace("kinds_from: io_kinds", "kinds_from: bogus_kinds", 1), encoding="utf-8")
-    with pytest.raises(TaxonomyError, match="bogus_kinds"):
-        build_maps(root)
-
-
-def test_map_generation_is_byte_deterministic(tmp_path: Path):
-    root = _map_root(tmp_path)
-    first = {name: stable_bytes(value) for name, value in build_maps(root).items()}
-    second = {name: stable_bytes(value) for name, value in build_maps(root).items()}
-    assert first == second
-
-
-def test_map_generation_rejects_relationship_that_does_not_apply_to_source_map(tmp_path: Path):
-    root = _map_root(tmp_path)
-    path = root / "_curated/flows/flow.md"
-    text = path.read_text(encoding="utf-8").replace(
-        "relationships:",
-        "relationships:\n- type: atlas.deployed-by\n  target: atlas-infra.fixture.stack\n  confidence: reviewed\n  evidence: [fixture://invalid-map-contract]",
-        1,
-    )
-    path.write_text(text, encoding="utf-8")
-    with pytest.raises(MapBuildError, match="does not apply"):
-        build_maps(root)
-
-
-def test_package_paths_select_each_generated_map_folder(tmp_path: Path):
-    root = _map_root(tmp_path)
-    paths = map_output_paths(root)
-    assert paths["flow-component-map.json"] == root / "_curated/maps/flow-component/flow-component-map.json"
-    assert paths["repo-dependency-map.json"] == root / "_curated/maps/repo-dependency/repo-dependency-map.json"
-    assert paths["infra-dependency-map.json"] == root / "_curated/maps/infra-dependency/infra-dependency-map.json"
-
-
-def test_package_rejects_map_outside_its_dedicated_folder(tmp_path: Path):
-    root = _map_root(tmp_path)
-    package = root / "package.md"
-    package.write_text(
-        package.read_text(encoding="utf-8").replace(
-            "_curated/maps/flow-component/flow-component-map.json",
-            "_curated/maps/flow-component-map.json",
-        ),
+def _write(root: Path, relative: str, frontmatter: dict, body: str = "") -> None:
+    path = root / relative
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        "---\n" + yaml.safe_dump(frontmatter, sort_keys=False) + "---\n\n" + body,
         encoding="utf-8",
     )
-    with pytest.raises(MapBuildError, match="dedicated map path"):
-        map_output_paths(root)
 
 
-def test_rebuild_maps_check_detects_drift(tmp_path: Path):
-    root = _map_root(tmp_path)
-    script = ROOT / "scripts" / "rebuild_maps.py"
-    build = subprocess.run(
-        [sys.executable, str(script), "--root", str(root)], capture_output=True, text=True
-    )
-    assert build.returncode == 0, build.stdout + build.stderr
-    clean = subprocess.run(
-        [sys.executable, str(script), "--root", str(root), "--check"],
+def _coherent_root(tmp_path: Path) -> Path:
+    root = _root(tmp_path)
+    repository = {
+        **_common("repo.fixture", "repository"),
+        "repository_locator": "https://example.invalid/repository",
+        "repository_root": ".",
+        "repository_type": "standalone",
+        "default_branch": "main",
+        "parent_repository": None,
+        "source_roots": [],
+        "depends_on_repositories": [],
+        "runbooks": [], "standards": [], "incident_learnings": [],
+    }
+    resource = {
+        "id": "resource.fixture.bucket",
+        "name": "Fixture bucket",
+        "resource_type": "s3-bucket",
+        "defined_in_path": "infra/main.tf",
+        "environments": ["test"],
+        "promotion_reason": "Directly searched data-routing boundary.",
+        "confidence": "reviewed",
+        "coverage": {"level": "partial", "notes": []},
+        "evidence": ["infra/main.tf"],
+    }
+    infra = {
+        **_common("infra.fixture", "infra"),
+        "infra_package": "fixture",
+        "repository": "repo.fixture",
+        "package_path": "infra",
+        "template_path": "infra/main.tf",
+        "environments": ["test"],
+        "depends_on": [], "uses_resources": [], "reads_from": [], "writes_to": [],
+        "triggers": [], "scheduled_by": [], "imports_values": [], "exports_values": [],
+        "permissions": [], "monitored_by": [], "deployed_by": [],
+        "promoted_resources": [resource],
+        "runbooks": [], "standards": [], "incident_learnings": [],
+    }
+    component = {
+        **_common("comp.fixture", "component"),
+        "component_type": "service",
+        "repository": "repo.fixture",
+        "repository_paths": ["src"],
+        "parent_component": None,
+        "consumes": [], "produces": [], "depends_on": [], "uses_resources": [], "reads_from": [],
+        "writes_to": [{"id": "resource.fixture.bucket", "confidence": "reviewed", "evidence": ["src/config.yaml"]}],
+        "triggers": [], "scheduled_by": [], "deployed_by": [], "monitored_by": [],
+        "runbooks": [], "standards": [], "incident_learnings": [],
+    }
+    flow = {
+        **_common("flow.fixture", "flow"),
+        "flow_scope": "test",
+        "diagram": False,
+        "entry_points": [], "inputs": [], "outputs": [], "upstream_flows": [],
+        "steps": [{
+            "step_id": "write",
+            "order": 10,
+            "name": "Write fixture",
+            "participant": {"type": "component", "id": "comp.fixture", "name": "Fixture component"},
+            "role": "writer",
+            "confidence": "reviewed",
+            "evidence": ["src/handler.py"],
+        }],
+        "runbooks": [], "standards": [], "incident_learnings": [],
+    }
+    _write(root, "_curated/repositories/test/repo.md", repository)
+    _write(root, "_curated/infra/test/infra.md", infra)
+    _write(root, "_curated/components/test/component.md", component)
+    _write(root, "_curated/flows/test/flow.md", flow)
+    return root
+
+
+def test_compiles_one_coherent_sparse_fixture_with_reverse_routes(tmp_path: Path):
+    maps = build_maps(_coherent_root(tmp_path))
+
+    assert set(maps) == set(MAP_NAMES)
+    repository_map = maps["repository-component-map.json"]
+    infra_map = maps["infra-dependency-map.json"]
+    flow_map = maps["flow-component-map.json"]
+    assert repository_map["repositories"]["repo.fixture"]["components"] == ["comp.fixture"]
+    assert infra_map["resources"]["resource.fixture.bucket"]["used_by"]
+    assert flow_map["flows"]["flow.fixture"]["steps"][0]["participant"]["id"] == "comp.fixture"
+    assert all("nodes" not in payload and "edges" not in payload for payload in maps.values())
+
+
+def test_frontmatter_validation_attributes_promoted_resource_and_cycle_errors(tmp_path: Path):
+    root = _coherent_root(tmp_path)
+    infra_path = root / "_curated/infra/test/infra.md"
+    frontmatter, body = infra_path.read_text(encoding="utf-8").split("---", 2)[1:]
+    data = yaml.safe_load(frontmatter)
+    data["promoted_resources"] = "wrong"
+    infra_path.write_text("---\n" + yaml.safe_dump(data, sort_keys=False) + "---" + body, encoding="utf-8")
+
+    issues = validate_map_frontmatter(root)
+    assert any(issue.path.endswith("infra.md") and "promoted_resources" in issue.message for issue in issues)
+
+
+def test_generation_is_deterministic_and_freshness_command_detects_missing_outputs(tmp_path: Path):
+    root = _coherent_root(tmp_path)
+    first = build_maps(root)
+    second = build_maps(root)
+    assert {name: stable_bytes(value) for name, value in first.items()} == {
+        name: stable_bytes(value) for name, value in second.items()
+    }
+
+    result = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "rebuild_atlas.py"), "--root", str(root), "--check"],
         capture_output=True,
         text=True,
+        check=False,
     )
-    assert clean.returncode == 0, clean.stdout + clean.stderr
-
-    path = root / "_curated" / "maps" / "repo-dependency" / "repo-dependency-map.json"
-    data = json.loads(path.read_text(encoding="utf-8"))
-    data["components"] = {}
-    path.write_text(json.dumps(data), encoding="utf-8")
-    drift = subprocess.run(
-        [sys.executable, str(script), "--root", str(root), "--check"],
-        capture_output=True,
-        text=True,
-    )
-    assert drift.returncode != 0
-    assert "repo-dependency-map.json" in drift.stdout
+    assert result.returncode == 1

@@ -39,6 +39,8 @@ Use `atlas-stage` to capture one explicitly requested reusable fact. Use `atlas-
 
 `atlas-curate` reconciles eligible evidence into a proposal and invokes independent review. A human reviews and merges the change. `atlas-review` can inspect evidence, pages, diffs or commit ranges without editing.
 
+Use `atlas-lint` for deterministic frontmatter/relative-link validation and requested safe repairs. It may delegate read-only semantic inspection for contradictions, garbled prose, sensitive-content risk or missing-link candidates, but evidence-sensitive knowledge changes still use staging and curation.
+
 ## Generated artifacts
 
 Edit only curated Markdown structured fields and narrative. Never hand-edit JSON maps, generated catalogues, managed routing tables or generated flow diagrams. Rebuild them together with:

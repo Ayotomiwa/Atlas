@@ -6,6 +6,17 @@ import re
 
 from scripts.lib.frontmatter import parse_frontmatter
 from scripts.lib.maps import load_package_config
+from scripts.lib.taxonomy import load_taxonomy
+
+
+# Domain-grouped architecture records and flat governance records are catalogued
+# the same way; only the middle routing column differs.
+GOVERNANCE_COLLECTIONS = {
+    "standards": "standard",
+    "runbooks": "runbook",
+    "incidents": "incident-learning",
+    "business-concepts": "business-concept",
+}
 
 
 CATALOGUE_START = "<!-- atlas:generated-catalogue:start -->"
@@ -16,6 +27,10 @@ def _coverage(value: object) -> str:
     if isinstance(value, dict):
         value = value.get("level")
     return value if isinstance(value, str) and value else "unknown"
+
+
+def _cell(value: object) -> str:
+    return str(value or "").replace("|", "\\|").replace("\r", " ").replace("\n", " ").strip()
 
 
 def _managed(text: str, name: str, content: str) -> str:
@@ -46,28 +61,33 @@ def _curated_records(root: Path, folder: str, typ: str) -> list[tuple[Path, dict
     return out
 
 
-def _catalogue(rows: list[tuple[Path, dict]], index_path: Path, *, staging: bool = False) -> str:
-    if staging:
-        header = "| ID | Title | Status | Candidate domain | Source context | Page |"
-        divider = "|---|---|---|---|---|---|"
-    else:
-        header = "| ID | Title | Status | Primary domain | Coverage | Page |"
-        divider = "|---|---|---|---|---|---|"
-    lines = [CATALOGUE_START, "## Catalogue", "", header, divider]
+def _catalogue(rows: list[tuple[Path, dict]], index_path: Path, *, mode: str = "domain") -> str:
+    headers = {
+        "domain": "| ID | Title | Status | Primary domain | Coverage | Page |",
+        "staging": "| ID | Title | Status | Candidate domain | Source context | Page |",
+        "standard": "| ID | Title | Status | Category | Last reviewed | Page |",
+        "governance": "| ID | Title | Status | Routing context | Last reviewed | Page |",
+    }
+    lines = [CATALOGUE_START, "## Catalogue", "", headers[mode], "|---|---|---|---|---|---|"]
     for path, fm in sorted(rows, key=lambda item: str(item[1].get("id", ""))):
         link = _relative_link(index_path, path)
-        if staging:
-            source_context = str(fm.get("source_type", ""))
+        if mode == "staging":
             domain = path.relative_to(index_path.parent).parts[0] if path.parent != index_path.parent else "unassigned"
-            lines.append(
-                f"| `{fm.get('id', '')}` | {fm.get('title', '')} | `{fm.get('status', '')}` | "
-                f"`{domain}` | {source_context} | [page]({link}) |"
-            )
+            middle, right = f"`{domain}`", str(fm.get("source_type", ""))
+        elif mode == "standard":
+            category = fm.get("standard_category")
+            middle = f"`{category}`" if category else "—"
+            right = f"`{fm.get('last_reviewed', '')}`"
+        elif mode == "governance":
+            middle = _cell(fm.get("description")) or "—"
+            right = f"`{fm.get('last_reviewed', '')}`"
         else:
-            lines.append(
-                f"| `{fm.get('id', '')}` | {fm.get('title', '')} | `{fm.get('status', '')}` | "
-                f"`{fm.get('primary_domain', '')}` | `{_coverage(fm.get('coverage'))}` | [page]({link}) |"
-            )
+            middle = f"`{fm.get('primary_domain', '')}`"
+            right = f"`{_coverage(fm.get('coverage'))}`"
+        lines.append(
+            f"| `{fm.get('id', '')}` | {fm.get('title', '')} | `{fm.get('status', '')}` | "
+            f"{middle} | {right} | [page]({link}) |"
+        )
     if not rows:
         lines.append("| — | No records | — | — | — | — |")
     lines.append(CATALOGUE_END)
@@ -132,6 +152,40 @@ def build_index_outputs(root: str | Path) -> dict[Path, bytes]:
                 )
             outputs[domain_index] = domain_text.encode("utf-8")
 
+    categories = load_taxonomy(root)["categories"].get("categories") or []
+    for folder, typ in GOVERNANCE_COLLECTIONS.items():
+        rows = _curated_records(root, folder, typ)
+        index_path = root / "_curated" / folder / "index.md"
+        mode = "standard" if folder == "standards" else "governance"
+        catalogue = _catalogue(rows, index_path, mode=mode)
+        if index_path.exists():
+            rendered = _replace_catalogue(index_path.read_text(encoding="utf-8"), catalogue)
+        else:
+            rendered = _index_skeleton(
+                f"{folder.replace('-', ' ').title()} index",
+                f"Use this catalogue to route to reviewed {folder.replace('-', ' ')} records.",
+                catalogue,
+            )
+        outputs[index_path] = rendered.encode("utf-8")
+        if folder != "standards":
+            continue
+        used_categories = {str(fm.get("standard_category")) for _, fm in rows if fm.get("standard_category")}
+        for category in sorted(set(categories) | used_categories):
+            category_rows = [(path, fm) for path, fm in rows if fm.get("standard_category") == category]
+            category_index = root / "_curated" / folder / category / "index.md"
+            category_catalogue = _catalogue(category_rows, category_index, mode="standard")
+            if category_index.exists():
+                category_text = _replace_catalogue(
+                    category_index.read_text(encoding="utf-8"), category_catalogue
+                )
+            else:
+                category_text = _index_skeleton(
+                    f"{category} standards index",
+                    f"Use this catalogue for the `{category}` standard category.",
+                    category_catalogue,
+                )
+            outputs[category_index] = category_text.encode("utf-8")
+
     for folder, typ in {"components": "staging.component", "flows": "staging.flow"}.items():
         base = root / "_staging" / folder
         rows: list[tuple[Path, dict]] = []
@@ -143,7 +197,7 @@ def build_index_outputs(root: str | Path) -> dict[Path, bytes]:
                 if fm.get("type") == typ:
                     rows.append((path, fm))
         index_path = base / "index.md"
-        catalogue = _catalogue(rows, index_path, staging=True)
+        catalogue = _catalogue(rows, index_path, mode="staging")
         rendered = (
             _replace_catalogue(index_path.read_text(encoding="utf-8"), catalogue)
             if index_path.exists()
@@ -166,7 +220,7 @@ def build_index_outputs(root: str | Path) -> dict[Path, bytes]:
                 if len(path.relative_to(base).parts) > 1 and path.relative_to(base).parts[0] == domain
             ]
             domain_index = base / domain / "index.md"
-            domain_catalogue = _catalogue(domain_rows, domain_index, staging=True)
+            domain_catalogue = _catalogue(domain_rows, domain_index, mode="staging")
             rendered = (
                 _replace_catalogue(domain_index.read_text(encoding="utf-8"), domain_catalogue)
                 if domain_index.exists()
@@ -185,6 +239,7 @@ def generated_index_candidates(root: str | Path) -> set[Path]:
     root = Path(root).resolve()
     bases = [
         *(root / "_curated" / folder for folder in ("repositories", "components", "flows", "infra", "schema-info")),
+        *(root / "_curated" / folder for folder in GOVERNANCE_COLLECTIONS),
         root / "_staging" / "components",
         root / "_staging" / "flows",
     ]

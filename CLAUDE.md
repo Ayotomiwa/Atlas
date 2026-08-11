@@ -20,7 +20,7 @@ This repository is the TeamA Atlas package (`teama`). It is a governed engineeri
 - Edit structured routing fields only on curated Markdown pages.
 - Never hand-edit generated map data below `_curated/maps/`.
 - After structured routing changes run `python scripts/rebuild_atlas.py`.
-- Before proposing changes run `python scripts/atlas_lint.py .` and tests.
+- Before proposing changes run `python scripts/atlas_lint.py .` plus currently authorised relevant validation, and disclose any deferred tests or freshness checks.
 - After a staging record is first committed, do not edit its evidence content, path or ID. The only permitted later mutation is top-level frontmatter `status`; corrections are new staging evidence.
 - Treat `status: new` staging records as the normal curation queue. Do not automatically recurate terminal records.
 

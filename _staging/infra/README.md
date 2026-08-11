@@ -59,19 +59,7 @@ If infrastructure knowledge was discovered during a change, it may first appear 
 
 Stage the **meaningful infrastructure package/context first**. An entry may describe the package layout and multiple internal resources without creating one staging file per cloud resource.
 
-Lower-level resources normally remain internal evidence. Record why a resource appears significant when it is:
-
-- shared by multiple components/flows/packages;
-- independently operated, deployed or monitored;
-- incident-relevant;
-- security- or permission-sensitive;
-- deletion/change-sensitive;
-- data-bearing or data-routing;
-- orchestration/flow-critical;
-- attached to a dedicated runbook;
-- a meaningful blast-radius node likely to be searched directly.
-
-Significance is evidence for later **promotion consideration**, not automatic promotion.
+Lower-level resources normally remain internal evidence. When a resource looks operationally significant, capture evidence against the canonical [curated resource-promotion criteria](../../_curated/infra/README.md#resource-promotion). This is **input to a later promotion decision, never the decision itself**.
 
 ## Discovery lenses
 
@@ -104,14 +92,14 @@ Keep ordinary application/API/data relationships with their semantic owner rathe
 
 ## Resource promotion evidence
 
-A future curated infra page may promote selected resources for impact analysis. Staging should capture:
+Curation decides promotion against the canonical [resource-promotion criteria](../../_curated/infra/README.md#resource-promotion). Staging must give that decision enough attributable evidence to work with:
 
 1. the resource identity/logical ID;
 2. where it is defined;
-3. why it appears operationally significant;
-4. which components/flows/packages use it, when evidenced;
-5. the source proving those claims;
-6. what remains possible/unconfirmed.
+3. which canonical criterion or criteria may apply and what was observed;
+4. the source supporting each observation;
+5. which components, flows, packages or runbooks use it, when evidenced;
+6. confidence and what remains possible/unconfirmed.
 
 Do not assume every resource should become a promoted impact-analysis node.
 

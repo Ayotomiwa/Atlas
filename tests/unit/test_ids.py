@@ -6,9 +6,9 @@ from scripts.lib.ids import valid_curated_id, valid_staging_id
 @pytest.mark.parametrize(
     "value,prefix",
     [
-        ("atlas-comp.sds.service", "atlas-comp"),
-        ("atlas-flow.reference-data", "atlas-flow"),
-        ("atlas-standard.java.spring-boot", "atlas-standard"),
+        ("comp.sds-client", "comp"),
+        ("flow.reference-data", "flow"),
+        ("standard.java.spring-boot", "standard"),
     ],
 )
 def test_valid_curated_ids(value: str, prefix: str):
@@ -18,11 +18,11 @@ def test_valid_curated_ids(value: str, prefix: str):
 @pytest.mark.parametrize(
     "value,prefix",
     [
-        ("atlas-flow.sds.service", "atlas-comp"),
-        ("atlas-comp", "atlas-comp"),
-        ("atlas-comp.Bad.Name", "atlas-comp"),
-        ("atlas-comp.bad_name", "atlas-comp"),
-        (None, "atlas-comp"),
+        ("flow.sds-client", "comp"),
+        ("comp", "comp"),
+        ("comp.Bad.Name", "comp"),
+        ("comp.bad_name", "comp"),
+        (None, "comp"),
     ],
 )
 def test_invalid_curated_ids(value, prefix: str):

@@ -27,4 +27,15 @@ The repository page should include an informative code-architecture summary: sig
 
 ## Review
 
-Confirm the boundary evidence, repository type, physical Git locator, logical root, enclosing repository, domain, important roots and component split. Keep unknown ownership, deployment and source areas explicit. Generated tables and maps are compiled with `python scripts/rebuild_atlas.py` and are never hand-edited.
+Before approving a repository page, confirm that:
+
+- the boundary is independently useful, and the evidence names which signal makes it so;
+- `repository_type` matches that evidence rather than the folder's appearance;
+- the physical Git locator, `repository_root` and `parent_repository` describe real containment, not ordinary nesting;
+- `primary_domain` is evidenced and registered, and `related_domains` records genuine secondary involvement;
+- `source_roots` covers the roots that matter and omits directory noise;
+- the component split is architectural — folders and job groups have not become components;
+- `depends_on_repositories` records source/build connections only, with runtime dependencies left to component pages;
+- unknown ownership, deployment and source areas are stated as open questions rather than omitted.
+
+Generated tables and maps are compiled with `python scripts/rebuild_atlas.py` and are never hand-edited.

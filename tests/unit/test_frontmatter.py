@@ -14,9 +14,9 @@ def test_parse_frontmatter_from_text():
 
 def test_parse_frontmatter_from_path(tmp_path: Path):
     path = tmp_path / "page.md"
-    path.write_text("---\ntype: atlas.component\n---\nbody\n", encoding="utf-8")
+    path.write_text("---\ntype: component\n---\nbody\n", encoding="utf-8")
     fm, body = parse_frontmatter(path)
-    assert fm["type"] == "atlas.component"
+    assert fm["type"] == "component"
     assert body.strip() == "body"
 
 

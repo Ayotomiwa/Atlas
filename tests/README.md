@@ -1,10 +1,9 @@
 # Tests
 
-The test suite exercises deterministic V1 contracts offline. Synthetic fixtures never represent TeamA production knowledge.
+The small test suite exercises deterministic Atlas interfaces offline. Synthetic data never represents TeamA production knowledge.
 
-- `unit/` covers frontmatter, IDs, links, lint rules, attachment-style map compilation, generated reverse fields, promoted resources, map drift, canonical structure, and staging immutability.
-- `fixtures/valid/curated-pages/` contains a passing synthetic example for every active curated concept type.
-- `fixtures/invalid/` contains deliberately malformed synthetic inputs for lint error rules where a file fixture is practical.
-- `fixtures/valid/service-repo/`, `infra/`, and `standards/` support the required onboarding/standards demonstrations.
+- `test_frontmatter.py`, `test_ids.py`, and `test_links.py` cover the small parsing and identity helpers.
+- `test_lint.py` covers frontmatter semantics, structured target validation and relative Markdown file links. It also confirms that body headings, prose, remote URLs, review age and secret judgment are outside deterministic lint.
+- `test_maps.py` uses one coherent fictional system to cover sparse map compilation, reverse routes, page-attributed structured errors, deterministic bytes and freshness detection.
 
 Run `pytest`.

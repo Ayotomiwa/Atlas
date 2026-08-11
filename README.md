@@ -31,6 +31,8 @@ Domains are registered inline before architecture records use them:
 }
 ```
 
+**Registering the first domain is the first adoption step.** `domains` ships empty, and until an entry exists no repository, component, flow, infrastructure or schema page can be stored, because every architecture record must live under a registered domain folder that matches its `primary_domain`. Lint says so at the point of failure, but the edit belongs here rather than on the page being written.
+
 The domain controls storage and routing, not identity. A stable ID such as `comp.sds-client` may remain unchanged when its repository, file path or primary domain moves; add further semantic segments only when they are needed to prevent ambiguity.
 
 A future Atlas-core registry should store only:
@@ -87,13 +89,15 @@ After structured page, domain or lifecycle changes, rebuild every generated surf
 python scripts/rebuild_atlas.py
 ```
 
-This writes maps, root/domain catalogues, staging queue indexes, structured body tables and opted-in flow diagrams. Managed blocks and generated JSON are never hand-edited.
+This writes maps, catalogues for every curated collection including standards categories, staging queue indexes, structured body tables and opted-in flow diagrams. Managed blocks and generated JSON are never hand-edited; `python scripts/rebuild_atlas.py --check` reports freshness drift.
 
 Freshness-only mode exists for an explicitly authorised validation pass:
 
 ```powershell
 python scripts/rebuild_atlas.py --check
 ```
+
+`python scripts/atlas_lint.py .` validates frontmatter semantics and existing relative Markdown file targets. Page headings, prose quality, remote URLs, review age, sensitive-content judgment and generated freshness are reviewer/workflow concerns rather than deterministic lint rules.
 
 ## Querying
 
@@ -123,7 +127,7 @@ Every substantive Atlas-assisted answer cites the curated page or repository sou
 | `_curated/*/_template.md` | Authoring interface |
 | `_curated/*/index.md` | Generated catalogue plus coverage notes |
 | `_curated/maps/` | Generated direct routing interfaces |
-| `taxonomy/` | Controlled author classifications |
+| `taxonomy/` | Controlled author classifications and allowed values |
 | `contracts/` | Compiler-only map field and impact-direction rules |
 | `scripts/atlas_query.py` | Supported routing/traversal CLI |
 | `scripts/rebuild_atlas.py` | Unified deterministic generator |

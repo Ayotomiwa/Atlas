@@ -1,7 +1,7 @@
 schema_version: atlas-taxonomy/1.0
 types:
+  # Indexes are generated navigation, not governed records, and therefore have no type.
   - {name: package, folder: ".", file: atlas-package.json, id_prefix: package, status: active}
-  - {name: index, folder: "**", id_prefix: index, status: active}
   - {name: repository, folder: _curated/repositories, id_prefix: repo, grouped: domain, status: active}
   - {name: component, folder: _curated/components, id_prefix: comp, grouped: domain, status: active}
   - {name: flow, folder: _curated/flows, id_prefix: flow, grouped: domain, status: active}
