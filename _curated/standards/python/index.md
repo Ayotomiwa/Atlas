@@ -7,11 +7,11 @@ Use this category for Python packaging, runtime, style, and test conventions. Re
 <!-- atlas:generated-catalogue:start -->
 ## Catalogue
 
-| ID | Title | Status | Category | Last reviewed | Page |
-|---|---|---|---|---|---|
-| — | No records | — | — | — | — |
+| ID | Title | Description | Status | Category | Last reviewed | Page |
+|---|---|---|---|---|---|---|
+| — | No records | — | — | — | — | — |
 <!-- atlas:generated-catalogue:end -->
 
 ## Coverage notes
 
-No real TeamA production standards are included in this public scaffold. Pages stored here remain `type: standard` with `standard_category: python`.
+No real datalens production standards are included in this public scaffold. Pages stored here remain `type: standard` with `standard_category: python`.

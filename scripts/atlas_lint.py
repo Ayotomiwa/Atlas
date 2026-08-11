@@ -5,6 +5,7 @@ from pathlib import Path
 import argparse
 import datetime as dt
 import json
+import re
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -71,6 +72,7 @@ RETIRED_FIELDS = {
 # Identity and placement rules the map compiler repeats; reporting both would
 # describe one mistake twice, once with a less specific message.
 IDENTITY_CODES = {"ATLAS002", "ATLAS003", "ATLAS005", "ATLAS027"}
+GROUP_SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 
 
 def issue(code: str, level: str, path: str | Path, message: str) -> dict[str, str]:
@@ -90,6 +92,11 @@ def _folder_allowed(rel: Path, folder: str) -> bool:
 
 
 def _parse_iso_date(value: object) -> dt.date | None:
+    # YAML turns an unquoted YYYY-MM-DD into a date, so accept both forms.
+    if isinstance(value, dt.datetime):
+        return value.date()
+    if isinstance(value, dt.date):
+        return value
     if not isinstance(value, str):
         return None
     try:
@@ -112,6 +119,19 @@ def _atlas_records(root: Path) -> list[Path]:
                 continue
             out.append(path)
     return out
+
+
+def _boolean_key_paths(value: object, prefix: str = "frontmatter") -> list[str]:
+    found: list[str] = []
+    if isinstance(value, dict):
+        if True in value:
+            found.append(prefix)
+        for key, child in value.items():
+            found.extend(_boolean_key_paths(child, f"{prefix}.{key}"))
+    elif isinstance(value, list):
+        for index, child in enumerate(value):
+            found.extend(_boolean_key_paths(child, f"{prefix}[{index}]"))
+    return found
 
 
 def lint_repository(
@@ -158,6 +178,15 @@ def lint_repository(
         except Exception as exc:
             issues.append(issue("ATLAS001", "ERROR", rel, str(exc)))
             continue
+        for owner in _boolean_key_paths(fm):
+            issues.append(
+                issue(
+                    "ATLAS025",
+                    "ERROR",
+                    rel,
+                    f"{owner} contains a boolean key; quote the reserved YAML key \"on\" in transitions",
+                )
+            )
         typ = fm.get("type")
         spec = active.get(typ) if isinstance(typ, str) else None
         if not spec or typ == "package":
@@ -189,9 +218,14 @@ def lint_repository(
             if spec.get("grouped") == "domain":
                 inside = rel.relative_to(Path(spec["folder"]))
                 group = inside.parts[0] if len(inside.parts) > 1 else ""
-                if group not in domain_ids | {"unassigned"}:
+                if not GROUP_SLUG_RE.fullmatch(group):
                     issues.append(
-                        issue("ATLAS027", "ERROR", rel, "staging component/flow must be under a registered domain or unassigned")
+                        issue(
+                            "ATLAS027",
+                            "ERROR",
+                            rel,
+                            "staging component/flow must be under a valid candidate-domain slug or unassigned",
+                        )
                     )
             continue
 
@@ -238,10 +272,25 @@ def lint_repository(
             if field in fm:
                 issues.append(issue("ATLAS025", "ERROR", rel, f"retired field is not allowed: {field}"))
         routing = fm.get("routing")
-        if isinstance(routing, dict) and "domains" in routing:
-            issues.append(
-                issue("ATLAS025", "ERROR", rel, "retired field is not allowed: routing.domains")
-            )
+        if routing is not None and not isinstance(routing, dict):
+            issues.append(issue("ATLAS025", "ERROR", rel, "routing must be an object"))
+        elif isinstance(routing, dict):
+            if "domains" in routing:
+                issues.append(
+                    issue("ATLAS025", "ERROR", rel, "retired field is not allowed: routing.domains")
+                )
+            if "keywords" in routing:
+                keywords = routing.get("keywords")
+                if not isinstance(keywords, list) or not all(
+                    isinstance(value, str) and value.strip() for value in keywords
+                ):
+                    issues.append(
+                        issue("ATLAS025", "ERROR", rel, "routing.keywords must contain non-empty strings")
+                    )
+                elif len({value.strip().casefold() for value in keywords}) != len(keywords):
+                    issues.append(
+                        issue("ATLAS025", "ERROR", rel, "routing.keywords must be unique")
+                    )
         if typ == "runbook":
             exercised = fm.get("last_exercised")
             if exercised not in (None, "") and _parse_iso_date(exercised) is None:

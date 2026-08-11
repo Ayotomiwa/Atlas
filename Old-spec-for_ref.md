@@ -1,11 +1,11 @@
-# Team Atlas V1 — Final Implementation Specification
+# Datalens Atlas V1 — Final Implementation Specification
 
 **Audience:** implementation agent, default Claude Code  
-**Repository:** `team-atlas`  
-**Pilot scope:** one TeamA Atlas package only  
-**Package slug:** `teama`  
+**Repository:** `datalens-atlas`
+**Pilot scope:** one Datalens Atlas package only
+**Package slug:** `datalens`
 **Status:** implementation-ready  
-**Purpose:** build a complete, usable V1 scaffold that can onboard real TeamA services without inventing TeamA facts.
+**Purpose:** build a complete, usable V1 scaffold that can onboard real datalens services without inventing datalens facts.
 
 ---
 
@@ -18,7 +18,7 @@ The implementation agent MUST:
 1. create every file and folder required by §3;
 2. implement all README, index, template, taxonomy, skill, agent, script, test and CI contracts in this specification;
 3. build deterministic lint and map generation before creating example content;
-4. keep all TeamA engineering knowledge empty or explicitly marked as not covered unless evidence is supplied;
+4. keep all datalens engineering knowledge empty or explicitly marked as not covered unless evidence is supplied;
 5. never invent repositories, owners, dependencies, infrastructure, flows, standards, business definitions or production facts;
 6. run the full acceptance suite after every phase;
 7. fix every deterministic failure before continuing;
@@ -26,7 +26,7 @@ The implementation agent MUST:
 9. never let Claude self-approve curated knowledge;
 10. return an implementation report listing files created, tests executed, results, and genuine external blockers.
 
-Where this document conflicts with earlier Team Atlas design documents, this document wins for V1.
+Where this document conflicts with earlier Datalens Atlas design documents, this document wins for V1.
 
 ---
 
@@ -34,14 +34,14 @@ Where this document conflicts with earlier Team Atlas design documents, this doc
 
 | Topic | V1 decision |
 |---|---|
-| Pilot | One TeamA package only; no `atlas-core` or second team |
-| Repository | `team-atlas` |
-| Package | `teama` |
+| Pilot | One datalens package only; no `atlas-core` or second team |
+| Repository | `datalens-atlas` |
+| Package | `datalens` |
 | Knowledge layers | `_staging/` and `_curated/` |
 | Maps | `_curated/maps/` |
 | Map authority | Curated Markdown `relationships:` are source of truth; maps are generated projections |
 | Curated IDs | Local stable IDs such as `atlas-comp.sds.sds-generic-client` are **not** derived from folder paths |
-| Future global reference | Reserve `<package>::<local-id>`, e.g. `teama::atlas-comp.sds.sds-generic-client` |
+| Future global reference | Reserve `<package>::<local-id>`, e.g. `datalens::atlas-comp.sds.sds-generic-client` |
 | Staging IDs | `STG-YYYYMMDD-<slug>` |
 | Type identity | `type:` remains namespaced (`atlas.component`, `atlas.flow`, etc.) |
 | Curated status | `draft`, `proposed`, `curated`, `deprecated`, `archived` |
@@ -57,7 +57,7 @@ Where this document conflicts with earlier Team Atlas design documents, this doc
 | Deterministic checks | Python 3.11+; model judgement does not replace validation |
 | CI | GitHub Actions for this public prototype and a matching GitLab CI file for eventual internal use |
 | Human authority | Claude stages/proposes; humans approve and merge |
-| Root `CLAUDE.md` | Primarily governs Claude **maintaining Team Atlas**; it is not the cross-repo consumption contract |
+| Root `CLAUDE.md` | Primarily governs Claude **maintaining Datalens Atlas**; it is not the cross-repo consumption contract |
 | Cross-repo consumption | `--add-dir` exposes Atlas files/skills/agents; skills route via `package.md` and indexes |
 | README | Local folder policy and semantic/granularity guidance |
 | index.md | Navigation/catalogue, not procedural instructions or routine logs |
@@ -105,7 +105,7 @@ Where this document conflicts with earlier Team Atlas design documents, this doc
 Build this structure exactly. Empty grouping directories may use `.gitkeep`; generated map files must exist even when empty.
 
 ```text
-team-atlas/
+datalens-atlas/
 ├── README.md
 ├── CLAUDE.md
 ├── package.md
@@ -290,15 +290,15 @@ Create:
 
 ```markdown
 ---
-id: atlas-package.teama
+id: atlas-package.datalens
 type: atlas.package
-package: teama
+package: datalens
 schema_version: atlas/1.0
-title: TeamA Atlas
-description: Governed engineering context for TeamA humans and AI agents.
+title: Datalens Atlas
+description: Governed engineering context for datalens humans and AI agents.
 status: active
 owners:
-  team: team-a-engineering
+  team: datalens-engineering
   maintainers: []
 domains: []
 entrypoints:
@@ -326,20 +326,20 @@ taxonomy:
   statuses: taxonomy/statuses.yaml
   standard_categories: taxonomy/standard-categories.yaml
 routing:
-  aliases: [teama, team-a, "team a"]
+  aliases: [datalens, data-lens, clearwater]
   questions:
-    - What does this TeamA service do and depend on?
-    - How does this TeamA flow work end to end?
+    - What does this datalens service do and depend on?
+    - How does this datalens flow work end to end?
     - What could be affected by this infrastructure change?
-    - Which TeamA standard applies?
+    - Which datalens standard applies?
 ---
 
 # Responsibility
 
-TeamA Atlas stores governed engineering context. `_staging/` is evidence; `_curated/` is reviewed knowledge; maps are generated from curated relationships.
+Datalens Atlas stores governed engineering context. `_staging/` is evidence; `_curated/` is reviewed knowledge; maps are generated from curated relationships.
 ```
 
-Do not invent a real team owner during the public prototype. Mark `team-a-engineering` as a placeholder in README/CODEOWNERS.
+Do not invent a real team owner during the public prototype. Mark `datalens-engineering` as a placeholder in README/CODEOWNERS.
 
 ### 4.2 Curated local ID grammar
 
@@ -368,7 +368,7 @@ Rules:
 - file moves/renames do not force ID changes;
 - the namespace segment is semantic (domain/category), not a physical-path checksum;
 - a replacement page uses `atlas.supersedes`; do not silently recycle an old ID;
-- for future federation, reserve the globally addressable form `teama::<local-id>`; do not implement cross-package resolution in V1.
+- for future federation, reserve the globally addressable form `datalens::<local-id>`; do not implement cross-package resolution in V1.
 
 This deliberately resolves the earlier contradiction between “filename slug must equal ID” and “renaming a file must not change ID”: **V1 does not enforce filename/ID equality.**
 
@@ -519,7 +519,7 @@ Every curated concept page begins with:
 ---
 id: atlas-<type>.<namespace>.<slug>
 type: atlas.<type>
-package: teama
+package: datalens
 schema_version: atlas/1.0
 title: ""
 description: ""
@@ -566,7 +566,7 @@ For `atlas.consumes`, `atlas.produces` and `atlas.depends-on`, `kind` is require
 event api table file component shared-library schema-library config job-output infra other
 ```
 
-A reviewed local target must resolve to a real curated ID. If the target is genuinely outside TeamA and no Atlas package exists in V1, mark the relationship as external in `note`/evidence and do not pretend it resolves locally. Cross-package link syntax is reserved, not implemented.
+A reviewed local target must resolve to a real curated ID. If the target is genuinely outside datalens and no Atlas package exists in V1, mark the relationship as external in `note`/evidence and do not pretend it resolves locally. Cross-package link syntax is reserved, not implemented.
 
 ### 6.3 Staging common envelope
 
@@ -574,7 +574,7 @@ A reviewed local target must resolve to a real curated ID. If the target is genu
 ---
 id: STG-YYYYMMDD-<slug>
 type: atlas.staging.<bucket>
-package: teama
+package: datalens
 schema_version: atlas/1.0
 timestamp: YYYY-MM-DD
 title: ""
@@ -605,14 +605,14 @@ Do not invent plausible filler.
 
 ### 7.1 Root `CLAUDE.md`
 
-This file governs Claude while **maintaining Team Atlas**. It is intentionally short and does not duplicate every folder's curation rules.
+This file governs Claude while **maintaining Datalens Atlas**. It is intentionally short and does not duplicate every folder's curation rules.
 
 Create:
 
 ```markdown
-# TeamA Atlas — Claude operating rules
+# Datalens Atlas — Claude operating rules
 
-This repository is the TeamA Atlas package (`teama`). It is a governed engineering context layer, not a general document dump.
+This repository is the Datalens Atlas package (`datalens`). It is a governed engineering context layer, not a general document dump.
 
 ## Trust
 
@@ -692,7 +692,7 @@ Cross-repo example:
 
 ```bash
 cd <product-repo>
-claude --add-dir <path-to>/team-atlas
+claude --add-dir <path-to>/datalens-atlas
 ```
 
 Explain that cross-repo consumption relies on discovered skills + `package.md`/indexes; it does not require the added directory's root `CLAUDE.md` to become the consumer contract.
@@ -700,7 +700,7 @@ Explain that cross-repo consumption relies on discovered skills + `package.md`/i
 ### 7.4 `log.md`
 
 ```markdown
-# TeamA Atlas Log
+# Datalens Atlas Log
 
 Significant Atlas-level milestones only. Routine curation belongs in `_curated/status/curation-status.md`; detailed reasoning belongs in `reviews/`.
 
@@ -714,11 +714,11 @@ Significant Atlas-level milestones only. Routine curation belongs in `_curated/s
 Use generic placeholders only:
 
 ```text
-* @team-a-engineering
-/_curated/ @team-a-engineering
-/.claude/ @team-a-engineering
-/taxonomy/ @team-a-engineering
-/scripts/ @team-a-engineering
+* @datalens-engineering
+/_curated/ @datalens-engineering
+/.claude/ @datalens-engineering
+/taxonomy/ @datalens-engineering
+/scripts/ @datalens-engineering
 ```
 
 README must state that the placeholder must be replaced before enforcing protected-branch review.
@@ -1052,7 +1052,7 @@ Every map metadata block contains:
   "schema_version": "atlas-map/1.0",
   "generated": true,
   "generator": "scripts/rebuild_maps.py",
-  "package": "teama",
+  "package": "datalens",
   "source_of_truth": ["_curated/**/*.md"]
 }
 ```
@@ -1088,7 +1088,7 @@ A relationship that cannot be projected should remain valid on the page if it is
 
 ## 10. Claude skills required for V1
 
-Skills are procedures, not storage for TeamA facts. Keep them package-agnostic where possible so they can later move to `atlas-core`.
+Skills are procedures, not storage for datalens facts. Keep them package-agnostic where possible so they can later move to `atlas-core`.
 
 ### 10.1 `atlas-discover` — read-only consumer route
 
@@ -1096,7 +1096,7 @@ Frontmatter intent:
 
 ```yaml
 name: atlas-discover
-description: Use when answering a question about a TeamA system, service, flow, infrastructure, schema, runbook or standard. Route through curated Atlas before broad code scanning and label fallback clearly.
+description: Use when answering a question about a datalens system, service, flow, infrastructure, schema, runbook or standard. Route through curated Atlas before broad code scanning and label fallback clearly.
 allowed-tools: Read, Grep, Glob
 ```
 
@@ -1221,10 +1221,10 @@ Managed block markers:
 <!-- atlas:managed:start -->
 ## Atlas context
 
-Home Atlas package: `teama`
+Home Atlas package: `datalens`
 Atlas component: `<curated component id or unresolved>`
 
-When TeamA Atlas is available (for example through `claude --add-dir <atlas-path>`):
+When Datalens Atlas is available (for example through `claude --add-dir <atlas-path>`):
 1. use the `atlas-discover` skill before broad platform-context scanning;
 2. use `atlas-impact` for blast-radius questions;
 3. treat `_curated/` as authoritative only for pages with `status: curated`;
@@ -1268,7 +1268,7 @@ Procedure:
 
 ### 10.8 `implement-jira` — reusable software-principles example
 
-Purpose: demonstrate a team-agnostic engineering skill whose procedure is reusable while standards remain team knowledge.
+Purpose: demonstrate an organisation-agnostic engineering skill whose procedure is reusable while standards remain Datalens knowledge.
 
 Procedure:
 
@@ -1423,12 +1423,12 @@ For V1:
 ```text
 product-repo documented exception
         ↓
-TeamA curated standard(s)
+datalens curated standard(s)
         ↓
 local repo implementation detail
 ```
 
-When federation/core exists later, insert organisation/core standards above TeamA and use `atlas.extends` for specialisation.
+When federation/core exists later, insert organisation/core standards above datalens and use `atlas.extends` for specialisation.
 
 ---
 
@@ -1443,7 +1443,7 @@ At minimum implement:
 | ATLAS001 | ERROR | YAML frontmatter parses for governed page files |
 | ATLAS002 | ERROR | `type` is active and file is under an allowed folder |
 | ATLAS003 | ERROR | curated local `id` matches that type's `id_prefix` and is unique |
-| ATLAS004 | ERROR | `package` equals `teama` |
+| ATLAS004 | ERROR | `package` equals `datalens` |
 | ATLAS005 | ERROR | reserved types cannot have pages |
 | ATLAS006 | ERROR | curated status is valid |
 | ATLAS007 | ERROR | `status: curated` has reviewer/date/evidence |
@@ -1491,7 +1491,7 @@ Test:
 `tests/fixtures/valid/`: at least one passing example for every active curated type.  
 `tests/fixtures/invalid/`: at least one single-purpose failure for every ERROR lint rule where practical.
 
-Fixtures use package `fixtures` or an explicit lint-fixture mode so they do not collide with real TeamA IDs/maps/indexes.
+Fixtures use package `fixtures` or an explicit lint-fixture mode so they do not collide with real datalens IDs/maps/indexes.
 
 ### 15.3 Skill eval files
 
@@ -1619,7 +1619,7 @@ V1 is complete only when all are true:
 9. `atlas-onboard-standards` distinguishes team-standard candidates from repo-local/tool-default configuration;
 10. `atlas-setup-repo` safely creates/updates an Atlas-managed block without deleting existing `CLAUDE.md` content;
 11. `atlas-discover` and `atlas-impact` are read-only;
-12. `implement-jira` resolves TeamA Jira standards rather than embedding them in the skill;
+12. `implement-jira` resolves datalens Jira standards rather than embedding them in the skill;
 13. maps are reproducibly generated from curated page relationships;
 14. direct map drift is detected;
 15. indexes contain all non-archived curated pages and no archived pages;
@@ -1627,7 +1627,7 @@ V1 is complete only when all are true:
 17. lint, map check, pytest and deterministic skill evals pass;
 18. GitHub Actions invokes the same deterministic checks;
 19. GitLab CI equivalent exists for later transfer;
-20. no TeamA production facts were fabricated to make the scaffold look complete.
+20. no datalens production facts were fabricated to make the scaffold look complete.
 
 ### 19.1 Required demonstration fixtures
 
@@ -1640,7 +1640,7 @@ Build fake fixtures only, clearly labelled fixtures, to demonstrate:
 - an existing local `CLAUDE.md` containing non-Atlas instructions;
 - a curated fixture relationship that regenerates each of the three map types.
 
-These are tests, not TeamA knowledge.
+These are tests, not datalens knowledge.
 
 ---
 
@@ -1695,7 +1695,7 @@ Deterministic skill evals: PASS/FAIL
 GitHub Actions config: PASS/FAIL
 GitLab CI config: PASS/FAIL
 Unresolved external blockers: ...
-Fabricated TeamA knowledge: MUST BE 0
+Fabricated datalens knowledge: MUST BE 0
 ```
 
 Do not declare completion if a required deterministic check is failing.
@@ -1716,10 +1716,10 @@ This is why `atlas-onboard-service` can be a “super skill” without becoming 
 
 # Appendix B — First real adoption sequence after the scaffold
 
-Once V1 exists and is transferred into an authorised TeamA environment:
+Once V1 exists and is transferred into an authorised datalens environment:
 
 ```text
-1. Attach team-atlas to a real service repo with --add-dir.
+1. Attach datalens-atlas to a real service repo with --add-dir.
 2. Run atlas-onboard-service.
 3. Answer the targeted missing-context questions and expose the infra repo/path if required.
 4. Review the generated staging evidence.

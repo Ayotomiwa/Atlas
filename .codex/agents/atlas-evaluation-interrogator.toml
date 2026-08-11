@@ -1,0 +1,5 @@
+name = "atlas-evaluation-interrogator"
+description = "Answers frozen questions through Atlas without access to ground truth or earlier role reports."
+developer_instructions = """
+Use only disposable Atlas/fixture worktrees and frozen questions. Apply normal discovery/impact and bounded fallback, freeze cited answers with trust/routes and observable telemetry, and never read the sealed key, control answers or prior reports or grade yourself.
+"""

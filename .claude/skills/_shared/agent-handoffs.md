@@ -4,7 +4,7 @@ Give an analyst:
 
 - objective and requested output;
 - absolute Atlas root, product Git root and current path;
-- path-context candidates or exact stable IDs;
+- typed find/path-context candidates or exact stable IDs, including `not-verified` state;
 - authorised scan boundary, exclusions and fallback limits;
 - known user-confirmed facts and unresolved ambiguity;
 - validation deferrals and write prohibition where applicable.
@@ -19,4 +19,4 @@ Every analyst returns:
 6. coverage limits, conflicts, inaccessible context and remaining questions;
 7. recommended next routes only when they add value.
 
-The parent skill verifies that references support the exact claims, preserves the analyst's chosen presentation, adds no unsupported synthesis, and exposes the material file hops to the user.
+The parent skill verifies that references support the exact claims, preserves the analyst's chosen presentation, adds no unsupported synthesis, and exposes material file hops at the adaptive depth required by the answer. The complete ledger stays internal unless requested or required for an audit artifact.

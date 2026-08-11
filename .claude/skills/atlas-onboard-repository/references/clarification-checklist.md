@@ -9,7 +9,7 @@ Ask one consolidated round containing only material unresolved items:
 - Which candidates are independently addressable runtime/reusable components rather than folders, modules, products or job groups?
 - Where are authoritative infrastructure, shared-code or operational definitions when referenced outside the boundary?
 - Which upstream/downstream systems and end-to-end flow boundaries are known but not provable from accessible source?
-- Who can review ownership, boundary and unresolved architecture claims?
+- Who is the evidenced operational/product owner, who is only a review or approval route, and who is a subject-matter expert? CODEOWNERS alone proves only review routing.
 - Which explicitly referenced documents/repositories are inaccessible but necessary?
 
 Ask a second targeted question only when safe staging is blocked. Leave optional gaps `possible` or `not-covered`.

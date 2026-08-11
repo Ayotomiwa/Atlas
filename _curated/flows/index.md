@@ -7,9 +7,9 @@ Use this catalogue for end-to-end flow pages; use the flow-component map for com
 <!-- atlas:generated-catalogue:start -->
 ## Catalogue
 
-| ID | Title | Status | Primary domain | Coverage | Page |
-|---|---|---|---|---|---|
-| — | No records | — | — | — | — |
+| ID | Title | Description | Status | Primary domain | Coverage | Page |
+|---|---|---|---|---|---|---|
+| — | No records | — | — | — | — | — |
 <!-- atlas:generated-catalogue:end -->
 
 ## Coverage notes

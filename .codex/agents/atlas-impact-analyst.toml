@@ -5,7 +5,7 @@ developer_instructions = """
 
 Read `.agents/skills/_shared/runtime.md`, `answer-provenance.md`, and `agent-handoffs.md`. Never modify Atlas, product files, Git state or generated artifacts.
 
-Resolve the starting object from the supplied file/diff/artifact/current path using `atlas_query.py context`, exact IDs and map/page routes; preserve ambiguity. Inspect direct neighbors before bounded downstream traversal, and upstream only for requested causes/prerequisites/recovery. Preserve direction, depth, confidence, lifecycle, evidence, external/unresolved targets and the Atlas-to-source fallback boundary. Never claim safety from absence or upgrade uncertainty.
+Resolve explicit starting IDs exactly; otherwise combine typed `find` with path context and preserve ambiguity and `not-verified` disclosure. Inspect direct neighbors before bounded downstream traversal, and upstream only for requested causes/prerequisites/recovery. Preserve direction, depth, confidence, lifecycle, evidence, external/unresolved targets and the Atlas-to-source fallback boundary. Never claim safety from absence or upgrade uncertainty.
 
 Return confirmed, possible/conflicting, external and unknown impact with one evidence-bearing path per material result, plus the shared claim ledger, material hops, consulted paths, relevant checked-but-not-found scope and coverage limits.
 """

@@ -1,6 +1,6 @@
-# TeamA Atlas
+# Datalens Atlas
 
-TeamA Atlas is a governed engineering context package for humans and AI agents. It stores attributable raw evidence in `_staging/`, reviewed reusable knowledge in `_curated/`, and deterministic routing views in generated maps.
+Datalens Atlas is a governed engineering context package for humans and AI agents. It stores attributable raw evidence in `_staging/`, reviewed reusable knowledge in `_curated/`, and deterministic routing views in generated maps.
 
 Claude workflows in `.claude/` are canonical and load from this live checkout with `claude --add-dir <ATLAS_ROOT>`. Codex adaptations live in `.agents/skills/` and `.codex/agents/`.
 
@@ -11,7 +11,9 @@ Claude workflows in `.claude/` are canonical and load from this live checkout wi
 - End-to-end flow: [`_curated/flows/index.md`](_curated/flows/index.md)
 - Infrastructure usage/impact: [`_curated/infra/index.md`](_curated/infra/index.md)
 - Data/interface contract: [`_curated/schema-info/index.md`](_curated/schema-info/index.md)
+- Natural-language candidate lookup: `python scripts/atlas_query.py find "<question or description>"`
 - Direct or transitive machine routing: `python scripts/atlas_query.py ...`
+- Open questions you can help answer: `/atlas-questions [path|stable-id|domain|topic]`
 - Raw review queue: [`_staging/index.md`](_staging/index.md)
 
 Known-package access starts directly at the appropriate index, map, stable ID or page. It does not need to route through the package manifest.
@@ -39,9 +41,9 @@ A future Atlas-core registry should store only:
 
 ```json
 {
-  "package_id": "package.teama",
-  "aliases": ["teama", "team-a", "team a"],
-  "manifest_location": "<authorised TeamA Atlas location>/atlas-package.json",
+  "package_id": "package.datalens",
+  "aliases": ["datalens", "data-lens", "clearwater"],
+  "manifest_location": "<authorised Datalens Atlas location>/atlas-package.json",
   "status": "active"
 }
 ```
@@ -51,9 +53,9 @@ The registry discovers packages. Once a package is known, direct access uses tha
 ## Trust and lifecycle
 
 - `_staging/` is raw, attributable evidence and never authoritative.
-- `_curated/` contains reviewable knowledge; local records may be used for routing with their lifecycle status preserved.
-- Only human-reviewed, merged `status: curated` content is authoritative. The package manifest does not prescribe a branch. The query tool gives a non-blocking warning outside `main` or `master` because results may include unmerged work.
-- Agents stage and propose; they never self-approve or merge.
+- `_curated/` contains active authoritative or historical knowledge; every `status: curated` page is authoritative.
+- Git does not change semantic authority. Query reports a compact checkout advisory for modified, untracked, detached or off-main pages so newly curated or possibly unmerged work remains visible.
+- Agents stage and curate through evidence and independent review; they never merge or publish.
 - Missing evidence remains unknown. Absence from a map never proves no dependency or impact.
 
 Committed staging evidence is treated as immutable by policy. Only top-level lifecycle status changes later; corrections use a new staging record. This remains a review rule rather than a Git/digest lint check.
@@ -103,14 +105,24 @@ python scripts/rebuild_atlas.py --check
 
 ```powershell
 python scripts/atlas_query.py resolve comp.example
+python scripts/atlas_query.py find "component that enriches orders" --type component
+python scripts/atlas_query.py find "order processing" --type component --type flow --path .
 python scripts/atlas_query.py context .
 python scripts/atlas_query.py route orders
+python scripts/atlas_query.py questions repo.orders-platform
+python scripts/atlas_query.py questions --path .
+python scripts/atlas_query.py questions orders --scope domain
+python scripts/atlas_query.py questions --scope package --format json
 python scripts/atlas_query.py neighbors comp.example
 python scripts/atlas_query.py impact comp.example --direction downstream
 python scripts/atlas_query.py --format json impact comp.example --max-depth 4
 ```
 
-The query tool loads map paths from `atlas-package.json`, preserves confidence/evidence, reports direct versus transitive paths and avoids cycles. It reports record lifecycle status but does not determine whether a change has been human-reviewed or merged. Outside `main` or `master` it emits an advisory warning and continues. Map traversal does not open narrative pages; an exact unmapped-ID fallback reads curated frontmatter only. Discovery/impact workflows open a map-provided page body only when narrative or evidence context is required. An unmapped starting schema/standard/runbook uses its exact stable ID or domain index; ambiguous title matches are never selected silently.
+`find` is deterministic candidate retrieval over non-archived curated frontmatter, embedded data assets and promoted resources. It searches IDs, titles, descriptions, aliases, optional routing keywords, types, domains, conflict text and low-weight locators; it does not use embeddings, a vector store or an LLM. It returns three candidates by default with match reasons, matched conflict routes and index/page routes. Claude selects using the question and curated evidence or preserves ambiguity; search relevance is never factual confidence.
+
+The query tool loads map paths from `atlas-package.json`, preserves confidence/evidence, reports direct versus transitive paths and avoids cycles. Lifecycle determines trust: `status: curated` is `authoritative`, while deprecated content is `historical`. Git is reported separately as `checkout_state` (`main-clean`, `off-main`, `modified`, `untracked`, `detached` or `git-unknown`) and never blocks or downgrades authority. Outside `main` or `master` it emits one short advisory and continues. A `not-verified` path match remains available but must be disclosed as routing rather than repository-identity proof. Maps are used after stable-ID selection for reverse or multi-hop traversal; curated pages and their generated direct links remain the semantic navigation surface.
+
+`questions` reads the common open-question table from curated pages, qualifies each question as `<record-id>#<question-id>`, and can route by current path, exact target, domain, topic or package. It suppresses questions already referenced by active staging evidence unless `--include-pending` is used. The command returns candidates and evidence routes; `atlas-questions` decides what is useful to ask and never treats a query match as authority.
 
 `context [path]` discovers the physical Git root/remote and returns logical repository and component candidates ordered by path specificity. It preserves ambiguity; the skill chooses context based on the question and discloses that selection.
 
@@ -129,7 +141,10 @@ Every substantive Atlas-assisted answer cites the curated page or repository sou
 | `_curated/maps/` | Generated direct routing interfaces |
 | `taxonomy/` | Controlled author classifications and allowed values |
 | `contracts/` | Compiler-only map field and impact-direction rules |
-| `scripts/atlas_query.py` | Supported routing/traversal CLI |
+| `scripts/atlas_query.py` | Supported candidate lookup and routing/traversal CLI |
 | `scripts/rebuild_atlas.py` | Unified deterministic generator |
+| `scripts/atlas_review_snapshot.py` | Temporary review-input fingerprinting; manifests never enter Atlas |
+| `scripts/atlas_eval.py` | Reusable sealed-evaluation preparation, answer freezing, validation and scoring contract |
+| `evaluation/` | Fixture-independent evaluation protocol and frozen rubric |
 
 Exact operational commands remain in source repositories or authorised operational systems; Atlas routes to them instead of copying them.

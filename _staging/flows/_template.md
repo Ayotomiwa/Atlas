@@ -1,7 +1,7 @@
 ---
 id: STG-YYYYMMDD-<slug>
 type: staging.flow
-package: teama
+package: datalens
 timestamp: YYYY-MM-DD
 title: ""
 description: ""
@@ -64,6 +64,8 @@ Record the meaningful sequence. The step table is the sole participant capture s
 | 10 | | | | component/infra/infra-resource/external-system/manual/unknown | | | | | | | observed/user-confirmed |
 
 Do not add a missing step merely because it would make the sequence easier to explain.
+
+Record whether each handoff is success-gated, failure-gated, unconditional, retried, or merely observed in attempted order. Visual adjacency or sequential declarations do not prove that the earlier step succeeded before the later step ran.
 
 ### Boundary inputs, outputs and material hand-offs
 

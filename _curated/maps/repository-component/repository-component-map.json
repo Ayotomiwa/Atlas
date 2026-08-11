@@ -5,7 +5,7 @@
     "generated": true,
     "generator": "scripts/rebuild_atlas.py",
     "map_type": "repository-component-routing-map",
-    "package": "teama",
+    "package": "datalens",
     "related_maps": {
       "flow_component": "_curated/maps/flow-component/flow-component-map.json",
       "infra_dependency": "_curated/maps/infra-dependency/infra-dependency-map.json"

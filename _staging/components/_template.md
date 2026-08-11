@@ -1,7 +1,7 @@
 ---
 id: STG-YYYYMMDD-<slug>
 type: staging.component
-package: teama
+package: datalens
 timestamp: YYYY-MM-DD
 title: ""
 description: ""
@@ -42,9 +42,13 @@ Explain why the scan was performed and what was found at a high level.
 | Repository type | standalone/monorepo-root/monorepo-project/nested-project/mirror/other/unknown | | observed/user-confirmed |
 | Enclosing repository candidate | | | observed/user-confirmed/possible |
 | Default branch | | | observed/user-confirmed |
-| Owner or SME | | | observed/user-confirmed/unknown |
+| Operational/product owner | | | observed/user-confirmed/unknown |
+| Review or approval route | | | observed/user-confirmed/unknown |
+| Subject-matter expert | | | observed/user-confirmed/unknown |
 | Candidate primary domain | | | observed/user-confirmed/possible |
 | Related domains | | | observed/user-confirmed/possible |
+
+Do not treat CODEOWNERS, approval rules or a person who can review this evidence as proof of operational/product ownership. Preserve each role separately.
 
 ### Repository topology and source dependencies
 
@@ -69,6 +73,16 @@ Keep repository-level source/build dependencies separate from runtime component 
 | Tests | | |
 | Deployment/release | | |
 | Local agent instructions | | |
+
+### Publication and artifact assembly
+
+Complete this when a directory, bundle or generated artifact is uploaded, synced or published. Declaration order does not establish clean assembly or success gating.
+
+| Candidate publisher | Source directory/artifact | Destination | Inclusion or allow-list behaviour | Exclusions/cleanup | Clean assembly evidence | Control-flow condition | Safety significance | Evidence | State |
+|---|---|---|---|---|---|---|---|---|---|
+| | | | explicit allow-list / directory-wide / unknown | | clean workspace / isolated output / not evidenced | success / failure / always / attempted order / unknown | | | observed/user-confirmed/possible |
+
+Flag paths that could expose secrets or unrelated files without opening or copying their contents. A directory-wide publication with no evidenced clean assembly or allow-list is not curation-ready as a publication claim.
 
 ## Candidate components
 

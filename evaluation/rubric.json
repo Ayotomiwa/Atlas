@@ -1,0 +1,71 @@
+{
+  "schema_version": "atlas-evaluation-rubric/1.0",
+  "partial_value": 0.5,
+  "family_weights": {
+    "M1": 20,
+    "M2": 20,
+    "M4": 15,
+    "M5": 30,
+    "M6": 15
+  },
+  "internal_weights": {
+    "M1": {
+      "bonus_recall": 5,
+      "core_recall": 5,
+      "fabrication_free": 5,
+      "locator_accuracy": 5
+    },
+    "M2": {
+      "conflict_recall": 3.3333333333,
+      "dead_path_resistance": 3.3333333333,
+      "external_unknown": 3.3333333333,
+      "identity_ambiguity": 3.3333333333,
+      "multi_file_recall": 3.3333333333,
+      "tool_defaults_resisted": 3.3333333335
+    },
+    "M4": {
+      "freshness": 3.75,
+      "granularity": 3.75,
+      "lint": 3.75,
+      "tests": 3.75
+    },
+    "M5": {
+      "absence": 2,
+      "citation_validity": 2,
+      "conflict": 4,
+      "impact": 5,
+      "lookup": 4,
+      "provenance": 1,
+      "refusal": 4,
+      "synthesis": 8
+    },
+    "M6": {
+      "accuracy_delta": 5,
+      "atlas_hit_rate": 3,
+      "fallback_disclosure": 3,
+      "read_cost_reduction": 4
+    }
+  },
+  "targets": {
+    "bonus_recall": 0.5,
+    "conflict_recall": 0.75,
+    "control_accuracy_delta": 0.1,
+    "core_recall": 0.85,
+    "locator_accuracy": 0.95,
+    "multi_file_recall": 0.6666666667,
+    "read_cost_reduction": 0.25
+  },
+  "question_values": {
+    "CORRECT": 1.0,
+    "FABRICATED": 0.0,
+    "PARTIAL": 0.5,
+    "REFUSED-CORRECTLY": 1.0,
+    "REFUSED-WRONGLY": 0.0,
+    "WRONG": 0.0
+  },
+  "verdicts": {
+    "ship": 80,
+    "ship_with_fixes": 65
+  },
+  "gates": ["G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8"]
+}

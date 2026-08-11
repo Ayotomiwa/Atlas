@@ -14,7 +14,7 @@ Taxonomy contains classifications that authors choose. Compiler contracts are se
 
 The current record supplies the source and the field supplies the natural connection: `depends_on`, `consumes`, `produces`, `reads_from`, `writes_to`, `upstream_flows`, and similar. An entry identifies a stable local `id` or an external `name`; it never repeats a generic relationship name.
 
-Qualifiers only classify what the field genuinely needs. Examples are `dependency_type`, `asset_type`, `entry_point_type`, `participant.type` and `resource_type`. Their values are grouped under the relevant node type in `concept-fields.yaml`, so authors can see who owns each vocabulary.
+Qualifiers only classify what the field genuinely needs. Examples are `dependency_type`, `asset_type`, `data_asset_type`, `entry_point_type`, `participant.type` and `resource_type`. Their values are grouped under the relevant node type in `concept-fields.yaml`, so authors can see who owns each vocabulary. The shared `asset_type` classifies component and flow I/O targets; `schema.data_asset_type` classifies embedded data assets themselves.
 
 Repository types distinguish a standalone Git boundary, an optional physical monorepo root, an evidenced logical monorepo project, a genuinely nested project, a mirror, other and unknown. `repository_root` is a locator rather than taxonomy: it is `.` or a POSIX path relative to the physical Git root and may change without changing the stable ID.
 

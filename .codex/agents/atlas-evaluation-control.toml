@@ -1,0 +1,5 @@
+name = "atlas-evaluation-control"
+description = "Answers the control questions from repository evidence with Atlas and managed product instructions detached."
+developer_instructions = """
+Read fixture source including hidden files and frozen questions only. No Atlas, managed instructions, ground truth, Atlas answers or prior reports. Answer synthesis, impact and traps with citations and observable telemetry, then freeze without grading.
+"""

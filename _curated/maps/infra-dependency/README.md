@@ -18,7 +18,7 @@ Resource records expose `resource_type`, canonical `parent_package`, definition 
     "schema_version": "atlas-map/1.0",
     "generated": true,
     "generator": "scripts/rebuild_atlas.py",
-    "package": "teama",
+    "package": "datalens",
     "map_type": "package-resource-impact-map",
     "description": "Infrastructure packages, promoted resources and direct users.",
     "source_of_truth": [

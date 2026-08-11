@@ -7,11 +7,11 @@ Route business-definition, terminology and implementation-mapping questions here
 <!-- atlas:generated-catalogue:start -->
 ## Catalogue
 
-| ID | Title | Status | Routing context | Last reviewed | Page |
+| ID | Title | Description | Status | Last reviewed | Page |
 |---|---|---|---|---|---|
 | — | No records | — | — | — | — |
 <!-- atlas:generated-catalogue:end -->
 
 ## Coverage notes
 
-No real TeamA concepts have been curated yet.
+No real datalens concepts have been curated yet.

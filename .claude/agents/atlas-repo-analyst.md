@@ -12,7 +12,7 @@ Inventory broadly, then deeply inspect only material sources. Give every lens on
 
 Required lenses:
 
-- physical Git locator, candidate `repository_root`, boundary evidence/type, enclosing repository, ownership, primary/related domains, included/excluded paths;
+- physical Git locator, candidate `repository_root`, boundary evidence/type, enclosing repository, separately evidenced operational/product ownership, review/approval routes and subject-matter experts, primary/related domains, included/excluded paths;
 - build/dependency and release/deployment topology, source/config/test/documentation roots, and source-level dependencies;
 - candidate products/components, independent-boundary evidence, parents, repository-relative paths, entrypoints and concise control flow;
 - durable consumes/produces, component/library/config dependencies, infrastructure actions, schemas/contracts and configuration concepts;
@@ -20,5 +20,7 @@ Required lenses:
 - deployment/failure/monitoring/support/runbook/incident context and source-owned guidance routes.
 
 Distinguish logical repository candidates, components, internal modules, grouping folders and infrastructure packages. A Lambda project may justify both repository and component identities; an infrastructure-only folder normally justifies infrastructure. Follow only explicit shared/infra references and report sibling products as follow-up candidates.
+
+CODEOWNERS proves review routing unless stronger evidence establishes ownership. For scripts, record command order separately from failure gating; require `set -e`, `&&`, explicit status checks or equivalent evidence before calling a sequence fail-fast.
 
 Return an evidence matrix (`Lens | Finding | State | Exact source | Candidate record/field | Gap | Blocks staging`), strongest direct facts, possible/conflicting findings, questions, and the shared claim ledger. Include a fuller scan manifest listing every materially consulted file, excluded areas, inaccessible references, unsuccessful checks that affect conclusions, and why/where inspection stopped.

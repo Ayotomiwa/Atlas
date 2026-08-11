@@ -8,6 +8,7 @@ types:
   - {name: infra, folder: _curated/infra, id_prefix: infra, grouped: domain, status: active}
   - {name: infra-resource, id_prefix: resource, parent_type: infra, status: embedded}
   - {name: schema-info, folder: _curated/schema-info, id_prefix: schema, grouped: domain, status: active}
+  - {name: data-asset, id_prefix: asset, parent_type: schema-info, status: embedded}
   - {name: business-concept, folder: _curated/business-concepts, id_prefix: concept, grouped: false, status: active}
   - {name: standard, folder: _curated/standards, id_prefix: standard, grouped: category, status: active}
   - {name: runbook, folder: _curated/runbooks, id_prefix: runbook, grouped: false, status: active}

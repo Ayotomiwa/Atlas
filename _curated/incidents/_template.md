@@ -1,7 +1,7 @@
 ---
 id: incident.<stable-name>
 type: incident-learning
-package: teama
+package: datalens
 schema_version: atlas/1.0
 title: ""
 description: ""
@@ -11,8 +11,10 @@ reviewed_by: []
 owners: []
 routing:
   aliases: []
+  keywords: []
 links: []
 evidence: []
+conflicts: [] # omit when no evidenced conflict exists
 coverage:
   level: unknown
   notes: []
@@ -78,6 +80,12 @@ Extract durable lessons for diagnosis, dependencies, design, monitoring or opera
 
 *Not covered — no evidence in current staging material.*
 
+<!-- atlas:generated-related-routes:start -->
+## Related Atlas routes
+
+_No resolved direct Atlas routes._
+<!-- atlas:generated-related-routes:end -->
+
 ## Evidence
 
 - Authorised incident record/reference:
@@ -99,4 +107,5 @@ State what was deliberately omitted/redacted and where authorised reviewers can 
 
 Record unresolved cause, impact, affected dependencies, recurrence risk, missing evidence or learning that still needs validation.
 
-*Not covered — no evidence in current staging material.*
+| Question ID | Question | Affected IDs | Evidence gap |
+|---|---|---|---|

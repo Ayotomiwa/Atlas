@@ -10,7 +10,9 @@ Maps provide deterministic, sparse routing and direct connection views. Curated 
 | Which repository owns a component and what does it depend on? | [Repository/component map](repository-component/repository-component-map.json) | `repositories`, `components` |
 | Which infrastructure package/resource is used, triggered or monitored? | [Infrastructure dependency map](infra-dependency/infra-dependency-map.json) | `packages`, `resources` |
 
-Schema, runbook, standard, incident and concept records remain curated pages. Stable IDs are resolved through the query tool or an exact curated-page lookup.
+Schema, embedded data-asset, runbook, standard, incident and concept records remain curated pages. Stable IDs are resolved through the query tool or an exact curated-page lookup. Asset lineage is loaded directly from schema pages; structured conflicts remain page context and never become map records.
+
+For an ordinary description, use typed `atlas_query.py find` first and open the selected page. These maps are for direct/reverse traversal after stable-ID selection, not the initial natural-language search corpus.
 
 ## Maintenance contract
 
@@ -34,9 +36,10 @@ Query direct and transitive routes without expanding JSON manually:
 
 ```powershell
 python scripts/atlas_query.py resolve comp.example-ingest
+python scripts/atlas_query.py find "component that ingests examples" --type component
 python scripts/atlas_query.py context .
 python scripts/atlas_query.py neighbors comp.example-ingest
 python scripts/atlas_query.py impact comp.example-ingest --direction downstream
 ```
 
-The query tool reports each record's lifecycle status but does not infer human approval or merge state. `context` resolves physical Git/path information to ordered repository/component candidates without hiding ambiguity. It warns outside `main` or `master` and continues normally. Open linked pages only when the map cannot answer the question completely.
+The query tool derives trust from lifecycle: `status: curated` is authoritative and deprecated content is historical. It reports Git separately through a compact checkout-state advisory, which never blocks traversal or changes authority. `context` resolves physical Git/path information to ordered repository/component candidates without hiding ambiguity. Open linked pages when the map cannot answer the question completely.

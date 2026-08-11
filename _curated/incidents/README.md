@@ -8,7 +8,7 @@ An incident-learning page should help answer: **what reusable failure pattern or
 
 ## Trust level
 
-Only merged `status: curated` incident learnings are authoritative Atlas knowledge. Claude may author lifecycle metadata in a proposal; human-reviewed merge supplies authority. The source incident system remains authoritative for the original incident timeline and governance record.
+Every `status: curated` incident learning is authoritative Atlas knowledge; Git/merge state is only a checkout advisory. The source incident system remains authoritative for the original incident timeline and governance record.
 
 ## When to use this area
 
@@ -100,7 +100,7 @@ Before proposing an incident-learning page, read this README, `_template.md` and
 
 ## Reviewer checklist
 
-Before approval, verify:
+Before completing curation, verify:
 
 - the page captures durable learning rather than incident administration;
 - summary and impact are appropriately sanitised;

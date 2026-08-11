@@ -18,7 +18,7 @@ def expected_outputs(root: Path) -> tuple[dict[Path, bytes], list]:
         map_output_paths(root)[name]: stable_bytes(value) for name, value in maps.items()
     }
     outputs.update(build_index_outputs(root))
-    outputs.update(build_page_view_outputs(root))
+    outputs.update(build_page_view_outputs(root, compiled_maps=maps))
     return outputs, diagnostics
 
 

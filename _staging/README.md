@@ -2,7 +2,7 @@
 
 ## Purpose
 
-`_staging/` captures useful TeamA engineering evidence before it is trusted. It preserves what was observed or supplied, where it came from, what is uncertain, and which curated areas may eventually need an update.
+`_staging/` captures useful datalens engineering evidence before it is trusted. It preserves what was observed or supplied, where it came from, what is uncertain, and which curated areas may eventually need an update.
 
 Staging is **not** polished documentation and is never authoritative. It is also the scalable curation queue: lifecycle state lives on each staging record rather than in a central per-record ledger.
 
@@ -15,9 +15,9 @@ _staging/ record with status: new
         ↓
 Claude-assisted curation proposal
         ↓
-Atlas PR/MR + human review
+evidence reconciliation + independent review
         ↓
-_curated/ page with status: curated
+authoritative _curated/ page with status: curated
 ```
 
 A staging file may support a proposal, but it does not become trusted merely because it exists or because its workflow status changes.
@@ -45,7 +45,7 @@ Every staging page starts from its bucket `_template.md` and uses the common env
 ```yaml
 id: STG-YYYYMMDD-<slug>
 type: staging.<bucket>
-package: teama
+package: datalens
 timestamp: YYYY-MM-DD
 title: ""
 description: ""
@@ -82,14 +82,14 @@ The staging record itself is the queue. In merged Atlas state:
 |---|---|---|
 | `new` | captured evidence not yet processed | eligible |
 | `curating` | actively being reconciled in Atlas work | do not start a duplicate; resume/check the active work |
-| `curated` | curation completed and accepted knowledge was produced | skip |
+| `consumed` | curation completed and accepted knowledge was produced | skip |
 | `no-change` | reviewed; no durable curated change was needed | skip |
 | `deferred` | insufficient evidence or a deliberate blocker remains | skip until explicitly reset/reconsidered |
 | `rejected` | not suitable for durable Atlas knowledge | skip |
 
 A branch or open Atlas PR/MR may contain a proposed status transition before it is merged. For queue decisions, use the latest merged state and also check active Atlas work for the same staging ID when concurrent curation is plausible.
 
-`curated` is a **staging workflow outcome**, not a statement that every claim in the staging file was accepted. Curated knowledge remains governed by `_curated/` page status and evidence.
+`consumed` is a **staging workflow outcome**, not a statement that every claim in the staging file was accepted. Curated knowledge is governed by the target page's lifecycle, evidence and completed curation review; Git/merge state is a separate distribution advisory.
 
 ## Immutability after capture
 
@@ -113,7 +113,7 @@ Do not rewrite raw evidence to sound more certain than its source.
 
 ## Where review history lives
 
-The **Atlas PR/MR is the human review and audit record** for curation. Its description should identify staging records consumed, curation outcomes, curated pages/connection fields changed, material claims not promoted, open questions and validation results. Git then retains reviewer identity, comments, approvals, changes requested, timestamps, diff and merge commit without duplicating that reasoning into a second Markdown review system.
+The **Atlas PR/MR is the later publication and human-audit record** for curation, not an authority transition. Its description should identify staging records consumed, curation outcomes, curated pages/connection fields changed, material claims not promoted, open questions and validation results. Git then retains reviewer identity, comments, approvals, changes requested, timestamps, diff and merge commit without duplicating that reasoning into a second Markdown review system.
 
 `_curated/status/curation-status.md` is only a compact last-run/checkpoint summary. It is not the queue and must not grow into a row per staging record.
 

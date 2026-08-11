@@ -2,7 +2,7 @@
 
 ## Purpose
 
-`_staging/standards/` captures **candidate reusable engineering rules, conventions and evidence of team practice** before human review decides whether they are actually TeamA standards.
+`_staging/standards/` captures **candidate reusable engineering rules, conventions and evidence of team practice** before human review decides whether they are actually datalens standards.
 
 This bucket is especially important for `atlas-onboard-standards`: repository patterns can be evidence, but repeated code must not automatically become policy.
 

@@ -1,7 +1,7 @@
 ---
 id: runbook.<stable-name>
 type: runbook
-package: teama
+package: datalens
 schema_version: atlas/1.0
 title: ""
 description: ""
@@ -11,8 +11,10 @@ reviewed_by: []
 owners: []
 routing:
   aliases: []
+  keywords: []
 links: []
 evidence: []
+conflicts: [] # omit when no evidenced conflict exists
 coverage:
   level: unknown
   notes: []
@@ -101,6 +103,12 @@ Link relevant alerts, dashboards, logs or health signals and explain what should
 
 *Not covered — no evidence in current staging material.*
 
+<!-- atlas:generated-related-routes:start -->
+## Related Atlas routes
+
+_No resolved direct Atlas routes._
+<!-- atlas:generated-related-routes:end -->
+
 ## Evidence
 
 - Staging evidence:
@@ -116,4 +124,5 @@ Link relevant alerts, dashboards, logs or health signals and explain what should
 
 Record untested steps, unsupported environments, unknown rollback behaviour, missing access/ownership context and areas not exercised.
 
-*Not covered — no evidence in current staging material.*
+| Question ID | Question | Affected IDs | Evidence gap |
+|---|---|---|---|

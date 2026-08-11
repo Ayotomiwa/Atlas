@@ -1,11 +1,11 @@
-# TeamA Atlas — Codex operating rules
+# Datalens Atlas — Codex operating rules
 
-This repository is the TeamA Atlas package (`teama`). It is a governed engineering context layer, not a general document dump.
+This repository is the Datalens Atlas package (`datalens`). It is a governed engineering context layer, not a general document dump.
 
 ## Trust
 - `_staging/` is raw evidence and is never authoritative.
-- `_curated/` is reviewed knowledge; only human-reviewed, merged `status: curated` content is authoritative.
-- Codex may stage and propose; Codex never self-approves or merges knowledge.
+- Every `_curated/` page with `status: curated` is authoritative; Git branch and merge state are separate checkout advisories.
+- Codex may stage and curate through the required evidence and independent-review workflow; Codex never merges or publishes knowledge.
 - Never invent missing engineering context.
 
 ## How repository rules are organised
@@ -25,7 +25,7 @@ This repository is the TeamA Atlas package (`teama`). It is a governed engineeri
 - Treat `status: new` staging records as the normal curation queue. Do not automatically recurate terminal records.
 
 ## Curation review
-- The Atlas PR/MR is the curation review/audit record; do not duplicate it into a `reviews/` folder.
+- Independent review completes semantic curation. The Atlas PR/MR is the later publication/human-audit record and does not change page authority; do not duplicate it into a `reviews/` folder.
 - A curation PR/MR should identify staging consumed, outcome, curated changes, material claims not promoted, connection decisions/open questions and validation results.
 - `_curated/status/curation-status.md` is a compact latest checkpoint only, never a per-record ledger.
 
@@ -35,5 +35,5 @@ Do not read the entire Atlas repository. Start from `index.md` or the relevant s
 ## Operational records
 - staging lifecycle/queue state → each `_staging/` record's `status`
 - latest curation checkpoint → `_curated/status/curation-status.md`
-- human curation review/history → Atlas PR/MR and Git history
+- publication and later human-review history → Atlas PR/MR and Git history
 - significant Atlas milestones only → `log.md`

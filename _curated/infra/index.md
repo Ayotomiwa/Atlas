@@ -7,9 +7,9 @@ Use this catalogue for infrastructure packages; use the infrastructure map for p
 <!-- atlas:generated-catalogue:start -->
 ## Catalogue
 
-| ID | Title | Status | Primary domain | Coverage | Page |
-|---|---|---|---|---|---|
-| — | No records | — | — | — | — |
+| ID | Title | Description | Status | Primary domain | Coverage | Page |
+|---|---|---|---|---|---|---|
+| — | No records | — | — | — | — | — |
 <!-- atlas:generated-catalogue:end -->
 
 ## Coverage notes

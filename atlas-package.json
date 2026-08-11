@@ -1,28 +1,21 @@
 {
   "schema_version": "atlas-package/1.0",
-  "id": "package.teama",
+  "id": "package.datalens",
   "type": "package",
-  "package": "teama",
-  "title": "TeamA Atlas",
-  "description": "Governed engineering context for TeamA humans and AI agents.",
+  "package": "datalens",
+  "title": "Datalens Atlas",
+  "description": "Governed engineering context for Datalens humans and AI agents.",
   "status": "active",
   "owners": {
-    "team": "team-a-engineering",
+    "team": "datalens-engineering",
     "maintainers": []
   },
   "aliases": [
-    "teama",
-    "team-a",
-    "team a"
+    "datalens",
+    "data-lens",
+    "clearwater"
   ],
-  "domains": [
-    {
-      "id": "orders",
-      "title": "Orders",
-      "aliases": ["order-platform", "orders-platform"],
-      "routing_description": "Order capture, ingest, enrichment and warehouse delivery architecture."
-    }
-  ],
+  "domains": [],
   "entrypoints": {
     "root": "index.md",
     "curated": "_curated/index.md",

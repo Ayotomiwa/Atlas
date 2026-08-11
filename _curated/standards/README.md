@@ -2,13 +2,13 @@
 
 ## Purpose
 
-`_curated/standards/` stores reviewed, reusable TeamA engineering rules and conventions. Standards are team knowledge consumed by humans and engineering workflows; reusable procedures should resolve standards from Atlas rather than hard-code team-specific choices.
+`_curated/standards/` stores reviewed, reusable datalens engineering rules and conventions. Standards are team knowledge consumed by humans and engineering workflows; reusable procedures should resolve standards from Atlas rather than hard-code team-specific choices.
 
 A standard page should help answer: **what rule applies, to whom, how strong is it, why does it exist, what behaviour is required or recommended, and what exceptions are valid?**
 
 ## Trust level
 
-Only merged `status: curated` standards are authoritative TeamA knowledge. Claude may author lifecycle metadata and consolidate evidence in a proposal, but human-reviewed merge approves mandate, scope and exceptions.
+Every `status: curated` standard is authoritative datalens knowledge after evidence reconciliation and independent review. Git/merge state is reported separately and does not alter the mandate, scope or exception lifecycle.
 
 ## When to use this area
 
@@ -113,7 +113,7 @@ Before proposing a standard, read this README, `_template.md`, the root standard
 
 ## Reviewer checklist
 
-Before approval, verify:
+Before completing curation, verify:
 
 - the rule is reusable rather than ticket-specific;
 - category and scope are correct;

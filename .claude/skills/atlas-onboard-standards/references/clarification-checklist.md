@@ -2,7 +2,7 @@
 
 For ambiguous high-value candidates, ask only what establishes scope and authority:
 
-- What evidence makes the rule TeamA-wide rather than repository-local?
+- What evidence makes the rule datalens-wide rather than repository-local?
 - Who owns or can review the rule?
 - Is the observed behavior merely a tool or generated-template default?
 - Where is the rationale documented?

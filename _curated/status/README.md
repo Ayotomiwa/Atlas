@@ -17,7 +17,7 @@ Keep only the latest useful checkpoint, for example:
 - related Atlas PR/MR when known;
 - a short blocker/coverage note if useful.
 
-Merge order naturally determines which checkpoint is latest. Historical detail already exists in Git and the Atlas PR/MR that reviewed the curation change.
+Merge order naturally determines which checkpoint is latest. Historical publication and human-review detail already exists in Git and the Atlas PR/MR.
 
 ## Separation of responsibilities
 
@@ -25,7 +25,7 @@ Merge order naturally determines which checkpoint is latest. Historical detail a
 |---|---|
 | staging entry | raw evidence plus its own lifecycle status |
 | curated concept page | engineering knowledge and evidence-backed meaning |
-| Atlas PR/MR | human review/audit trail for the curation proposal |
+| Atlas PR/MR | later publication and human-review/audit trail |
 | `_curated/status/curation-status.md` | latest operational checkpoint only |
 | `log.md` | significant Atlas-level milestones only |
 
@@ -35,10 +35,10 @@ Do not use this file to decide whether a staging record is eligible. Use the sta
 
 - `new` — eligible;
 - `curating` — active/in progress;
-- `curated`, `no-change`, `deferred`, `rejected` — not automatically eligible.
+- `consumed`, `no-change`, `deferred`, `rejected` — not automatically eligible.
 
 The checkpoint may summarise the latest consumed record and outcome, but it is informational and must never become an ordering cursor. Staging can be processed out of chronological order and new findings can arrive independently of code changes.
 
 ## Maintenance
 
-`atlas-curate` may update this checkpoint as part of a curation proposal. Keep it compact and overwrite the latest checkpoint rather than appending an unbounded history.
+`atlas-curate` may update this checkpoint as part of a curation run. Keep it compact and overwrite the latest checkpoint rather than appending an unbounded history.

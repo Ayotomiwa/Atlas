@@ -22,12 +22,25 @@ def _no_results(reason: str) -> str:
     return f"{reason}. Absence from the maps is not evidence that none exists."
 
 
+def _record_state(record: dict) -> str:
+    values = [
+        str(record.get("status", "unknown")),
+        f"trust={record.get('trust', 'unknown')}",
+    ]
+    checkout = record.get("checkout_state")
+    if checkout and checkout != "main-clean":
+        values.append(f"checkout={checkout}")
+    return "; ".join(values)
+
+
 def _emit(payload: dict, output_format: str) -> None:
     if output_format == "json":
         print(json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False))
         return
     for warning in payload.get("warnings") or []:
         print(f"WARNING: {warning}")
+    for diagnostic in payload.get("structured_diagnostics") or []:
+        print(f"STRUCTURED DIAGNOSTIC: {diagnostic['page']}: {diagnostic['message']}")
     if payload.get("error"):
         print(payload["error"])
         return
@@ -35,12 +48,47 @@ def _emit(payload: dict, output_format: str) -> None:
     if command == "resolve":
         record = payload.get("record")
         if record:
-            print(f"{record.get('id')} [{record.get('status', 'unknown')}] -> {record.get('page', '')}")
+            print(
+                f"{record.get('id')} [{_record_state(record)}] -> {record.get('page', '')}"
+            )
         else:
             print(payload["fallback"])
+    elif command == "find":
+        candidates = payload.get("candidates") or []
+        if candidates:
+            print(f"Candidate Atlas records (showing {len(candidates)} of {payload.get('total_matches', len(candidates))}):")
+        for index, record in enumerate(candidates, start=1):
+            print(
+                f"{index}. {record['id']} [{_record_state(record)}] "
+                f"{record.get('title', '')}"
+            )
+            if record.get("description"):
+                print(f"   {record['description']}")
+            print(f"   Match: {', '.join(record.get('match_reasons') or [])}")
+            print(f"   Page: {record.get('page', '')}")
+            print(f"   Index: {record.get('collection_index', '')}")
+            for conflict in record.get("matched_conflicts") or []:
+                print(f"   Conflict: {conflict.get('id')} — {conflict.get('topic', '')}")
+            context = record.get("context") or {}
+            if context:
+                print(
+                    f"   Context: {context.get('match_basis', 'candidate')}="
+                    f"{context.get('matched_path', '')}; locator {context.get('locator_match', 'not-verified')}"
+                )
+        if payload.get("ambiguous"):
+            print("Multiple candidates remain; select using the question and curated evidence or ask the user.")
+        if not candidates:
+            print(
+                "No curated candidate matched this search. Consult the relevant collection/domain index, "
+                "then broaden to the curated root index. This result is not evidence that no record exists."
+            )
     elif command == "route":
         for record in payload["results"]:
-            print(f"{record['id']} [{record.get('status', 'unknown')}] {record.get('title', '')} -> {record.get('page', '')}")
+            # Promoted resources carry `name`; pages carry `title`.
+            label = record.get("title") or record.get("name") or ""
+            print(
+                f"{record['id']} [{_record_state(record)}] {label} -> {record.get('page', '')}"
+            )
         if not payload["results"]:
             print(_no_results("No curated record routes from this query"))
     elif command == "context":
@@ -52,8 +100,9 @@ def _emit(payload: dict, output_format: str) -> None:
         repositories = context.get("repositories") or []
         for record in repositories:
             print(
-                f"  {record['id']} [{record.get('status', 'unknown')}] "
-                f"via {record['match_basis']}={record['matched_path']} -> {record.get('page', '')}"
+                f"  {record['id']} [{_record_state(record)}] "
+                f"via {record['match_basis']}={record['matched_path']}; "
+                f"locator {record.get('locator_match', 'not-verified')} -> {record.get('page', '')}"
             )
         if not repositories:
             print("  No repository candidates found.")
@@ -61,13 +110,64 @@ def _emit(payload: dict, output_format: str) -> None:
         components = context.get("components") or []
         for record in components:
             print(
-                f"  {record['id']} [{record.get('status', 'unknown')}] "
+                f"  {record['id']} [{_record_state(record)}] "
                 f"via {record['match_basis']}={record['matched_path']} -> {record.get('page', '')}"
             )
         if not components:
             print("  No component candidates found.")
         if not repositories and not components:
             print(_no_results("No repository or component context is recorded for this path"))
+    elif command == "questions":
+        if payload.get("candidate_only"):
+            print("Candidate scope only; confirm the intended record or topic before asking a question.")
+        context = payload.get("context") or {}
+        if payload.get("candidate_only") and context:
+            candidates = [
+                *(context.get("repositories") or []),
+                *(context.get("components") or []),
+            ]
+            if candidates:
+                print("Context candidates:")
+                for record in candidates:
+                    print(
+                        f"  {record['id']} [{record.get('status', 'unknown')}] "
+                        f"via {record.get('match_basis')}={record.get('matched_path')} "
+                        f"locator {record.get('locator_match', 'not-verified')} -> {record.get('page', '')}"
+                    )
+        if payload.get("target_candidates"):
+            print("Target candidates:")
+            for record in payload["target_candidates"]:
+                label = record.get("title") or record.get("name") or ""
+                print(f"  {record['id']} [{record.get('status', 'unknown')}] {label} -> {record.get('page', '')}")
+                if record.get("description"):
+                    print(f"    {record['description']}")
+                if record.get("match_reasons"):
+                    print(f"    Match: {', '.join(record['match_reasons'])}")
+        if len(payload.get("domain_candidates") or []) > 1:
+            print(f"Domain candidates: {', '.join(payload['domain_candidates'])}")
+        for question in payload["results"]:
+            owner = question["owner"]
+            affected = ", ".join(question.get("affected_ids") or []) or "none recorded"
+            print(f"{question['id']} [{_record_state(owner)}] {question['question']}")
+            print(f"  Evidence gap: {question['evidence_gap']}")
+            print(f"  Owner: {owner['id']} -> {question['page']}#{question['anchor']}")
+            print(f"  Affected IDs: {affected}")
+            print(f"  Match: {question['match_basis']}")
+            if question.get("pending_staging"):
+                pending = ", ".join(item.get("id", "") for item in question["pending_staging"])
+                print(f"  Pending staging: {pending}")
+        if not payload["results"]:
+            print(
+                "No eligible curated open questions were found for this scope. "
+                "That routed result is not evidence that no relevant knowledge gap exists."
+            )
+        if payload.get("suppressed_pending"):
+            print(
+                f"Suppressed {len(payload['suppressed_pending'])} question(s) already referenced by "
+                "active staging evidence; use --include-pending to show them."
+            )
+        for diagnostic in payload.get("diagnostics") or []:
+            print(f"QUESTION DIAGNOSTIC: {diagnostic['page']}: {diagnostic['message']}")
     elif command == "neighbors":
         for item in payload["results"]:
             edge = item["edge"]
@@ -84,7 +184,7 @@ def _emit(payload: dict, output_format: str) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Resolve and traverse generated Atlas routing maps.")
+    parser = argparse.ArgumentParser(description="Find, resolve and traverse Atlas routing records.")
     parser.add_argument("--root", default=str(ROOT), help=argparse.SUPPRESS)
     parser.add_argument("--format", choices=("human", "json"), default="human")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -95,8 +195,37 @@ def main(argv: list[str] | None = None) -> int:
     route_parser = subparsers.add_parser("route")
     route_parser.add_argument("query")
 
+    find_parser = subparsers.add_parser("find")
+    find_parser.add_argument("query")
+    find_parser.add_argument("--type", dest="types", action="append", default=[])
+    find_parser.add_argument("--domain")
+    find_parser.add_argument("--path")
+    find_parser.add_argument("--limit", type=int, default=3)
+    find_parser.add_argument(
+        "--format",
+        dest="find_format",
+        choices=("human", "json"),
+        default=None,
+    )
+
     context_parser = subparsers.add_parser("context")
     context_parser.add_argument("path", nargs="?", default=".")
+
+    questions_parser = subparsers.add_parser("questions")
+    questions_parser.add_argument("query", nargs="?")
+    questions_parser.add_argument("--path", default=".")
+    questions_parser.add_argument(
+        "--scope",
+        choices=("auto", "local", "domain", "package"),
+        default="auto",
+    )
+    questions_parser.add_argument("--include-pending", action="store_true")
+    questions_parser.add_argument(
+        "--format",
+        dest="question_format",
+        choices=("human", "json"),
+        default=None,
+    )
 
     neighbors_parser = subparsers.add_parser("neighbors")
     neighbors_parser.add_argument("identifier")
@@ -116,6 +245,8 @@ def main(argv: list[str] | None = None) -> int:
     payload: dict = {"command": args.command}
     if query.warnings:
         payload["warnings"] = query.warnings
+    if query.structured_diagnostics:
+        payload["structured_diagnostics"] = query.structured_diagnostics
     if args.command == "resolve":
         payload["record"] = query.resolve(args.identifier)
         if payload["record"] is None:
@@ -123,10 +254,68 @@ def main(argv: list[str] | None = None) -> int:
                 f"{args.identifier!r} is not a map record, routed target, or exact curated page ID. "
                 "Search the appropriate curated domain index; do not choose an ambiguous title match."
             )
+    elif args.command == "find":
+        try:
+            payload.update(
+                query.find(
+                    args.query,
+                    types=args.types,
+                    domain=args.domain,
+                    path=args.path,
+                    limit=args.limit,
+                )
+            )
+        except ValueError as exc:
+            payload["error"] = str(exc)
+            payload["candidates"] = []
+        unverified = [
+            item["id"]
+            for item in payload.get("candidates") or []
+            if (item.get("context") or {}).get("locator_match") == "not-verified"
+        ]
+        if unverified:
+            payload.setdefault("warnings", []).append(
+                "Path context is not locator-verified for: "
+                + ", ".join(unverified)
+                + ". Treat it as a routing candidate, not proof of repository identity."
+            )
     elif args.command == "route":
         payload["results"] = query.route(args.query)
     elif args.command == "context":
         payload["context"] = query.context(args.path)
+    elif args.command == "questions":
+        payload.update(
+            query.questions(
+                args.query,
+                path=args.path,
+                scope=args.scope,
+                include_pending=args.include_pending,
+            )
+        )
+        non_authoritative = sorted(
+            {
+                item["owner"]["id"]
+                for item in payload["results"]
+                if item["owner"].get("trust") != "authoritative"
+            }
+        )
+        if non_authoritative:
+            payload.setdefault("warnings", []).append(
+                "Explicit target includes non-authoritative Atlas pages: "
+                + ", ".join(non_authoritative)
+                + "."
+            )
+        checkout_advisories = sorted(
+            {
+                f"{item['owner']['id']} ({item['owner'].get('checkout_state')})"
+                for item in payload["results"]
+                if item["owner"].get("checkout_state") not in {None, "main-clean"}
+            }
+        )
+        if checkout_advisories:
+            payload.setdefault("warnings", []).append(
+                "Checkout advisory: " + ", ".join(checkout_advisories) + "."
+            )
     elif args.command == "neighbors":
         payload["starting_record"] = query.resolve(args.identifier)
         if payload["starting_record"] is None:
@@ -148,7 +337,30 @@ def main(argv: list[str] | None = None) -> int:
                 direction=args.direction,
                 max_depth=args.max_depth,
             )
-    _emit(payload, args.format)
+            excluded = query.opposite_direction_peers(args.identifier, args.direction)
+            if excluded:
+                other = "upstream" if args.direction == "downstream" else "downstream"
+                note = (
+                    f"{len(excluded)} direct {other} peer(s) are outside this direction "
+                    f"and not listed: {', '.join(excluded)}."
+                )
+                # Deleting an asset breaks the things that write to it as well as the
+                # things that read it, and a producer sits on an incoming edge. That
+                # caveat applies to assets, not to components, whose upstream peers are
+                # dependencies that a change here does not break. Keyed on the stable ID
+                # prefix, because a map-sourced record carries a collection, not a type.
+                if args.identifier.split(".", 1)[0] in {"asset", "schema", "resource", "infra"}:
+                    note += (
+                        " For a deletion question, run the opposite direction too:"
+                        " producers of this asset break when it is removed."
+                    )
+                payload.setdefault("warnings", []).append(note)
+    output_format = (
+        getattr(args, "question_format", None)
+        or getattr(args, "find_format", None)
+        or args.format
+    )
+    _emit(payload, output_format)
     return 1 if payload.get("error") or payload.get("record", True) is None else 0
 
 

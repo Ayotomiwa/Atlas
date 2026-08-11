@@ -19,13 +19,13 @@ Choose the primary category that best matches the question. A standard remains `
 <!-- atlas:generated-catalogue:start -->
 ## Catalogue
 
-| ID | Title | Status | Category | Last reviewed | Page |
-|---|---|---|---|---|---|
-| — | No records | — | — | — | — |
+| ID | Title | Description | Status | Category | Last reviewed | Page |
+|---|---|---|---|---|---|---|
+| — | No records | — | — | — | — | — |
 <!-- atlas:generated-catalogue:end -->
 
 ## Coverage notes
 
 - The generated catalogue lists every non-archived standard across all categories; the category indexes are the primary routing surface.
-- No real TeamA production standards are included in this public scaffold.
+- No real datalens production standards are included in this public scaffold.
 - Do not duplicate the same standard across categories; select a primary category and link related standards.

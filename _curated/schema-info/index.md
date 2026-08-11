@@ -7,9 +7,9 @@ Use this catalogue for physical contracts. Schema records remain pages rather th
 <!-- atlas:generated-catalogue:start -->
 ## Catalogue
 
-| ID | Title | Status | Primary domain | Coverage | Page |
-|---|---|---|---|---|---|
-| — | No records | — | — | — | — |
+| ID | Title | Description | Status | Primary domain | Coverage | Page |
+|---|---|---|---|---|---|---|
+| — | No records | — | — | — | — | — |
 <!-- atlas:generated-catalogue:end -->
 
 ## Coverage notes

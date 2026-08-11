@@ -58,9 +58,9 @@ def _common(identifier: str, typ: str) -> dict:
         "schema_version": "atlas/1.0",
         "title": identifier,
         "description": "Synthetic record.",
-        "status": "proposed",
+        "status": "curated",
         "last_reviewed": "2026-08-11",
-        "reviewed_by": [],
+        "reviewed_by": ["Fixture Curator"],
         "owners": [],
         "routing": {"aliases": []},
         "evidence": ["fixture://record"],
@@ -192,3 +192,64 @@ def test_body_shape_secrets_and_review_age_are_not_lint_rules(tmp_path: Path):
     _write(root, "_curated/repositories/test/repo.md", record, body)
 
     assert lint_repository(root) == []
+
+
+def test_lifecycle_and_candidate_staging_domain_rules(tmp_path: Path):
+    root = _root(tmp_path)
+    record = _repository("repo.fixture")
+    record["status"] = "proposed"
+    _write(root, "_curated/repositories/test/repo.md", record)
+    staging = {
+        "id": "STG-20260811-candidate",
+        "type": "staging.component",
+        "package": "fixtures",
+        "timestamp": "2026-08-11",
+        "title": "Candidate",
+        "description": "Evidence.",
+        "status": "consumed",
+        "captured_by": "Fixture Curator",
+        "source_type": "repository",
+    }
+    _write(root, "_staging/components/not-yet-registered/STG-20260811-candidate.md", staging)
+    issues = lint_repository(root)
+    assert any(item["code"] == "ATLAS006" and "proposed" in item["message"] for item in issues)
+    assert not any(item["code"] == "ATLAS027" and "not-yet-registered" in item["path"] for item in issues)
+
+
+def test_unquoted_transition_key_has_actionable_error(tmp_path: Path):
+    root = _root(tmp_path)
+    flow = {
+        **_common("flow.fixture", "flow"),
+        "primary_domain": "test",
+        "related_domains": [],
+        "flow_scope": "test",
+        "diagram": False,
+        "entry_points": [],
+        "inputs": [],
+        "outputs": [],
+        "upstream_flows": [],
+        "steps": [{
+            "step_id": "start",
+            "order": 10,
+            "name": "Start",
+            "participant": {"type": "manual", "name": "Operator"},
+            "role": "trigger",
+            "confidence": "reviewed",
+            "evidence": ["fixture://flow"],
+            "transitions": [{"to": "end", True: "success"}],
+        }, {
+            "step_id": "end",
+            "order": 20,
+            "name": "End",
+            "participant": {"type": "manual", "name": "Operator"},
+            "role": "finish",
+            "confidence": "reviewed",
+            "evidence": ["fixture://flow"],
+        }],
+        "runbooks": [],
+        "standards": [],
+        "incident_learnings": [],
+    }
+    _write(root, "_curated/flows/test/flow.md", flow)
+    issues = lint_repository(root)
+    assert any('quote the reserved YAML key "on"' in item["message"] for item in issues)

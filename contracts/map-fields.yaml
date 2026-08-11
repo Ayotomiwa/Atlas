@@ -13,12 +13,12 @@ fields:
   component:
     consumes:
       action: consumes
-      target_types: [component, schema-info]
+      target_types: [component, schema-info, data-asset]
       qualifier: asset_type
       values: shared.asset_type
     produces:
       action: produces
-      target_types: [component, schema-info]
+      target_types: [component, schema-info, data-asset]
       qualifier: asset_type
       values: shared.asset_type
     depends_on:
@@ -37,12 +37,12 @@ fields:
   flow:
     inputs:
       action: consumes
-      target_types: [component, schema-info]
+      target_types: [component, schema-info, data-asset]
       qualifier: asset_type
       values: shared.asset_type
     outputs:
       action: produces
-      target_types: [component, schema-info]
+      target_types: [component, schema-info, data-asset]
       qualifier: asset_type
       values: shared.asset_type
     upstream_flows: {action: depends-on, target_types: [flow]}

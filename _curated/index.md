@@ -2,6 +2,8 @@
 
 ## Route by question
 
+Use `python scripts/atlas_query.py find "<question>"` for deterministic candidate lookup, then open the selected page and follow its links. Use the collection/domain routes below when search is weak, ambiguous or the task is exploratory.
+
 - What source repository is this and what does it contain? Use the [repositories index](repositories/index.md), then the [repository/component map](maps/repository-component/repository-component-map.json).
 - What does an architectural unit do? Use the [components index](components/index.md), then the [repository/component map](maps/repository-component/repository-component-map.json).
 - How does an end-to-end path work? Use the [flows index](flows/index.md), then the [flow/component map](maps/flow-component/flow-component-map.json).
@@ -13,4 +15,4 @@
 
 For direct and transitive routing, use `python scripts/atlas_query.py`. Maps should answer first; open linked pages only when narrative, evidence or unresolved context is necessary.
 
-Local pages may be used for routing with their lifecycle status preserved. Treat only human-reviewed, merged `status: curated` content as authoritative. A query warning outside `main` or `master` is advisory and does not block local discovery.
+Every `status: curated` page is authoritative. Query may add one concise checkout advisory for off-main, modified, untracked or detached work; it never blocks local discovery or requires a later status update.

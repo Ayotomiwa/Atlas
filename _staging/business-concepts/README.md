@@ -2,7 +2,7 @@
 
 ## Purpose
 
-`_staging/business-concepts/` captures raw supplied meaning, terminology and boundary evidence before it becomes a reviewed TeamA business definition.
+`_staging/business-concepts/` captures raw supplied meaning, terminology and boundary evidence before it becomes a reviewed datalens business definition.
 
 Use this bucket to preserve **what a source or knowledgeable person actually said**, including ambiguity or disagreement, without prematurely normalising it into a curated definition.
 

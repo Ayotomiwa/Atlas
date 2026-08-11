@@ -1,7 +1,7 @@
 ---
 id: flow.<stable-name>
 type: flow
-package: teama
+package: datalens
 schema_version: atlas/1.0
 title: ""
 description: ""
@@ -11,6 +11,7 @@ reviewed_by: []
 owners: []
 routing:
   aliases: []
+  keywords: []
 primary_domain: ""
 related_domains: []
 flow_scope: ""
@@ -39,11 +40,12 @@ steps: []
 #       confidence: reviewed
 #       evidence: [path/to/schema]
 #   transitions:
-#     - {to: validate, on: success}
+#     - {to: validate, "on": success}
 runbooks: []
 standards: []
 incident_learnings: []
 evidence: []
+conflicts: [] # omit when no evidenced conflict exists
 coverage:
   level: unknown
   notes: []
@@ -80,6 +82,12 @@ Explain branches, retries, partial completion and operational implications suppo
 ## Infrastructure and operational routes
 
 Explain material infrastructure use and link relevant runbooks, monitoring and incident learnings.
+
+<!-- atlas:generated-related-routes:start -->
+## Related Atlas routes
+
+_No resolved direct Atlas routes._
+<!-- atlas:generated-related-routes:end -->
 
 ## Evidence
 

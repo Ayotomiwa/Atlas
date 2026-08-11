@@ -8,6 +8,7 @@ import sys
 
 import yaml
 
+from scripts.lib.generated import build_index_outputs
 from scripts.lib.maps import MAP_NAMES, build_maps, stable_bytes, validate_map_frontmatter
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -53,9 +54,9 @@ def _common(identifier: str, typ: str) -> dict:
         "schema_version": "atlas/1.0",
         "title": identifier,
         "description": "Synthetic record.",
-        "status": "proposed",
+        "status": "curated",
         "last_reviewed": "2026-08-11",
-        "reviewed_by": [],
+        "reviewed_by": ["Fixture Curator"],
         "owners": [],
         "routing": {"aliases": []},
         "primary_domain": "test",
@@ -117,7 +118,14 @@ def _coherent_root(tmp_path: Path) -> Path:
         "repository": "repo.fixture",
         "repository_paths": ["src"],
         "parent_component": None,
-        "consumes": [], "produces": [], "depends_on": [], "uses_resources": [], "reads_from": [],
+        "consumes": [],
+        "produces": [{
+            "id": "asset.fixture.output",
+            "asset_type": "table",
+            "confidence": "reviewed",
+            "evidence": ["src/handler.py"],
+        }],
+        "depends_on": [], "uses_resources": [], "reads_from": [],
         "writes_to": [{"id": "resource.fixture.bucket", "confidence": "reviewed", "evidence": ["src/config.yaml"]}],
         "triggers": [], "scheduled_by": [], "deployed_by": [], "monitored_by": [],
         "runbooks": [], "standards": [], "incident_learnings": [],
@@ -138,10 +146,43 @@ def _coherent_root(tmp_path: Path) -> Path:
         }],
         "runbooks": [], "standards": [], "incident_learnings": [],
     }
+    schema = {
+        **_common("schema.fixture", "schema-info"),
+        "links": [],
+        "asset_type": "schema",
+        "physical_name": "fixture",
+        "platform": "fixture-platform",
+        "temporal_model": "append-only",
+        "classification": "internal",
+        "assets": [{
+            "id": "asset.fixture.output",
+            "name": "fixture_output",
+            "asset_type": "table",
+            "physical_name": "fixture_output",
+            "description": "Fixture output table.",
+            "confidence": "reviewed",
+            "evidence": ["models/output.sql"],
+            "inputs": [{
+                "name": "external_source",
+                "confidence": "reviewed",
+                "evidence": ["models/output.sql"],
+            }],
+        }],
+        "conflicts": [{
+            "conflict_id": "publication",
+            "topic": "Output publication",
+            "claims": [
+                {"statement": "Documentation says automatic.", "evidence": ["README.md"]},
+                {"statement": "Workflow is disabled.", "evidence": ["workflow.yml"]},
+            ],
+            "interpretation": "Checked-in automation is disabled.",
+        }],
+    }
     _write(root, "_curated/repositories/test/repo.md", repository)
     _write(root, "_curated/infra/test/infra.md", infra)
     _write(root, "_curated/components/test/component.md", component)
     _write(root, "_curated/flows/test/flow.md", flow)
+    _write(root, "_curated/schema-info/test/schema.md", schema)
     return root
 
 
@@ -155,6 +196,8 @@ def test_compiles_one_coherent_sparse_fixture_with_reverse_routes(tmp_path: Path
     assert repository_map["repositories"]["repo.fixture"]["components"] == ["comp.fixture"]
     assert infra_map["resources"]["resource.fixture.bucket"]["used_by"]
     assert flow_map["flows"]["flow.fixture"]["steps"][0]["participant"]["id"] == "comp.fixture"
+    assert repository_map["components"]["comp.fixture"]["produces"][0]["id"] == "asset.fixture.output"
+    assert "assets" not in repository_map and "assets" not in flow_map and "assets" not in infra_map
     assert all("nodes" not in payload and "edges" not in payload for payload in maps.values())
 
 
@@ -168,6 +211,30 @@ def test_frontmatter_validation_attributes_promoted_resource_and_cycle_errors(tm
 
     issues = validate_map_frontmatter(root)
     assert any(issue.path.endswith("infra.md") and "promoted_resources" in issue.message for issue in issues)
+
+
+def test_embedded_asset_and_conflict_errors_are_strict_and_page_attributed(tmp_path: Path):
+    root = _coherent_root(tmp_path)
+    schema_path = root / "_curated/schema-info/test/schema.md"
+    frontmatter, body = schema_path.read_text(encoding="utf-8").split("---", 2)[1:]
+    data = yaml.safe_load(frontmatter)
+    data["assets"][0]["asset_type"] = "component"
+    schema_path.write_text("---\n" + yaml.safe_dump(data, sort_keys=False) + "---" + body, encoding="utf-8")
+
+    issues = validate_map_frontmatter(root)
+    assert any(
+        issue.path.endswith("schema.md") and "invalid asset_type 'component'" in issue.message
+        for issue in issues
+    )
+
+    data["assets"][0]["asset_type"] = "table"
+    data["conflicts"][0]["claims"][1].pop("evidence")
+    schema_path.write_text("---\n" + yaml.safe_dump(data, sort_keys=False) + "---" + body, encoding="utf-8")
+    issues = validate_map_frontmatter(root)
+    assert any(
+        issue.path.endswith("schema.md") and "conflict publication claim evidence" in issue.message
+        for issue in issues
+    )
 
 
 def test_generation_is_deterministic_and_freshness_command_detects_missing_outputs(tmp_path: Path):
@@ -185,3 +252,26 @@ def test_generation_is_deterministic_and_freshness_command_detects_missing_outpu
         check=False,
     )
     assert result.returncode == 1
+
+
+def test_staging_candidate_domain_is_stable_in_root_and_domain_catalogues(tmp_path: Path):
+    root = _root(tmp_path)
+    staging = {
+        "id": "STG-20260811-fixture",
+        "type": "staging.component",
+        "package": "fixtures",
+        "timestamp": "2026-08-11",
+        "title": "Fixture discovery",
+        "description": "Fixture staging evidence.",
+        "status": "curating",
+        "captured_by": "Fixture Curator",
+        "source_type": "repository",
+    }
+    _write(root, "_staging/components/test/STG-20260811-fixture.md", staging)
+    outputs = build_index_outputs(root)
+
+    root_index = outputs[root / "_staging/components/index.md"].decode("utf-8")
+    domain_index = outputs[root / "_staging/components/test/index.md"].decode("utf-8")
+    assert "| `test` | repository |" in root_index
+    assert "| `test` | repository |" in domain_index
+    assert "| `unassigned` | repository |" not in domain_index

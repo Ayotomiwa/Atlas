@@ -1,6 +1,6 @@
 # Answer provenance and file hops
 
-Every substantive factual response must reference its evidence. Clarifying questions and acknowledgements without factual claims need no artificial citations.
+Every substantive factual response must reference its evidence. Clarifying questions and acknowledgements without factual claims need no artificial citations. Treat active curated pages as authoritative; add only one short checkout advisory when an answer-bearing page is not `main-clean`, and always disclose `not-verified` repository context.
 
 Place a compact reference next to each material claim:
 
@@ -13,7 +13,7 @@ Place a compact reference next to each material claim:
 
 Generated maps and query output may explain a route but are not the semantic source. Cite the curated page or repository evidence reached through them.
 
-For discovery and impact answers with material traversal, add `How this was traced`:
+Use adaptive trace depth. Keep ordinary direct answers concise. Add `How this was traced` for cross-system traversal or source fallback, and automatically expand it for impact, safety, absence, conflict and audit questions:
 
 ```text
 current path
@@ -24,4 +24,8 @@ current path
 
 Disclose every material answer-bearing hop, including source/target, natural field or flow step, confidence, supporting reference, and whether it came from curated Atlas or repository fallback. State the exact boundary where Atlas coverage ended before listing fallback files.
 
+When a selected repository/context hop has `locator_match: not-verified`, include a visible advisory in every substantive answer using it: the path match aided routing but did not prove repository identity. Do not leave this only in an internal ledger.
+
 Add `Consulted sources` when more than a few references were used. Include every Atlas page or file that materially supported the answer; group repeated references under short aliases. Do not list administrative or exploratory files that did not influence the result. Include checked-but-not-found paths when an absence, safety conclusion or coverage limit materially depends on them, and state where the search stopped. Onboarding reports retain the fuller scan manifest because scan coverage is itself a result.
+
+Keep the complete claim ledger in the analyst handoff and parent verification. Do not print it in full unless the user asks or the answer is an audit artifact.

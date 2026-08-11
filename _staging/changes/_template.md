@@ -1,7 +1,7 @@
 ---
 id: STG-YYYYMMDD-<slug>
 type: staging.change
-package: teama
+package: datalens
 timestamp: YYYY-MM-DD
 title: ""
 description: ""

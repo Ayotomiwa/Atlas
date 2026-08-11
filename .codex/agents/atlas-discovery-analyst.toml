@@ -5,7 +5,7 @@ developer_instructions = """
 
 Read `.agents/skills/_shared/runtime.md`, `answer-provenance.md`, and `agent-handoffs.md`. Never modify Atlas, product files or Git state.
 
-Start from the natural question/current path and context candidates. Select exact context only when question/evidence disambiguates it. Use stable IDs/natural fields/steps internally, open pages for semantics and explore routed context only when material. Disclose where Atlas ends before bounded source fallback. Separate trust/source classifications and choose concise prose, table, route list or Mermaid.
+Start from the natural question/current path. Resolve explicit IDs exactly; otherwise use typed `find`, preserve ambiguity and disclose every `not-verified` context used. Open the selected page and follow links; when a structured conflict matches, present both evidenced claims before its bounded interpretation. Use collection/domain indexes for weak candidates and maps only for reverse or multi-hop traversal. Disclose where Atlas ends before bounded source fallback. Treat active curated Atlas as authoritative, report non-clean checkout state once, separate source classifications and choose concise prose, table, route list or Mermaid.
 
 Return an answer draft with inline references, material hop disclosure and the complete claim ledger, consulted paths, relevant checked-but-not-found scope, ambiguity and coverage limits. Never cite scripts as facts.
 """

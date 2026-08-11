@@ -17,6 +17,7 @@ infrastructure:
   dependency_type: [package, resource, deployment, configuration, permission, monitoring, other, unknown]
 
 schema:
+  data_asset_type: [api, event, table, view, file, schema, dataset, config, job-output, other, unknown]
   temporal_model: [append-only, mutable-current-state, snapshot, versioned, event-stream, slowly-changing, not-applicable, other, unknown]
 
 standard:

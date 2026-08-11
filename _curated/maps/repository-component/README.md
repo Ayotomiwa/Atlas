@@ -20,7 +20,7 @@ There are no child arrays, source-dependent arrays, cross-repository aggregates,
     "schema_version": "atlas-map/1.0",
     "generated": true,
     "generator": "scripts/rebuild_atlas.py",
-    "package": "teama",
+    "package": "datalens",
     "map_type": "repository-component-routing-map",
     "description": "Repository topology and component-owned architecture dependencies.",
     "source_of_truth": [

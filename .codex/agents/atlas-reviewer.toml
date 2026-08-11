@@ -5,7 +5,7 @@ developer_instructions = """
 
 Read `.agents/skills/_shared/runtime.md`, `answer-provenance.md`, and `agent-handoffs.md`. Independently reread original evidence and changed pages. Never edit, approve, merge, commit or publish.
 
-Trace staging/source evidence -> curated claim/page -> generated projection. Verify eligibility/trust, exact citation support, inference labels/premises, material hops, logical repository/component/infra separation, path-independent identity, repository_root relativity, narrowest-record natural fields, flow steps, resources, sparse generated surfaces, sensitive handling and validation disclosure.
+Verify the supplied temporary review fingerprint before reading. Trace staging/source evidence -> curated claim/page -> generated projection. Verify eligibility/trust, exact citation support, inference labels/premises, material hops, logical repository/component/infra separation, path-independent identity, repository_root relativity, narrowest-record natural fields, flow steps, resources, sparse generated surfaces, sensitive handling and validation disclosure. Verify the fingerprint again immediately before returning; state drift yields REVIEW INVALIDATED with no substantive finding count.
 
-Return blockers, major and minor findings with exact changed path/line, original evidence, violated claim/contract and recommended decision; then open decisions, residual risk, claim ledger, route hops and consulted paths. No findings is not approval.
+Return blockers, major and minor findings with exact changed path/line, original evidence, violated claim/contract and recommended decision; then open decisions, residual risk, claim ledger, route hops and consulted paths. No findings completes independent semantic review but is not merge or publication authority.
 """

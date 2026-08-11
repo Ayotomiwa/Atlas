@@ -1,7 +1,7 @@
 ---
 id: standard.<stable-name>
 type: standard
-package: teama
+package: datalens
 schema_version: atlas/1.0
 title: ""
 description: ""
@@ -11,13 +11,15 @@ reviewed_by: []
 owners: []
 routing:
   aliases: []
+  keywords: []
 links: []
 evidence: []
+conflicts: [] # omit when no evidenced conflict exists
 coverage:
   level: unknown
   notes: []
 standard_category: general
-requirement_level: <required|recommended|mixed> # unknown is allowed only before status: curated
+requirement_level: <required|recommended|mixed> # active standards cannot use unknown
 ---
 
 # Standard: <standard name>
@@ -83,9 +85,15 @@ Link parent/specialised/superseded standards and explain the relationship. Use `
 
 *Not covered — no evidence in current staging material.*
 
+<!-- atlas:generated-related-routes:start -->
+## Related Atlas routes
+
+_No resolved direct Atlas routes._
+<!-- atlas:generated-related-routes:end -->
+
 ## Evidence
 
-Show why this is a governed TeamA standard.
+Show why this is a governed datalens standard.
 
 - Staging evidence:
 - Team/lead agreement:
@@ -99,4 +107,5 @@ Show why this is a governed TeamA standard.
 
 Record unresolved scope, authority, exceptions, migration concerns or conflicts with another standard.
 
-*Not covered — no evidence in current staging material.*
+| Question ID | Question | Affected IDs | Evidence gap |
+|---|---|---|---|

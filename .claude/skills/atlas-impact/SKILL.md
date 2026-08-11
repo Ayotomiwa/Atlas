@@ -1,6 +1,6 @@
 ---
 name: atlas-impact
-description: Use for explicit TeamA change-risk, deletion, migration, failure, or blast-radius questions involving a file, repository, component, flow, schema, or infrastructure item.
+description: Use for explicit datalens change-risk, deletion, migration, failure, or blast-radius questions involving a file, repository, component, flow, schema, or infrastructure item.
 allowed-tools: Read, Grep, Glob, Bash, Agent
 ---
 
@@ -8,7 +8,7 @@ allowed-tools: Read, Grep, Glob, Bash, Agent
 
 Read `../_shared/runtime.md`, `../_shared/answer-provenance.md`, and `../_shared/agent-handoffs.md`. This is read-only.
 
-1. Start from the selected file, diff, artifact or current path. Resolve candidate repository/components with `atlas_query.py context`; preserve ambiguity and then establish the exact starting ID or explicit external/unmapped boundary.
+1. Start from the selected file, diff, artifact or current path. Resolve explicit IDs exactly; otherwise combine typed `find` with path context, preserve ambiguity and disclose any `not-verified` candidate before establishing the starting ID or external/unmapped boundary.
 2. Delegate substantive analysis to `atlas-impact-analyst`. Inspect direct neighbors before transitive traversal. Default to downstream impact; add upstream analysis only for causes, prerequisites, recovery or an explicit request.
 3. Separate confirmed, possible/conflicting, external and unknown impact. Preserve direction, depth, confidence, evidence and at least one material path for every result.
 4. Open routed pages and bounded repository evidence where needed. State where Atlas coverage ended and what fallback checked. Never claim safety from an absent edge.

@@ -1,7 +1,7 @@
 ---
 id: comp.<stable-name>
 type: component
-package: teama
+package: datalens
 schema_version: atlas/1.0
 title: ""
 description: ""
@@ -11,6 +11,7 @@ reviewed_by: []
 owners: []
 routing:
   aliases: []
+  keywords: []
 primary_domain: ""
 related_domains: []
 component_type: unknown
@@ -42,6 +43,7 @@ runbooks: []
 standards: []
 incident_learnings: []
 evidence: []
+conflicts: [] # omit when no evidenced conflict exists
 coverage:
   level: unknown
   notes: []
@@ -88,6 +90,12 @@ Record evidenced failure modes, observable symptoms, monitoring routes and suppo
 ## Diagram
 
 Add reviewed Mermaid only when it materially clarifies internal structure or boundaries.
+
+<!-- atlas:generated-related-routes:start -->
+## Related Atlas routes
+
+_No resolved direct Atlas routes._
+<!-- atlas:generated-related-routes:end -->
 
 ## Evidence
 

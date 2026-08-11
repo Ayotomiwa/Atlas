@@ -2,7 +2,7 @@
 
 ## Purpose
 
-`_staging/infra/` captures raw, attributable evidence about TeamA infrastructure packages, IaC definitions, environment configuration and resource relationships **before any infrastructure claim is trusted**.
+`_staging/infra/` captures raw, attributable evidence about datalens infrastructure packages, IaC definitions, environment configuration and resource relationships **before any infrastructure claim is trusted**.
 
 Use this bucket when the important knowledge is primarily about infrastructure rather than application/component behaviour.
 
@@ -39,7 +39,7 @@ an alarm exposing a failure condition used during support
 an exported value consumed by another package
 ```
 
-These are examples of **shapes**, not TeamA production facts.
+These are examples of **shapes**, not datalens production facts.
 
 ## Does not belong here
 

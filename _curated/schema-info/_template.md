@@ -1,7 +1,7 @@
 ---
 id: schema.<stable-name>
 type: schema-info
-package: teama
+package: datalens
 schema_version: atlas/1.0
 title: ""
 description: ""
@@ -11,10 +11,25 @@ reviewed_by: []
 owners: []
 routing:
   aliases: []
+  keywords: []
 primary_domain: ""
 related_domains: []
+assets: []
+# - id: asset.example.output
+#   name: example_output
+#   asset_type: table
+#   physical_name: example_output
+#   description: ""
+#   confidence: reviewed
+#   evidence: [path/to/model.sql]
+#   inputs:
+#     - id: asset.example.input
+#       confidence: reviewed
+#       evidence: [path/to/model.sql]
+#       note: ""
 links: []
 evidence: []
+conflicts: [] # omit when no evidenced conflict exists
 coverage:
   level: unknown
   notes: []
@@ -133,6 +148,12 @@ Describe classification, broad access constraints and safe handling expectations
 
 *Not covered — no evidence in current staging material.*
 
+<!-- atlas:generated-related-routes:start -->
+## Related Atlas routes
+
+_No resolved direct Atlas routes._
+<!-- atlas:generated-related-routes:end -->
+
 ## Evidence
 
 List the evidence supporting material physical and semantic claims.
@@ -150,4 +171,5 @@ List the evidence supporting material physical and semantic claims.
 
 Be explicit about unknown grain, keys, consumers, temporal rules, joins, quality behaviour, classification or uninvestigated versions/environments.
 
-*Not covered — no evidence in current staging material.*
+| Question ID | Question | Affected IDs | Evidence gap |
+|---|---|---|---|

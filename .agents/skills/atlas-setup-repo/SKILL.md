@@ -7,7 +7,8 @@ description: Safely create or update only the Atlas-managed block in a product r
 
 Read shared runtime/provenance and `assets/managed-block.md`.
 
-1. Inspect the requested `AGENTS.md`; stop on malformed/duplicate markers.
-2. At monorepo root record package and path-derived context. In an existing nested file, include a specific reviewed `repo.*` seed only when exact.
-3. If absent, create only a minimal managed block. Do not author unrelated build/test/style guidance or create files across all product folders.
-4. Replace only the managed block, preserve everything else, never commit absolute Atlas paths, and show the exact repository-relative diff.
+1. Resolve Atlas, discover the physical Git root, and run path context. If Atlas is unavailable, state that it was not consulted, ask the user to make the current checkout available, and offer bounded repository inspection.
+2. Select one target boundary. Prefer the selected curated repository's `repository_root`; otherwise use the Git root. Merge an existing `AGENTS.md`. Create a minimal file only when Git or a curated record supports the boundary and it contains a README. Never create files across sibling products.
+3. Use `path-derived` at a monorepo root. At a logical boundary record the selected `repo.*` ID with `matched` or `not-verified`; never silently choose ambiguity.
+4. Run `scripts/manage_agent_block.py inspect` and `dry-run` with the Codex asset. Stop on malformed markers and apply only after direct invocation or an accepted setup offer.
+5. Preserve every byte outside markers, omit absolute checkout paths and unrelated instructions, and show the exact repository-relative diff. Require an advisory whenever a `not-verified` seed is used.

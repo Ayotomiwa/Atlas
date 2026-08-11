@@ -1,5 +1,5 @@
 schema_version: atlas-taxonomy/1.0
-curated_status: [draft, proposed, curated, deprecated, archived]
-staging_status: [new, curating, curated, no-change, deferred, rejected]
+curated_status: [curated, deprecated, archived]
+staging_status: [new, curating, consumed, no-change, deferred, rejected]
 connection_confidence: [reviewed, possible, unconfirmed, conflicting]
 map_coverage: [none, partial, good, stale, unknown]

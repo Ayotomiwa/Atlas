@@ -31,7 +31,7 @@ This example belongs to the same fictional Orders system used by the other map R
     "schema_version": "atlas-map/1.0",
     "generated": true,
     "generator": "scripts/rebuild_atlas.py",
-    "package": "teama",
+    "package": "datalens",
     "map_type": "flow-component-routing-map",
     "description": "Ordered flow steps, boundary I/O and operational routes.",
     "source_of_truth": ["_curated/flows/**/*.md"],
@@ -124,4 +124,4 @@ This example belongs to the same fictional Orders system used by the other map R
 
 ## Traversal and maintenance
 
-Use `steps` for “who/what performs this flow?” and `atlas_query.py` for reverse or transitive impact. Trust only human-reviewed, merged `status: curated` records. Edit the flow Markdown and run `python scripts/rebuild_atlas.py`; never edit this JSON directly.
+Use `steps` for “who/what performs this flow?” and `atlas_query.py` for reverse or transitive impact. Every `status: curated` record is authoritative; checkout state is a separate advisory. Edit the flow Markdown and run `python scripts/rebuild_atlas.py`; never edit this JSON directly.

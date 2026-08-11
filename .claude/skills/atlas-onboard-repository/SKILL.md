@@ -1,6 +1,6 @@
 ---
 name: atlas-onboard-repository
-description: Onboard one TeamA logical source boundary through broad inventory, targeted deep reading, one clarification round, and attributable staging evidence without curating it.
+description: Onboard one datalens logical source boundary through broad inventory, targeted deep reading, one clarification round, and attributable staging evidence without curating it.
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit, Agent
 ---
 
@@ -8,7 +8,7 @@ allowed-tools: Read, Grep, Glob, Bash, Write, Edit, Agent
 
 Read `../_shared/runtime.md`, `../_shared/answer-provenance.md`, `../_shared/agent-handoffs.md`, `references/clarification-checklist.md`, and the staging component README/template. This workflow stages evidence only.
 
-1. Establish one logical source boundary, its physical Git root/remote, candidate `repository_root`, enclosing boundary, included paths, exclusions and user-supplied references. Use `atlas_query.py context` to find existing coverage.
+1. Establish one logical source boundary, its physical Git root/remote, candidate `repository_root`, enclosing boundary, included paths, exclusions and user-supplied references. Use typed repository/component `find` plus `context` to identify existing coverage; preserve ambiguity and `not-verified` status.
 2. Always delegate inspection to `atlas-repo-analyst`. Inventory broadly, then deeply read only material sources across every lens: boundary/ownership/domain, build/release topology, source roots, components, entrypoints/control flow, I/O, dependencies, infrastructure, flows, schemas/contracts and operations.
 3. Follow only explicit references into shared or infrastructure paths. Do not recursively onboard sibling products. Report them as follow-up candidates.
 4. Exclude VCS internals, environments, dependencies, generated frontends/source maps, build output, large data, samples, binaries and vendor trees unless directly relevant. Give every lens an evidence state and expand only when evidence conflicts or a required lens remains unresolved.

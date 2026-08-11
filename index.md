@@ -1,7 +1,8 @@
-# TeamA Atlas index
+# Datalens Atlas index
 
 Route by question or trust layer:
 
+- What Atlas record matches an ordinary description? Use `python scripts/atlas_query.py find "<question>"`; follow the selected page, or use the relevant curated index when candidates are weak or ambiguous.
 - What package is this? Read [the repository guide](README.md); machine consumers use [`atlas-package.json`](atlas-package.json).
 - What source repository or component is involved? Start with [curated architecture](_curated/index.md) or query a stable ID with `scripts/atlas_query.py`.
 - How does an end-to-end path work? Use the [flow/component map](_curated/maps/flow-component/flow-component-map.json).

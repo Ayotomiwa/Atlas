@@ -8,7 +8,7 @@ A runbook should help answer: **when should I use this procedure, what must I ch
 
 ## Trust level
 
-Only merged `status: curated` runbooks are authoritative Atlas guidance. Claude may author lifecycle metadata in a proposal; human-reviewed merge supplies authority. A curated runbook does not override live incident command, organisation policy or access controls.
+Every `status: curated` runbook is authoritative Atlas guidance; Git/merge state is only a checkout advisory. A curated runbook does not override live incident command, organisation policy or access controls.
 
 ## When to use this area
 
@@ -36,6 +36,8 @@ Do not use runbooks for:
 ## Granularity rule
 
 Create one runbook per coherent operational scenario/procedure. It may cover multiple components when the recovery path is naturally end-to-end, but avoid giant catch-all runbooks that mix unrelated failure modes.
+
+A full runbook requires all four of these evidenced elements: a trigger and scope, an ordered diagnostic or recovery procedure, safety/stop conditions, and objective validation or escalation. If any element is absent, keep the material as an operational note on the narrowest applicable component or infrastructure page instead of manufacturing a complete procedure. `last_exercised` may remain empty, but the page must disclose that limitation.
 
 Split procedures when triggers, safety constraints, ownership, recovery actions or validation differ materially.
 
@@ -96,7 +98,7 @@ Before proposing a runbook change, read this README, `_template.md` and `index.m
 
 ## Reviewer checklist
 
-Before approval, verify:
+Before completing curation, verify:
 
 - trigger/symptom and scope are clear;
 - prerequisites and permissions are explicit;

@@ -1,7 +1,7 @@
 ---
 id: repo.<stable-name>
 type: repository
-package: teama
+package: datalens
 schema_version: atlas/1.0
 title: ""
 description: ""
@@ -11,6 +11,7 @@ reviewed_by: []
 owners: []
 routing:
   aliases: []
+  keywords: []
 primary_domain: ""
 related_domains: []
 repository_locator: ""
@@ -31,6 +32,7 @@ runbooks: []
 standards: []
 incident_learnings: []
 evidence: []
+conflicts: [] # omit when no evidenced conflict exists
 coverage:
   level: unknown
   notes: []
@@ -67,6 +69,12 @@ Route to durable repository documentation for setup, build, test, deployment and
 ## Ownership and operational context
 
 Record evidenced ownership, support boundaries and stable operational context.
+
+<!-- atlas:generated-related-routes:start -->
+## Related Atlas routes
+
+_No resolved direct Atlas routes._
+<!-- atlas:generated-related-routes:end -->
 
 ## Evidence
 

@@ -2,15 +2,19 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+import datetime as dt
 import json
 import re
 
 from scripts.lib.frontmatter import parse_frontmatter
 from scripts.lib.ids import valid_curated_id
+from scripts.lib.questions import QuestionParseError, parse_open_questions
+from scripts.lib.structured import StructuredFrontmatterError, parse_conflicts, parse_data_assets
 from scripts.lib.taxonomy import load_contracts, load_taxonomy
 
 
 RESOURCE_TYPE = "infra-resource"
+ASSET_TYPE = "data-asset"
 MANIFEST_NAME = "atlas-package.json"
 MAP_NAMES = (
     "flow-component-map.json",
@@ -164,6 +168,20 @@ def curated_pages(
     return out
 
 
+def iso_date_text(value: object) -> str:
+    """Render a date field as an ISO string.
+
+    An unquoted `YYYY-MM-DD` — which is exactly what the templates ask for — is
+    parsed by YAML as a date object, not a string. Generated JSON cannot carry
+    that, so normalise here rather than forcing authors to quote dates.
+    """
+    if isinstance(value, dt.datetime):
+        return value.date().isoformat()
+    if isinstance(value, dt.date):
+        return value.isoformat()
+    return value if isinstance(value, str) else ""
+
+
 def _coverage(value: object) -> str:
     if isinstance(value, dict):
         value = value.get("level")
@@ -211,7 +229,7 @@ def _common_record(root: Path, path: Path, fm: dict) -> dict:
         "primary_domain": fm.get("primary_domain", ""),
         "related_domains": _string_list(fm.get("related_domains")),
         "aliases": _aliases(fm),
-        "last_reviewed": fm.get("last_reviewed", ""),
+        "last_reviewed": iso_date_text(fm.get("last_reviewed")),
     }
 
 
@@ -287,7 +305,7 @@ def _resolved_type(identifier: str, page_by_id: dict[str, tuple[Path, dict, str]
     if identifier in page_by_id:
         return page_by_id[identifier][1].get("type")
     if identifier in resources:
-        return RESOURCE_TYPE
+        return resources[identifier].get("_atlas_type", RESOURCE_TYPE)
     return None
 
 
@@ -417,52 +435,18 @@ def _route_entries(
     return out
 
 
-def _split_table_row(line: str) -> list[str]:
-    text = line.strip().strip("|")
-    return [cell.replace(r"\|", "|").strip() for cell in re.split(r"(?<!\\)\|", text)]
-
-
 def _open_questions(path: Path, body: str, record_id: str) -> list[dict]:
-    heading = re.search(
-        r"^##\s+Open questions / coverage limits\s*$([\s\S]*?)(?=^##\s+|\Z)",
-        body,
-        re.MULTILINE,
-    )
-    if not heading:
-        return []
-    lines = [line for line in heading.group(1).splitlines() if line.strip().startswith("|")]
-    expected = ["question id", "question", "affected ids", "evidence gap"]
-    header_index = next(
-        (index for index, line in enumerate(lines) if [cell.lower() for cell in _split_table_row(line)] == expected),
-        None,
-    )
-    if header_index is None:
-        return []
-    seen: set[str] = set()
-    out: list[dict] = []
-    for line in lines[header_index + 2 :]:
-        cells = _split_table_row(line)
-        if len(cells) != 4 or not any(cells):
-            continue
-        question_id, question, affected, gap = cells
-        question_id = question_id.strip("`")
-        if not QUESTION_ID_RE.fullmatch(question_id) or question_id in seen:
-            raise MapBuildError(f"{path}: invalid or duplicate open question id {question_id!r}")
-        if not question or not gap:
-            raise MapBuildError(f"{path}: open question {question_id} requires question and evidence gap")
-        seen.add(question_id)
-        affected_ids = [] if affected.strip() in {"", "—", "-"} else [
-            item.strip().strip("`") for item in affected.split(",") if item.strip()
-        ]
-        out.append(
-            {
-                "id": f"{record_id}#{question_id}",
-                "affected_ids": affected_ids,
-                "page": path.as_posix(),
-                "anchor": "open-questions--coverage-limits",
-            }
-        )
-    return sorted(out, key=lambda item: item["id"])
+    try:
+        questions = parse_open_questions(path, body, record_id)
+    except QuestionParseError as exc:
+        raise MapBuildError(str(exc), path=path) from exc
+    return [
+        {
+            key: question[key]
+            for key in ("id", "affected_ids", "page", "anchor")
+        }
+        for question in questions
+    ]
 
 
 def _entry_points(
@@ -560,7 +544,7 @@ def _flow_steps(
                         value,
                         qualifier="asset_type",
                         allowed_qualifiers=asset_types,
-                        allowed_target_types={"component", "schema-info"},
+                        allowed_target_types={"component", "schema-info", ASSET_TYPE},
                         page_by_id=page_by_id,
                         resources=resources,
                         taxonomy=taxonomy,
@@ -594,6 +578,10 @@ def _flow_steps(
         for transition in transitions:
             if not isinstance(transition, dict):
                 raise MapBuildError(f"{path}: transition from {source_id} must be an object")
+            if True in transition and "on" not in transition:
+                raise MapBuildError(
+                    f'{path}: transition from {source_id} parsed an unquoted YAML key; write "on": <transition>'
+                )
             target = transition.get("to")
             transition_type = transition.get("on")
             if target not in step_ids or transition_type not in transition_types:
@@ -755,6 +743,11 @@ def build_maps(
                 raise MapBuildError(f"{rel}: invalid id {ident!r} for {typ}")
             if ident in page_by_id:
                 raise MapBuildError(f"{rel}: duplicate curated id {ident}")
+            try:
+                parse_conflicts(rel, fm)
+                parse_data_assets(rel, fm, taxonomy)
+            except StructuredFrontmatterError as structured_error:
+                raise MapBuildError(f"{rel}: {structured_error}") from structured_error
             if spec.get("grouped") == "domain":
                 domain = fm.get("primary_domain")
                 if not isinstance(domain, str) or domain not in domain_ids:
@@ -825,6 +818,53 @@ def build_maps(
             }
             resource_sources[ident] = (path, resource)
 
+    asset_spec = type_specs[ASSET_TYPE]
+    data_assets: dict[str, dict] = {}
+    asset_sources: dict[str, tuple[Path, dict]] = {}
+    for parent_id, (path, fm, _) in page_by_id.items():
+        if fm.get("type") != "schema-info":
+            continue
+        for asset in parse_data_assets(path, fm, taxonomy):
+            ident = asset["id"]
+            if (
+                not valid_curated_id(ident, asset_spec.get("id_prefix"))
+                or ident in page_by_id
+                or ident in resources
+                or ident in data_assets
+            ):
+                _record_error(
+                    collect_errors,
+                    path,
+                    MapBuildError(f"{path}: invalid or duplicate data asset id {ident!r}"),
+                    parent_id,
+                )
+                continue
+            data_assets[ident] = {
+                **asset,
+                "_atlas_type": ASSET_TYPE,
+                "parent_schema": parent_id,
+                "page": path.as_posix(),
+                "status": fm.get("status"),
+                "coverage": _coverage(fm.get("coverage")),
+                "primary_domain": fm.get("primary_domain", ""),
+                "related_domains": _string_list(fm.get("related_domains")),
+            }
+            asset_sources[ident] = (path, asset)
+
+    for asset_id, asset in data_assets.items():
+        for asset_input in asset.get("inputs") or []:
+            target = asset_input.get("id")
+            if target and target not in data_assets and asset_input.get("confidence") == "reviewed":
+                path, _ = asset_sources[asset_id]
+                _record_error(
+                    collect_errors,
+                    path,
+                    MapBuildError(f"{path}: reviewed data asset input does not resolve: {target}"),
+                    asset_id,
+                )
+
+    embedded_targets = {**resources, **data_assets}
+
     repositories: dict[str, dict] = {}
     components: dict[str, dict] = {}
     flows: dict[str, dict] = {}
@@ -860,10 +900,10 @@ def build_maps(
                 "components": [],
                 "depends_on_repositories": _project_entries(
                     path, fm, "repository", "depends_on_repositories",
-                    page_by_id=page_by_id, resources=resources, taxonomy=taxonomy, map_contract=map_contract,
+                    page_by_id=page_by_id, resources=embedded_targets, taxonomy=taxonomy, map_contract=map_contract,
                 ),
                 "used_by": [],
-                **_route_entries(path, fm, page_by_id=page_by_id, resources=resources, taxonomy=taxonomy, map_contract=map_contract),
+                **_route_entries(path, fm, page_by_id=page_by_id, resources=embedded_targets, taxonomy=taxonomy, map_contract=map_contract),
                 "open_questions": questions,
             }
         elif typ == "component":
@@ -882,39 +922,39 @@ def build_maps(
                 **{
                     field: _project_entries(
                         path, fm, "component", field,
-                        page_by_id=page_by_id, resources=resources, taxonomy=taxonomy, map_contract=map_contract,
+                        page_by_id=page_by_id, resources=embedded_targets, taxonomy=taxonomy, map_contract=map_contract,
                     )
                     for field in map_contract["fields"]["component"]
                 },
                 "used_by": [],
-                **_route_entries(path, fm, page_by_id=page_by_id, resources=resources, taxonomy=taxonomy, map_contract=map_contract),
+                **_route_entries(path, fm, page_by_id=page_by_id, resources=embedded_targets, taxonomy=taxonomy, map_contract=map_contract),
                 "open_questions": questions,
             }
         elif typ == "flow":
             flows[ident] = {
                 **common,
                 "flow_scope": fm.get("flow_scope", ""),
-                "entry_points": _entry_points(path, fm, taxonomy, page_by_id, resources),
+                "entry_points": _entry_points(path, fm, taxonomy, page_by_id, embedded_targets),
                 "inputs": _project_entries(
                     path, fm, "flow", "inputs",
-                    page_by_id=page_by_id, resources=resources, taxonomy=taxonomy, map_contract=map_contract,
+                    page_by_id=page_by_id, resources=embedded_targets, taxonomy=taxonomy, map_contract=map_contract,
                 ),
                 "outputs": _project_entries(
                     path, fm, "flow", "outputs",
-                    page_by_id=page_by_id, resources=resources, taxonomy=taxonomy, map_contract=map_contract,
+                    page_by_id=page_by_id, resources=embedded_targets, taxonomy=taxonomy, map_contract=map_contract,
                 ),
                 "upstream_flows": _project_entries(
                     path, fm, "flow", "upstream_flows",
-                    page_by_id=page_by_id, resources=resources, taxonomy=taxonomy, map_contract=map_contract,
+                    page_by_id=page_by_id, resources=embedded_targets, taxonomy=taxonomy, map_contract=map_contract,
                 ),
                 "downstream_flows": [],
                 "steps": _flow_steps(
-                    path, fm, taxonomy, page_by_id, resources,
+                    path, fm, taxonomy, page_by_id, embedded_targets,
                     {question["id"].split("#", 1)[1] for question in questions}
                     if include_body_questions
                     else None,
                 ),
-                **_route_entries(path, fm, page_by_id=page_by_id, resources=resources, taxonomy=taxonomy, map_contract=map_contract),
+                **_route_entries(path, fm, page_by_id=page_by_id, resources=embedded_targets, taxonomy=taxonomy, map_contract=map_contract),
                 "open_questions": questions,
             }
         elif typ == "infra":
@@ -934,12 +974,12 @@ def build_maps(
                 **{
                     field: _project_entries(
                         path, fm, "infrastructure", field,
-                        page_by_id=page_by_id, resources=resources, taxonomy=taxonomy, map_contract=map_contract,
+                        page_by_id=page_by_id, resources=embedded_targets, taxonomy=taxonomy, map_contract=map_contract,
                     )
                     for field in map_contract["fields"]["infrastructure"]
                 },
                 "used_by": [],
-                **_route_entries(path, fm, page_by_id=page_by_id, resources=resources, taxonomy=taxonomy, map_contract=map_contract),
+                **_route_entries(path, fm, page_by_id=page_by_id, resources=embedded_targets, taxonomy=taxonomy, map_contract=map_contract),
                 "open_questions": questions,
             }
         elif "links" in fm:
@@ -955,7 +995,7 @@ def build_maps(
                 if link_type not in allowed_links or not isinstance(target, str) or not target:
                     raise MapBuildError(f"{path}: invalid page link type/target")
                 confidence = _validate_confidence(path, f"link {link_type}", link, taxonomy)
-                resolved_type = _resolved_type(target, page_by_id, resources)
+                resolved_type = _resolved_type(target, page_by_id, embedded_targets)
                 allowed_targets = set(allowed_links[link_type].get("target_types") or [])
                 if resolved_type and allowed_targets and resolved_type not in allowed_targets:
                     raise MapBuildError(f"{path}: link {link_type} target {target} has invalid type {resolved_type}")
@@ -1052,12 +1092,12 @@ def build_maps(
             projected_actions = {
                 field: _project_entries(
                     path, source, "infrastructure", field,
-                    page_by_id=page_by_id, resources=resources, taxonomy=taxonomy, map_contract=map_contract,
+                    page_by_id=page_by_id, resources=embedded_targets, taxonomy=taxonomy, map_contract=map_contract,
                 )
                 for field in map_contract["fields"]["infrastructure"]
             }
             projected_routes = _route_entries(
-                path, source, page_by_id=page_by_id, resources=resources, taxonomy=taxonomy, map_contract=map_contract
+                path, source, page_by_id=page_by_id, resources=embedded_targets, taxonomy=taxonomy, map_contract=map_contract
             )
         except MapBuildError as exc:
             _record_error(collect_errors, path, exc, resource_id)

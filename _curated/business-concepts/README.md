@@ -4,11 +4,11 @@
 
 `_curated/business-concepts/` stores reviewed, reusable business meaning that engineers need when interpreting systems, data and requirements.
 
-A business-concept page should help answer: **what does this term mean for TeamA, what is inside or outside the definition, which variants are approved, and where is that meaning implemented or represented?**
+A business-concept page should help answer: **what does this term mean for datalens, what is inside or outside the definition, which variants are approved, and where is that meaning implemented or represented?**
 
 ## Trust level
 
-Only merged pages with `status: curated` are authoritative TeamA knowledge. Claude may author lifecycle metadata in a proposal; human-reviewed merge supplies authority. A label found in code, a dashboard or an email is evidence of usage, not automatically an approved definition.
+Every page with `status: curated` is authoritative datalens knowledge after the curation workflow completes. Git/merge state is reported separately as a small checkout advisory. A label found in code, a dashboard or an email is evidence of usage, not automatically an approved definition.
 
 ## When to use this area
 
@@ -29,7 +29,7 @@ Do not use this area for:
 - implementation responsibilities — use `_curated/components/`;
 - a one-off ticket requirement or transient delivery decision;
 - an unreviewed assumption inferred from code names;
-- general glossary content that does not affect TeamA engineering decisions;
+- general glossary content that does not affect datalens engineering decisions;
 - long source documents that are better linked than copied.
 
 ## Granularity rule
@@ -98,7 +98,7 @@ Before proposing a business-concept change, read this README, `_template.md` and
 
 ## Reviewer checklist
 
-Before approval, verify:
+Before completing curation, verify:
 
 - the definition is clear enough to drive engineering decisions;
 - inclusion and exclusion boundaries are explicit where needed;

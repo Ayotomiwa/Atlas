@@ -1,7 +1,7 @@
 ---
 id: STG-YYYYMMDD-<slug>
 type: staging.standard
-package: teama
+package: datalens
 timestamp: YYYY-MM-DD
 title: ""
 description: ""
@@ -20,7 +20,7 @@ State the candidate reusable rule/theme and why the evidence may matter beyond o
 
 ### Candidate rule
 
-Phrase the observation without overstating authority, e.g. "Multiple inspected Java services use ..." rather than "TeamA requires ..." unless an authoritative source says so.
+Phrase the observation without overstating authority, e.g. "Multiple inspected Java services use ..." rather than "datalens requires ..." unless an authoritative source says so.
 
 ### Candidate scope/category
 
@@ -99,7 +99,7 @@ Do not create governed applicability edges from pattern frequency alone.
 
 ## Open questions
 
-- Is this an explicit TeamA rule or merely repeated practice?
+- Is this an explicit datalens rule or merely repeated practice?
 - Who/what is the authority for the rule?
 - What category and scope are correct?
 - Is it mandatory or recommended?
