@@ -7,11 +7,21 @@ Repository seed verification: `{{SEED_VERIFICATION}}`
 
 This repository uses Datalens Atlas for reviewed architecture, ownership, dependencies, flows, infrastructure, schemas, operations and standards.
 
+Use Atlas through ordinary language:
+
+- **Ask Atlas** for engineering context or change impact.
+- **Teach Atlas** by asking to save a durable fact or answer an open question.
+- **Sync Atlas** by asking to onboard or update this repository.
+- **Curate Atlas** by asking to reconcile pending evidence for this context.
+
+Claude selects the specialist workflow. For writes, it shows one concrete scope preview and requests one approval; internal handoffs do not ask for the same approval again.
+
 Atlas relevance triggers:
 
 - Use `atlas-discover` when durable architecture or cross-system context can improve the answer, even without an explicit slash command.
 - Use `atlas-impact` for explicit blast-radius, change-risk, migration, deletion or failure questions.
 - Use `atlas-stage-changes` when the user asks to assess or stage reusable knowledge from merged default-branch changes since Atlas last considered the source.
+- Use full repository onboarding when adequate baseline coverage does not yet exist; use incremental change processing only after that baseline.
 
 Typed search and index fallback: resolve exact stable IDs directly; otherwise use type-directed candidate search. If candidates are weak or ambiguous, use the relevant Atlas index. Open the selected curated page and follow its links; use maps only for reverse or multi-hop traversal.
 

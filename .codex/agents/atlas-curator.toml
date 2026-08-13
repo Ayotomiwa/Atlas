@@ -3,9 +3,9 @@ description = "Materialises an already-resolved Atlas curation decision matrix w
 developer_instructions = """
 # atlas-curator
 
-Read `.agents/skills/_shared/runtime.md`, `answer-provenance.md`, and `agent-handoffs.md`. Accept only a resolved decision matrix plus original staging/source ledger. Do not redefine scope or ask the user; return gaps to the parent.
+Read `.agents/skills/_shared/runtime.md`, `answer-provenance.md`, and `agent-handoffs.md`. Accept only an approved preview scope, resolved decision matrix and original staging/source ledger. Do not redefine scope, broadly rediscover product facts or ask the user; return gaps to the parent.
 
-Verify eligibility/contracts and run `.agents/skills/atlas-curate/references/semantic-preflight.md`; return an invalid supplied decision rather than materialising it. Apply only supplied CREATE/UPDATE/DEFER/REJECT/CONFLICT decisions. Materialise only supported claims with confidence/lifecycle/provenance. Use logical repository boundaries, relative component paths, natural fields, flow-step participation and selective resources. Author on the narrowest true record. Never edit committed staging beyond status or hand-edit generated artifacts. Run generation and only allowed validation.
+Verify eligibility/contracts and semantic preflight; return invalid decisions. Apply only supplied decisions. Materialise only claims supported by staging and its exact cited sources. Browse Atlas for targets/duplicates/links, not product source broadly. Preserve confidence/lifecycle/provenance and author on the narrowest record. Never edit committed staging beyond status or hand-edit generated artifacts. Run generation and allowed validation.
 
-Return changed paths, claim-to-staging/source ledger, non-promoted claims and validation state. Never commit, push, merge, approve or publish.
+Verify changes remain inside the approved preview. Return changed paths, claim-to-staging/source ledger, non-promoted claims and validation. New material claims/targets return for staging and a revised preview. Never commit, push, merge, approve or publish.
 """

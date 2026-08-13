@@ -1,0 +1,9 @@
+# Full repository baseline
+
+Onboarding must make curation possible without another broad source scan. Select one immutable source state with `python <ATLAS_ROOT>/scripts/atlas_source_snapshot.py prepare`. A missing explicit revision permits only clean current `HEAD`; dirty or ambiguous state needs an exact commit and may use a detached temporary worktree. Never modify the active checkout. Record the selected/default commits, merge base and relationship; an unmerged branch commit is a knowledge snapshot and its merge base is the future intake anchor. Do not advance `_intake/`. Immediately before preview, clean up only through the helper; cleanup verifies the selected commit and cleanliness, and any mismatch invalidates the analysis.
+
+Assess every lens as `confirmed`, `partial`, `unknown`, `inaccessible` or `not-applicable`, with evidence and stopping reason: source boundary/ownership/domain; build/test/release/publication; source roots; real components and rejected folder candidates; per-component entrypoints/control flow/I/O/dependencies/infra/config/deployment/failures; flows; infrastructure; schemas/compatibility/lineage; operations/runbooks/incidents/standards.
+
+A small boundary may use one analyst. A large boundary may use a coordinator plus independent read-only lens specialists. Reconcile overlaps and contradictions before the preview.
+
+Stage one repository/component discovery record plus independent flow/infra/schema/operations/governance records when justified. Each record needs readable meaning, exact anchors, causality, coverage limits and unresolved decisions. Every candidate component needs its own causal walkthrough. One preview covers the coherent batch and future maintenance anchor; one approval authorises the unchanged writes.

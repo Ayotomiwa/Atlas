@@ -53,15 +53,20 @@ def test_root_navigation_routes_staging_queue_and_change_intake() -> None:
     claude = (ROOT / "CLAUDE.md").read_text(encoding="utf-8")
     agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
     index = (ROOT / "index.md").read_text(encoding="utf-8")
+    advanced = (ROOT / "onboarding/advanced-reference.md").read_text(encoding="utf-8")
 
     for instructions in (claude, agents):
         assert "python scripts/atlas_query.py staging" in instructions
         assert "atlas-stage-changes" in instructions
         assert "_intake/checkpoints/<source-key>.json" in instructions
 
-    assert "python scripts/atlas_query.py staging" in index
-    assert "/atlas-stage-changes" in index
+    assert "Ask Claude for the desired status" in index
+    assert "update Atlas for the repository" in index
+    assert "python scripts/atlas_query.py staging" not in index
+    assert "/atlas-stage-changes" not in index
     assert "_intake/README.md" in index
+    assert "python scripts/atlas_query.py staging" in advanced
+    assert "atlas-stage-changes" in advanced
 
     for managed_block in (
         ROOT / ".claude/skills/atlas-setup-repo/assets/managed-block.md",

@@ -1,5 +1,7 @@
 # Atlas runtime contract
 
+Use `human-intents.md` for the user-facing action and keep this file's search, trust and fallback mechanics behind that conversation. Users do not select specialist workflows or query commands.
+
 Resolve `ATLAS_ROOT` from `${CLAUDE_SKILL_DIR}`: the live package root is three directories above an Atlas skill directory. Canonicalise the absolute path and validate that `<ATLAS_ROOT>/atlas-package.json` exists, has `schema_version: atlas-package/1.0`, and identifies the expected package before using Atlas. If resolution or validation fails, state that Atlas was not consulted, tell the user to restart with `claude --add-dir <path-to-current-Atlas-checkout>`, explain that a moved checkout must be supplied again, and offer bounded product-source inspection.
 
 Keep these locations distinct:

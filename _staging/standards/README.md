@@ -43,6 +43,8 @@ Classify findings carefully:
 
 Frequency is not the same as mandate. Curated `requirement_level`, applicability and scope are curation decisions backed by authority.
 
+A curation-ready candidate explains the rule's meaning in practice: the behavior it asks engineers to adopt or avoid, its evidenced rationale, applicable boundary, counterexamples and exceptions. A collection of matching files is practice evidence, not the rule itself.
+
 ## Granularity and categories
 
 Stage one coherent rule/theme per entry when practical. Record the likely category (`general`, `java`, `python`, `aws`, `infra`, `jira`, `data`, `testing`, `git`) but do not force a category when evidence is ambiguous.

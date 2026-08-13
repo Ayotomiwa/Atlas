@@ -22,6 +22,16 @@ State the candidate reusable rule/theme and why the evidence may matter beyond o
 
 Phrase the observation without overstating authority, e.g. "Multiple inspected Java services use ..." rather than "datalens requires ..." unless an authoritative source says so.
 
+### Rule meaning in practice
+
+Explain the concrete engineering behavior the candidate would require or recommend, the problem it addresses, when it applies, and how a compliant/non-compliant example differs. Keep authority and intended rationale separate from inference.
+
+- Expected behavior:
+- Avoided behavior:
+- Evidenced rationale:
+- Applicability boundary:
+- Important exceptions or conflicts:
+
 ### Candidate scope/category
 
 - Likely category (`general`, `java`, `python`, `aws`, `infra`, `jira`, `data`, `testing`, `git`):

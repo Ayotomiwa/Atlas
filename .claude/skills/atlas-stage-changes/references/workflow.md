@@ -6,7 +6,7 @@
 - Prefer the remote and default branch evidenced by Git configuration. Use `origin/main` only as the fallback when it exists; preserve ambiguity instead of fetching an assumed source.
 - Treat `considered_through.commit` as the exclusive cursor and the refreshed remote default-branch tip as the inclusive endpoint.
 - Treat `observed_through` as observation only; it does not prove that every intervening change was assessed.
-- On a missing checkpoint, accept only an explicit base commit or a merge commit locally evidenced as belonging to the selected source. Record the base as the initial exclusive cursor; do not stage the base itself.
+- On a missing checkpoint, accept an explicit base commit, a merge commit locally evidenced as belonging to the selected source, or the exact future-intake anchor recorded in approved full-onboarding evidence. Verify the anchor against the selected source and default history. Record the base as the initial exclusive cursor; do not stage the base itself.
 - Stop all checkpoint writes when the cursor is not an ancestor of the endpoint, history was rewritten, source identity is ambiguous, or another process changes the checkpoint after it was read. When source/range identity remains valid but assessment is incomplete, a successfully fetched endpoint may be recorded as observed after approval without claiming it was considered.
 - A `deferred` change may be considered for cursor continuity only when it remains in the checkpoint's unresolved list. An `unassessed` change blocks the cursor.
 
@@ -52,7 +52,7 @@ Use these outcomes:
 | `deferred` | Assessed but a material gap remains | May advance only with an unresolved entry |
 | `unassessed` | Evidence could not be evaluated | Blocks advancement |
 
-Record a reason for every `no-stage`, `deferred`, or `unassessed` outcome. Before any write, present one compact matrix with logical change, commit/MR, affected candidates, reusable finding, proposed outcome, proposed staging boundary and gap. Clarify all blocking ambiguity together.
+Record a reason for every `no-stage`, `deferred`, or `unassessed` outcome. Before any write, present plain-language groups first: new evidence to save, already covered, no durable Atlas impact, needs human information, and could not safely assess. Then provide the compact audit matrix with logical change, commit/MR, affected candidates, reusable finding, internal outcome, proposed staging boundary and gap. Clarify all blocking ambiguity together. One approval covers both exact staging writes and the checkpoint compare-and-swap.
 
 ## Staging provenance
 

@@ -6,7 +6,7 @@ allowed-tools: Read, Grep, Glob, Bash, Agent
 
 # atlas-review
 
-Read `../_shared/runtime.md`, `../_shared/answer-provenance.md`, and `../_shared/agent-handoffs.md`. This workflow is read-only.
+Read `../_shared/human-intents.md`, `../_shared/runtime.md`, `../_shared/answer-provenance.md`, and `../_shared/agent-handoffs.md`. This read-only workflow is for explicit audits, external diffs and second opinions; routine curation already invokes independent review internally.
 
 1. Resolve the requested staging IDs, curated IDs, paths, diff or commit range and identify original evidence plus affected generated surfaces.
 2. Delegate independent inspection to `atlas-reviewer` with the full scope, original evidence, changed pages and validation deferrals.

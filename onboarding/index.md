@@ -9,3 +9,5 @@
 - [Taxonomy ownership](../taxonomy/README.md)
 
 Agent procedures and questionnaires live with the canonical Claude skills rather than in developer onboarding.
+
+Start with the four human intents in the [developer guide](README.md): Ask Atlas, Teach Atlas, Sync Atlas and Curate Atlas. Maintainers can use the [advanced workflow reference](advanced-reference.md) for exact skill and command names.

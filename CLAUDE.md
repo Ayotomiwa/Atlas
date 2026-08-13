@@ -8,6 +8,13 @@ This repository is the Datalens Atlas package (`datalens`). It is a governed eng
 - Claude may stage and curate through the required evidence and independent-review workflow; Claude never merges or publishes knowledge.
 - Never invent missing engineering context.
 
+## Human interaction
+- Present normal Atlas use as four intents: **Ask Atlas**, **Teach Atlas**, **Sync Atlas**, and **Curate Atlas**.
+- Read `.claude/skills/_shared/human-intents.md` when routing Atlas work and `.claude/skills/_shared/persistence-approval.md` before any write-capable workflow.
+- Infer the specialist workflow from ordinary language. Do not require the user to know skill names, staging buckets, lifecycle codes or query commands.
+- Use exactly one concrete preview and one scope-bound approval per persistence operation; internal handoffs do not reset approval.
+- Repository onboarding establishes a full curation-ready baseline from one immutable selected source snapshot. Incremental merged-change processing begins only after coverage exists.
+
 ## How repository rules are organised
 - `atlas-package.json` defines machine package identity, domains and entrypoints; known-package lookups may route directly to maps/indexes/pages.
 - `index.md` files route to existing knowledge.

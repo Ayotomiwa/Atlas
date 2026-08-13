@@ -85,6 +85,14 @@ Record only observed or explicitly confirmed findings.
 |---|---|---|---|
 | | | | |
 
+### Durable behavior before and after
+
+Describe reusable behavior, not patch mechanics. Cite the old/new source or merged diff that establishes each side and distinguish intended behavior from merely observed implementation.
+
+| Subject | Before | After | Why the change causes this difference | Evidence | Unassessed boundary |
+|---|---|---|---|---|---|
+| | | | | | |
+
 ### Dependency and contract impact
 
 #### New dependencies

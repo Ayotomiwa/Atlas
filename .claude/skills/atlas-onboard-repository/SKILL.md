@@ -1,19 +1,22 @@
 ---
 name: atlas-onboard-repository
-description: Onboard one datalens logical source boundary through broad inventory, targeted deep reading, one clarification round, and attributable staging evidence without curating it.
+description: Establish a full curation-ready Datalens Atlas baseline for one logical repository boundary from an immutable selected source snapshot, without curating it.
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit, Agent
 ---
 
 # atlas-onboard-repository
 
-Read `../_shared/runtime.md`, `../_shared/answer-provenance.md`, `../_shared/agent-handoffs.md`, `references/clarification-checklist.md`, and the staging component README/template. This workflow stages evidence only.
+Read `../_shared/human-intents.md`, `../_shared/persistence-approval.md`, `../_shared/runtime.md`, `../_shared/answer-provenance.md`, `../_shared/agent-handoffs.md`, `references/full-baseline.md`, `references/clarification-checklist.md`, `_staging/README.md`, and all potentially relevant staging bucket contracts. This is the full-baseline **Sync Atlas** workflow and stages evidence only.
 
-1. Establish one logical source boundary, its physical Git root/remote, candidate `repository_root`, enclosing boundary, included paths, exclusions and user-supplied references. Use typed repository/component `find` plus `context` to identify existing coverage; preserve ambiguity and `not-verified` status. If the boundary is already onboarded and the request is to process merged changes since a cursor, route to `atlas-stage-changes`.
-2. Always delegate inspection to `atlas-repo-analyst`. Inventory broadly, then deeply read only material sources across every lens: boundary/ownership/domain, build/release topology, source roots, components, entrypoints/control flow, I/O, dependencies, infrastructure, flows, schemas/contracts and operations.
-3. Follow only explicit references into shared or infrastructure paths. Do not recursively onboard sibling products. Report them as follow-up candidates.
-4. Exclude VCS internals, environments, dependencies, generated frontends/source maps, build output, large data, samples, binaries and vendor trees unless directly relevant. Give every lens an evidence state and expand only when evidence conflicts or a required lens remains unresolved.
-5. Ask one consolidated clarification round for material boundary/domain/identity/owner/external-context gaps; ask again only if safe staging is blocked.
-6. Stage one `staging.component` repository/component discovery record with source paths traceable from every finding. Add flow, infrastructure, schema, runbook or incident records only when each has an independently evidenced reusable boundary. Never create placeholders or curated facts.
-7. Report staged records, the analyst's evidence matrix, fuller scan manifest, exclusions, inaccessible references, stopping reasons, possible findings, questions and validation state with references.
+1. Establish one logical source boundary, its physical Git root/remote, candidate `repository_root`, enclosing boundary, included paths, exclusions and user-supplied references. Use typed repository/component `find` plus `context` to identify existing coverage; preserve ambiguity and `not-verified` status. If adequate baseline coverage exists and the request is incremental, route internally to `atlas-stage-changes`.
+2. Freeze the exact source state with `python <ATLAS_ROOT>/scripts/atlas_source_snapshot.py prepare`. With no explicit revision, accept only a clean current `HEAD`; otherwise require the user to identify the commit. Never alter the active checkout. Preserve selected/default commits, merge base and branch relationship for evidence and future intake anchoring.
+3. Always delegate coordination to `atlas-repo-analyst`. Assess every full-baseline lens in `references/full-baseline.md`; one analyst may handle a small boundary, while a large boundary may split independent material lenses among read-only specialists. Reconcile their evidence before previewing it.
+4. Follow only explicit references into shared or infrastructure paths. Do not recursively onboard sibling products. Exclude VCS internals, environments, dependencies, generated output, large data, samples, binaries and vendor trees unless directly relevant. Every lens receives an evidence state and stopping reason.
+5. Ask one consolidated clarification round for material boundary/domain/component identity/ownership/publication/safety gaps. Present other uncertainties as an optional confirm-or-correct list; skipped non-blocking gaps remain unknown.
+6. Build a curation-ready batch: one `staging.component` repository/component discovery record plus separate flow, infrastructure, schema, runbook, incident, standard or concept records whenever each has an independently evidenced reusable boundary. Include a per-component causal walkthrough and precise source anchors. Never create placeholders or folder-shaped components.
+7. Immediately before preview, clean up through the snapshot helper so it verifies the selected commit and clean state. A mismatch invalidates the analysis and requires a new snapshot; never force cleanup.
+8. Show one batch preview under the shared approval contract, including exclusions, unresolved lenses, selected source snapshot and future intake anchor. Only after approval write the unchanged batch; internal staging handoffs do not re-request approval. Do not create or advance an `_intake/` checkpoint during onboarding.
+9. Run permitted validation.
+10. Use the shared completion summary and include staged records, evidence matrix, full scan manifest, exclusions, inaccessible references, stopping reasons and validation as audit detail.
 
 An infrastructure-only folder normally becomes infrastructure evidence, not a redundant repository candidate. A component requires an independently addressable runtime/reusable boundary; a folder or job group alone is insufficient.

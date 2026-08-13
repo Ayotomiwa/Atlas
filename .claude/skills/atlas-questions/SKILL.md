@@ -6,7 +6,7 @@ allowed-tools: Read, Grep, Glob, Bash, Skill(atlas-stage *)
 
 # atlas-questions
 
-Read `../_shared/runtime.md`, `../_shared/answer-provenance.md`, and `references/interview.md`. This workflow is read-only until a separate, explicit staging approval.
+Read `../_shared/human-intents.md`, `../_shared/persistence-approval.md`, `../_shared/runtime.md`, `../_shared/answer-provenance.md`, and `references/interview.md`. This is a guided **Teach Atlas** mode and is read-only until explicit staging approval.
 
 Requested scope: `$ARGUMENTS`
 
@@ -18,6 +18,6 @@ If the request is to install, check, or remove the idle reminder, run `${CLAUDE_
 4. Ask one question at a time using the cited context and evidence gap. Accept `skip`, `unsure`, `change topic`, and `stop`. Use neutral follow-ups only to establish source, firsthand/inferred state, scope, environment, timeframe, uncertainty, and contradictions. Follow `references/interview.md` for the presentation and pause rules.
 5. Treat every answer as user-confirmed evidence, never reviewed knowledge. Do not request secrets, customer data, credentials, or unnecessary personal information. Do not remove or rewrite the curated question.
 6. When durable evidence exists, read `references/staging-handoff.md` and show its staging preview. Search for semantic duplicates as well as the exact qualified question IDs. Do not write anything until the user explicitly approves the preview.
-7. After approval, invoke `atlas-stage` and pass the approved evidence unit, qualified question IDs, provenance, remaining gaps, exclusions, and duplicate routes. The staging workflow owns persistence and validation.
+7. After approval, invoke `atlas-stage` and pass the approved preview scope, approval, evidence unit, qualified question IDs, provenance, remaining gaps, exclusions, and duplicate routes. The staging workflow owns persistence and validation and must not ask for the same approval again.
 
 After three answered or skipped questions, pause with a compact cited summary and ask whether to continue. Every substantive statement about existing Atlas knowledge must cite its curated page, and every material selection hop must be disclosed. Query output is routing evidence, not semantic authority.

@@ -25,6 +25,16 @@ Describe what contract/asset was investigated, where it was found and why the ev
 | Platform/system | | |
 | Repository/schema path | | |
 
+### Contract meaning and lifecycle
+
+Explain what one record/message/request represents, when and why it is produced, how a known consumer uses it, and how versioning, mutation, retention or latest-record behavior affects compatibility. Separate physical observation from business interpretation and cite each material assertion.
+
+- Boundary purpose:
+- Production/consumption lifecycle:
+- Identity, grain and temporal behavior:
+- Compatibility/migration significance:
+- Unknown or inaccessible lifecycle context:
+
 ## Evidence
 
 - Schema/DDL/IDL/API definition:

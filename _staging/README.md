@@ -4,7 +4,7 @@
 
 `_staging/` captures useful datalens engineering evidence before it is trusted. It preserves what was observed or supplied, where it came from, what is uncertain, and which curated areas may eventually need an update.
 
-Staging is **not** polished documentation and is never authoritative. It is also the scalable curation queue: lifecycle state lives on each staging record rather than in a central per-record ledger.
+Staging is **not** polished documentation and is never authoritative. It must nevertheless be curation-ready: a reviewer should understand the reusable meaning, causal boundary, exact evidence, uncertainty and likely destination without repeating a broad product-source investigation. It is also the scalable curation queue: lifecycle state lives on each staging record rather than in a central per-record ledger.
 
 ## Trust model
 
@@ -74,7 +74,9 @@ New precise values are allowed when these do not describe the source.
 
 ## Common reviewer gate
 
-Before using a staging record for curation, confirm that its filename matches its ID, provenance is attributable, known and possible claims are separated, sensitive material is absent, and suggested targets do not overreach the evidence.
+Before using a staging record for curation, confirm that its filename matches its ID, provenance is attributable, known and possible claims are separated, sensitive material is absent, suggested targets do not overreach the evidence, and the type-specific explanation says what happened or how the subject behaves rather than merely listing files.
+
+Curation may open the exact evidence routes cited by a staging record and may browse Atlas broadly for existing targets, links and conflicts. It should not need to rediscover the product repository. If broader source exploration reveals a material new fact, capture that fact as new staging evidence before revising the curation proposal.
 
 ## Lifecycle status
 

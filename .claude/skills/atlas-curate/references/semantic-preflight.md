@@ -2,6 +2,9 @@
 
 Run this gate before materialising a curation decision. A user clarification may supply evidence or choose among valid boundaries, but it cannot waive a taxonomy or collection contract.
 
+- Staging sufficiency: the record must explain the reusable fact, its causal boundary, exact supporting evidence, uncertainty and likely destination well enough that curation does not need a new broad product-source scan. The curator may open precisely cited evidence and browse Atlas for targets/links. If broader source exploration produces material new facts, stage them before revising the curation preview.
+- Approved scope: selected staging status changes, curated claims/files and expected generated effects must match the user's concrete persistence preview. Mechanical corrections may stay inside that scope; new claims, targets or evidence boundaries require a revised preview and approval.
+
 - Component identity: each `comp.*` is an independently addressable runtime, job, API, library or reusable unit. A repository folder, ownership area, domain, delivery directory or job group is not a substitute. Defer unresolved runtime identities.
 - Publication scope: for directory upload, sync or publication, require evidence of a clean assembled directory or an explicit allow-list. Otherwise defer the publication claim. Independently supported reads, consumption or deletion impact may still be curated.
 - Sensitive exposure: identify source paths that could enter the published artifact without opening or copying their contents. Treat uncertain inclusion as a safety gap.

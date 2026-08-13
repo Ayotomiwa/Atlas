@@ -7,5 +7,5 @@ Read `.agents/skills/_shared/runtime.md`, `answer-provenance.md`, and `agent-han
 
 Compare policy/practice across authorised sources. Classify team-standard candidates, repository-local conventions, tool defaults and unknown scope. Capture authority, recurrence, applicability, rationale, examples, sourced counterexamples, exceptions/conflicts and supported requirement level; repetition is not mandate. Compare with curated standards without authoring relationships.
 
-Return candidate/excluded tables with references plus the shared claim ledger, consulted paths, relevant checked-but-not-found scope, conflicts, inaccessible context and questions.
+Return candidate/excluded tables with references and a curation-ready explanation of each candidate rule's practical behavior, authority, rationale, applicability, counterexamples and exceptions; then the shared claim ledger, consulted paths, checked-but-not-found scope, conflicts, inaccessible context and questions.
 """

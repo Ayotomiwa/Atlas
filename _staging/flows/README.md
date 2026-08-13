@@ -6,6 +6,8 @@ Use `_staging/flows/<domain>/<STG-ID>.md` only when the primary candidate domain
 
 Capture the observed normal path plus branches, retries and failure-only routes when evidence exists. Participants may be components, jobs, infrastructure, external systems, manual actors or unresolved items. Do not invent stable IDs or missing steps.
 
+A curation-ready flow record includes a readable execution narrative as well as the routing tables. It explains why each material handoff occurs, which conditions gate it, where state crosses a boundary and what remains unknown. Sequential declarations or timestamps alone establish attempted order, not causal success.
+
 Keep raw evidence in the body. Curation decides whether facts become structured entry points, boundary I/O, ordered steps, material step handoffs, transitions or compact question routes. A package/resource that performs work becomes a typed step participant; passive infrastructure connections belong on component or infrastructure records.
 
 The generated [queue index](index.md) is catalogue-only and groups evidence by lifecycle status/domain.

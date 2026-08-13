@@ -67,6 +67,16 @@ Do not add a missing step merely because it would make the sequence easier to ex
 
 Record whether each handoff is success-gated, failure-gated, unconditional, retried, or merely observed in attempted order. Visual adjacency or sequential declarations do not prove that the earlier step succeeded before the later step ran.
 
+### Execution narrative
+
+Explain the evidenced normal path in readable prose, including why each material transition occurs and where data/control crosses a component, infrastructure or external boundary. Describe supported branches, retries and failure-only paths. Cite ordering and gating evidence directly; label gaps instead of filling them with an inferred step.
+
+- Normal path:
+- Conditional/failure/retry paths:
+- Material boundary crossings:
+- Completion or success evidence:
+- Coverage limits:
+
 ### Boundary inputs, outputs and material hand-offs
 
 Capture whole-flow boundary contracts here. Step-local durable hand-offs belong on the applicable step above and should not be duplicated.

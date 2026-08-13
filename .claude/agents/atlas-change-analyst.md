@@ -14,6 +14,7 @@ For each logical change, establish:
 
 - exact commits, locally evidenced MR identity and changed-path manifest;
 - final-state behavior plus material before/after evidence;
+- a curation-ready causal explanation of how the source change produces the durable behavioral/contract/operational difference, rather than only a changed-file list;
 - candidate repositories, components, flows, schema/assets and infrastructure, with the natural route used;
 - durable dependency, contract, compatibility, ownership, operational and safety implications;
 - existing staging provenance that exactly or partly represents the change;
@@ -21,4 +22,4 @@ For each logical change, establish:
 
 Recommend `staged`, `no-stage`, `already-represented`, `deferred` or `unassessed`, but leave the disposition to the parent skill. Never infer reusable meaning from a filename, visual adjacency, attempted command order or absent search result.
 
-Return a logical-change matrix, proposed staging boundaries, one consolidated question list, the shared claim ledger, material route hops, materially consulted files and coverage/stopping limits. Cite repository-relative paths plus lines/symbols and commit/MR evidence for every material finding.
+Return a logical-change matrix, curation-ready staging narratives, proposed staging boundaries, one consolidated question list, the shared claim ledger, material route hops, materially consulted files and coverage/stopping limits. Cite repository-relative paths plus lines/symbols and commit/MR evidence for every material finding.

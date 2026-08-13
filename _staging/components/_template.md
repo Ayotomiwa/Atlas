@@ -23,7 +23,12 @@ Explain why the scan was performed and what was found at a high level.
 - Accessible physical Git repository/checkout:
 - Git locator or remote:
 - Logical repository root relative to the Git root:
-- Revision, branch or snapshot inspected:
+- Selected source commit (full SHA):
+- Active branch at selection, if any:
+- Default ref and resolved commit:
+- Merge base and relationship to default:
+- Future merged-change intake anchor (normally the selected default commit or merge base for an unmerged branch):
+- Snapshot mode (`in-place` / `temporary-worktree`); temporary manifest is not evidence:
 - Paths included:
 - Paths excluded or inaccessible:
 - Related repositories or documentation not inspected:
@@ -107,6 +112,20 @@ All candidate component paths are relative to the candidate logical repository r
 | Candidate component | Entrypoint/path | Trigger or caller | Concise control-flow responsibility | Evidence | State |
 |---|---|---|---|---|---|
 | | | | | | observed/user-confirmed |
+
+### Per-component causal walkthroughs
+
+Write one short subsection per candidate component. Explain the normal causal path from entrypoint or trigger through material processing and dependencies to durable output or externally visible effect. Include failure/partial-completion behavior and the operational signal when evidenced. Cite the source after each material sentence. Do not substitute a source-file list or infer success gating from command order.
+
+#### <candidate component>
+
+- Entry/trigger and preconditions:
+- Material processing and decisions:
+- Dependencies, state and infrastructure used:
+- Outputs or external effects:
+- Failure, retry or partial-completion behavior:
+- Completion/operational signals:
+- Coverage limits:
 
 ### Consumes
 

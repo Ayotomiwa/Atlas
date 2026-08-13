@@ -72,6 +72,17 @@ Record a cause here only when evidence or an authorised/user-confirmed source id
 |---|---|---|
 | | | observed/user-confirmed |
 
+### Causal incident narrative
+
+Connect the confirmed trigger or condition to propagation, impact, detection and recovery in plain language. Cite every causal hop. If a hop is only suspected, keep it under possible/unconfirmed rather than completing the story for readability.
+
+- Trigger or initiating condition:
+- Propagation path:
+- Impact mechanism:
+- Detection path:
+- Recovery mechanism:
+- Missing or conflicting causal links:
+
 ### Recovery actually performed
 
 | Recovery action | Outcome | Evidence | State |

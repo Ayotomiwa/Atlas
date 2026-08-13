@@ -52,6 +52,16 @@ Record exactly what sources agree on or what a user/SME explicitly confirmed.
 |---|---|---|---|
 | | | | observed/user-confirmed |
 
+### Meaning in practice
+
+Explain how the concept changes an engineering or business decision, how it appears in processes/data/components, and which close terms or non-examples must not be conflated with it. Attribute intended meaning separately from observed implementation use.
+
+- Decision/process significance:
+- Typical examples:
+- Exclusions/non-examples:
+- Implementation consequences:
+- Conflicts or scope limits:
+
 ## What is possible / unconfirmed
 
 Capture interpretations, disputed boundaries or implementation mappings that still need review.

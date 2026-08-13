@@ -72,6 +72,16 @@ Record conditions that make an action unsafe, prohibited or escalation-only, inc
 |---|---|---|---|---|
 | 1 | | | | observed/user-confirmed |
 
+### Procedure rationale and decision path
+
+Explain how observations select the next diagnostic or recovery action, why each action is safe within its preconditions, when the operator must stop, and how validation or escalation closes the procedure. Cite exercised or confirmed evidence and keep untested ideas below.
+
+- Decision path:
+- Step rationale:
+- Safety boundary:
+- Objective completion test:
+- Escalation boundary:
+
 ### Recovery
 
 Record what was actually performed or explicitly confirmed—not what merely seems technically possible.

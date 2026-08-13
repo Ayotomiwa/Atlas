@@ -36,6 +36,8 @@ Preserve original wording where it helps reviewers understand provenance. If two
 
 Observed implementation usage may show **where a term is used**; it does not by itself establish the approved meaning.
 
+A curation-ready concept record explains how the term is used in real decisions, processes, data or code, including boundaries and non-examples. A glossary phrase by itself is insufficient when its practical meaning remains ambiguous.
+
 ## Granularity
 
 Stage one coherent concept or closely related terminology question per entry. Split unrelated terms so each future definition can be reviewed independently.

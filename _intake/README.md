@@ -54,7 +54,7 @@ Allowed dispositions are `staged`, `no-stage`, `already-represented`, `deferred`
 
 ## Cursor rules
 
-- The first scan requires an explicit base commit or a locally provable merged-MR commit. Do not guess a historical cursor.
+- The first scan requires an explicit base commit, a locally provable merged-MR commit, or the exact future-intake anchor recorded by approved full repository onboarding evidence. Verify the anchor against this source's history; never guess a historical cursor. Onboarding itself does not create or advance the checkpoint.
 - `observed_through` records what the fetch exposed, even if assessment could not finish.
 - Advance `considered_through` only across a contiguous range whose relevant changes have a recorded disposition. `deferred` may advance it while retaining an unresolved item; `unassessed` may not.
 - Stop and request a rebaseline when the stored cursor is no longer an ancestor, history was rewritten, or the source/range is ambiguous. Git ancestry is checked by the change-staging workflow, not Atlas lint.

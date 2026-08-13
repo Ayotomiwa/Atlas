@@ -66,6 +66,8 @@ conflicts:
 
 ## Editing workflow
 
+Curation starts from curation-ready staging: readable meaning, exact evidence, causal boundaries and uncertainty should already be present. A curator may open the precise product evidence cited there and may browse Atlas broadly for duplicates, targets and direct links. It does not perform a second broad product onboarding. If broader inspection is necessary to establish a material fact, capture that fact in new staging evidence and revise the approved curation scope first.
+
 1. Read the target README, template and index.
 2. Resolve exact IDs directly or use typed `atlas_query.py find`; use the relevant index when candidates are weak or ambiguous.
 3. Preserve evidence, confidence and coverage boundaries.

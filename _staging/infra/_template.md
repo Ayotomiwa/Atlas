@@ -60,6 +60,16 @@ Capture only files/paths that matter to understanding deployment, configuration,
 |---|---|---|---|---|
 | | template/metadata/script/environment-config/source/module/other | | | observed/user-confirmed |
 
+### Package and resource behavior
+
+Explain in prose how this package is deployed or invoked, what the important resources do, and how evidenced reads, writes, triggers, schedules, permissions, monitoring or deployment actions connect them to components and flows. Distinguish declared configuration from observed runtime behavior.
+
+- Deployment/execution path:
+- Resource responsibilities and causal interactions:
+- Component/flow use:
+- Operational and change significance:
+- Coverage limits:
+
 ### Environment differences
 
 Record differences only where they affect behaviour, deployment, permissions, routing, operation or risk.

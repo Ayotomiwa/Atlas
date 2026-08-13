@@ -5,7 +5,7 @@ description: Use for natural datalens engineering questions where durable archit
 
 # atlas-discover
 
-Read `../_shared/runtime.md`, `answer-provenance.md` and `agent-handoffs.md`. This is read-only.
+Read `../_shared/human-intents.md`, `../_shared/runtime.md`, `answer-provenance.md` and `agent-handoffs.md`. This is the normal read-only **Ask Atlas** route.
 
 1. Bypass Atlas when a simple answer is fully visible locally. If Atlas root is unavailable, state that it was not consulted and offer bounded repository inspection.
 2. Resolve an explicit stable ID directly. Otherwise infer likely record types and run typed `find` with current path; preserve ambiguity and disclose every `not-verified` context used.
@@ -15,3 +15,5 @@ Read `../_shared/runtime.md`, `answer-provenance.md` and `agent-handoffs.md`. Th
 6. Choose the clearest presentation, cite every material claim, and disclose answer-bearing hops.
 
 Never write files, silently choose fuzzy matches, use staging/query output as authority, or infer absence from a missing connection.
+
+Do not make the user select a query or specialist. Lead with the engineering answer and keep mechanics in compact provenance.

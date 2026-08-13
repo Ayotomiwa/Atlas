@@ -5,12 +5,12 @@ description: Surface useful open Datalens Atlas questions for the current path, 
 
 # atlas-questions
 
-Read the shared runtime and provenance contracts. This workflow is read-only until the user explicitly approves a staging preview.
+Read the shared human-intent, persistence-approval, runtime and provenance contracts. This is a guided **Teach Atlas** mode and is read-only until the user explicitly approves a staging preview.
 
 1. Run `atlas_query.py questions` in JSON mode for an explicit target or the current path; its target candidates use the shared deterministic finder. Preserve fuzzy/path ambiguity and `not-verified` context; use curated questions by default and active staging suppression.
 2. If local scope is empty, state that boundary and offer domain or package scope. Select a useful question by target/path relevance, routing or identity, ownership, contracts, operational safety, impact understanding, breadth and likely user expertise; never call this a deterministic ranking.
 3. Ask one cited question at a time with the current known context, evidence gap and material selection hops. Accept `skip`, `unsure`, `change topic` and `stop`; use neutral attribution/scope follow-ups and never request sensitive data.
 4. Treat answers as user-confirmed evidence, not reviewed knowledge. After three answered or skipped questions, pause with a compact cited summary.
-5. For durable evidence, show the proposed bucket/title, qualified question IDs, bounded claims, provenance, remaining uncertainty, duplicate/pending routes and exclusions. Write nothing until explicit approval, then use `atlas-stage`; do not remove the curated question directly.
+5. For durable evidence, show the proposed bucket/title, qualified question IDs, bounded claims, provenance, remaining uncertainty, duplicate/pending routes and exclusions. Write nothing until explicit approval, then pass the approval and exact preview scope to `atlas-stage`; it must not ask again. Do not remove the curated question directly.
 
 Query output routes to the source but is not semantic authority. Every factual statement and material hop requires the curated page reference.

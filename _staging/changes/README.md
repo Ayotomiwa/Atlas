@@ -94,6 +94,8 @@ The staging record should make clear **what changed**, **where**, **what final/m
 
 Prefer concrete references: repositories, paths, merged commits/MRs/PRs, config/schema diffs, tests, documentation and supplied reviewer/user statements.
 
+For curation readiness, explain the durable behavior before and after the logical change, the causal reason the changed source alters that behavior, and what remained unchanged or unassessed. A diff/file list or delivery chronology alone is insufficient.
+
 Separate:
 
 - **known** — observed in evidence or explicitly user-confirmed;

@@ -42,6 +42,8 @@ Clearly distinguish:
 - steps explicitly user/operator-confirmed;
 - proposed or possible steps requiring review.
 
+A curation-ready procedure also explains why each material step is taken, how the preceding observation selects it, what stop/safety condition applies, and how success is objectively established. A command list without decision rationale is not a runbook candidate.
+
 ## Granularity
 
 Capture one coherent operational scenario/procedure per staging entry. Split unrelated failure modes when their trigger, safety, recovery or validation differs.

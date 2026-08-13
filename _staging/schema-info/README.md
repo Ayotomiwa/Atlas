@@ -39,6 +39,8 @@ Keep **physical observation** separate from **business interpretation**. A colum
 
 For keys, grain, latest-record rules and joins, record the evidence and the uncertainty explicitly. If a join appears in code but its business validity is unknown, capture it as observed usage or possible/unconfirmed rather than "approved".
 
+A curation-ready record also explains the contract in practice: what crosses the boundary, who produces and consumes it, how identity/time/versioning behave, and what compatibility or lifecycle consequence follows from change. Do not make the curator reconstruct this meaning from a field inventory.
+
 ## Granularity
 
 Stage one coherent asset/contract investigation per entry. A single entry may cover tightly coupled schema variants when the investigation treats them as one durable contract; split unrelated assets so curation provenance remains clear.

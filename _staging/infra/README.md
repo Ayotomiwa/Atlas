@@ -107,6 +107,8 @@ Do not assume every resource should become a promoted impact-analysis node.
 
 Prefer concrete references such as:
 
+A curation-ready record also includes a concise package/resource behavior narrative. Explain how deployment or execution introduces the important resources, which natural actions connect them to components/flows, and which operational or deletion consequences are evidenced. A resource inventory alone is insufficient.
+
 - package/template/module paths;
 - service/deployment metadata;
 - environment configuration;

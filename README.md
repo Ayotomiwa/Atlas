@@ -4,6 +4,19 @@ Datalens Atlas is a governed engineering context package for humans and AI agent
 
 Claude workflows in `.claude/` are canonical and load from this live checkout with `claude --add-dir <ATLAS_ROOT>`. Codex adaptations live in `.agents/skills/` and `.codex/agents/`.
 
+## Use Atlas conversationally
+
+Engineers do not need to select Atlas skills or commands. Use four ordinary intents:
+
+| Intent | Say things like | Atlas handles internally |
+|---|---|---|
+| Ask Atlas | “How does this publish data?” “What could this change affect?” | discovery, impact routing, links, maps and bounded source fallback |
+| Teach Atlas | “Save this fact.” “What does Atlas still need to know?” | provenance, duplicate/conflict checks, bucket selection and one approved evidence write |
+| Sync Atlas | “Onboard this repository.” “Update Atlas for this repo.” | full baseline onboarding, standards discovery or merged-change intake |
+| Curate Atlas | “Curate pending evidence for payments.” | scoped reconciliation, generation and independent semantic review |
+
+Atlas remains sophisticated behind the conversation: staging is still evidence, writes still require approval, uncertainty is preserved, curation still receives independent review, and publication remains human-controlled. Exact skills and commands are available in the [advanced reference](onboarding/advanced-reference.md).
+
 ## Start by question
 
 - Source repository or monorepo orientation: [`_curated/repositories/index.md`](_curated/repositories/index.md)
@@ -11,12 +24,14 @@ Claude workflows in `.claude/` are canonical and load from this live checkout wi
 - End-to-end flow: [`_curated/flows/index.md`](_curated/flows/index.md)
 - Infrastructure usage/impact: [`_curated/infra/index.md`](_curated/infra/index.md)
 - Data/interface contract: [`_curated/schema-info/index.md`](_curated/schema-info/index.md)
-- Natural-language candidate lookup: `python scripts/atlas_query.py find "<question or description>"`
-- Direct or transitive machine routing: `python scripts/atlas_query.py ...`
-- Open questions you can help answer: `/atlas-questions [path|stable-id|domain|topic]`
+- Matching knowledge from an ordinary description: ask Claude; it uses deterministic candidate search and falls back to the relevant index.
+- Direct or transitive routing: ask the dependency/impact question; Claude selects page links and maps internally.
+- Open questions you can help answer: ask “What does Atlas still need to know about this path, repository, domain or topic?”
 - Raw review queue: [`_staging/index.md`](_staging/index.md)
-- Active or historical evidence across every staging bucket: `python scripts/atlas_query.py staging`
-- Merged default-branch changes not yet considered for staging: `/atlas-stage-changes [path|repo-id] [--base <commit>]`
+- Active or historical evidence across every staging bucket: ask Claude to show pending or completed evidence for the desired scope.
+- Merged default-branch changes not yet considered: ask Claude to update Atlas for the repository.
+
+Maintainers and power users can use the exact [skill and command reference](onboarding/advanced-reference.md).
 
 Known-package access starts directly at the appropriate index, map, stable ID or page. It does not need to route through the package manifest.
 
@@ -86,55 +101,25 @@ The three committed generated maps are:
 
 They use stable-ID keys, readable named fields, sparse records and only three high-value reverse views: `downstream_flows`, compact repository/package containment IDs and a typed `used_by` list. They do not contain generic nodes/edges arrays, duplicate participant rosters or precomputed transitive impact. Maps connect; pages explain.
 
-## Generation
+## Generated artifacts
 
-After structured page, domain or lifecycle changes, rebuild every generated surface together:
+After structured page, domain or lifecycle changes, Atlas rebuilds maps, curated catalogues, staging queue indexes, structured body tables and opted-in flow diagrams together. Managed blocks and generated JSON are never hand-edited. Deterministic lint covers frontmatter semantics and existing relative Markdown file targets; generation freshness and semantic prose review remain separate checks. Exact maintainer commands are in the [advanced reference](onboarding/advanced-reference.md).
 
-```powershell
-python scripts/rebuild_atlas.py
-```
-
-This writes maps, catalogues for every curated collection including standards categories, staging queue indexes, structured body tables and opted-in flow diagrams. Managed blocks and generated JSON are never hand-edited; `python scripts/rebuild_atlas.py --check` reports freshness drift.
-
-Freshness-only mode exists for an explicitly authorised validation pass:
-
-```powershell
-python scripts/rebuild_atlas.py --check
-```
-
-`python scripts/atlas_lint.py .` validates frontmatter semantics and existing relative Markdown file targets. Page headings, prose quality, remote URLs, review age, sensitive-content judgment and generated freshness are reviewer/workflow concerns rather than deterministic lint rules.
-
-## Querying
-
-```powershell
-python scripts/atlas_query.py resolve comp.example
-python scripts/atlas_query.py find "component that enriches orders" --type component
-python scripts/atlas_query.py find "order processing" --type component --type flow --path .
-python scripts/atlas_query.py context .
-python scripts/atlas_query.py route orders
-python scripts/atlas_query.py questions repo.orders-platform
-python scripts/atlas_query.py questions --path .
-python scripts/atlas_query.py questions orders --scope domain
-python scripts/atlas_query.py questions --scope package --format json
-python scripts/atlas_query.py staging
-python scripts/atlas_query.py staging --status deferred --target comp.example
-python scripts/atlas_query.py staging --include-terminal --format json
-python scripts/atlas_query.py neighbors comp.example
-python scripts/atlas_query.py impact comp.example --direction downstream
-python scripts/atlas_query.py --format json impact comp.example --max-depth 4
-```
+## Navigation mechanics
 
 `find` is deterministic candidate retrieval over non-archived curated frontmatter, embedded data assets and promoted resources. It searches IDs, titles, descriptions, aliases, optional routing keywords, types, domains, conflict text and low-weight locators; it does not use embeddings, a vector store or an LLM. It returns three candidates by default with match reasons, matched conflict routes and index/page routes. Claude selects using the question and curated evidence or preserves ambiguity; search relevance is never factual confidence.
 
 The query tool loads map paths from `atlas-package.json`, preserves confidence/evidence, reports direct versus transitive paths and avoids cycles. Lifecycle determines trust: `status: curated` is `authoritative`, while deprecated content is `historical`. Git is reported separately as `checkout_state` (`main-clean`, `off-main`, `modified`, `untracked`, `detached` or `git-unknown`) and never blocks or downgrades authority. Outside `main` or `master` it emits one short advisory and continues. A `not-verified` path match remains available but must be disclosed as routing rather than repository-identity proof. Maps are used after stable-ID selection for reverse or multi-hop traversal; curated pages and their generated direct links remain the semantic navigation surface.
 
-`questions` reads the common open-question table from curated pages, qualifies each question as `<record-id>#<question-id>`, and can route by current path, exact target, domain, topic or package. It suppresses questions already referenced by active staging evidence unless `--include-pending` is used. The command returns candidates and evidence routes; `atlas-questions` decides what is useful to ask and never treats a query match as authority.
+Open-question discovery reads the common question table from curated pages, qualifies each question by its owning record and suppresses questions already referenced by active staging evidence. Claude decides what is useful to ask and never treats a candidate match as authority.
 
-`staging` provides one deterministic, read-only view across every evidence bucket. It defaults to `new` and `curating`, supports lifecycle/bucket/domain/date/suggested-target filters, and can include terminal records. Its output describes matching records only; an empty result does not prove that no evidence or engineering context exists.
+The cross-bucket staging view is deterministic and read-only. It can scope active or historical evidence by bucket, domain, date or suggested target. An empty result does not prove that no evidence or engineering context exists.
 
-`atlas-stage-changes` is the explicit incremental monorepo workflow. It fetches the selected source's remote default branch, compares it with the shared `_intake/` cursor, interprets the bounded change range, previews dispositions and writes `staging.change` evidence only after approval. It never curates or publishes. On first use it requires an explicit base or locally provable merged-MR commit, and it does not advance the considered cursor when remote completeness, ancestry or assessment is unresolved.
+Incremental repository sync fetches the selected source's remote default branch, compares it with the shared `_intake/` cursor, interprets the bounded change range, previews plain-language outcomes plus exact persistence effects and writes `staging.change` evidence only after approval. It never curates or publishes. On first use the base must be explicit, locally proven by a merged-MR commit, or recovered from an approved full-onboarding snapshot's future intake anchor. It never guesses and does not advance the considered cursor when remote completeness, ancestry or assessment is unresolved.
 
-`context [path]` discovers the physical Git root/remote and returns logical repository and component candidates ordered by path specificity. It preserves ambiguity; the skill chooses context based on the question and discloses that selection.
+Full repository onboarding selects one immutable source state with `scripts/atlas_source_snapshot.py`. A clean current `HEAD` is read in place; an explicit historical/unmerged commit or a dirty active checkout uses a protected detached temporary worktree. The helper never switches, resets, cleans or stashes the active checkout, never fetches, and never advances intake state.
+
+Path context discovers the physical Git root/remote and returns logical repository/component candidates ordered by path specificity. It preserves ambiguity; Claude chooses context from the question and discloses that selection.
 
 Every substantive Atlas-assisted answer cites the curated page or repository source for its material claims and includes a compact route/file-hop disclosure when traversal matters. Generated/query output explains routes but is never cited as semantic authority.
 
@@ -156,6 +141,7 @@ Every substantive Atlas-assisted answer cites the curated page or repository sou
 | `scripts/atlas_intake.py` | Read and compare-and-swap shared merged-source checkpoints |
 | `scripts/rebuild_atlas.py` | Unified deterministic generator |
 | `scripts/atlas_review_snapshot.py` | Temporary review-input fingerprinting; manifests never enter Atlas |
+| `scripts/atlas_source_snapshot.py` | Safe immutable source selection for full repository onboarding; manifests/worktrees stay temporary |
 | `scripts/atlas_eval.py` | Reusable sealed-evaluation preparation, answer freezing, validation and scoring contract |
 | `evaluation/` | Fixture-independent evaluation protocol and frozen rubric |
 

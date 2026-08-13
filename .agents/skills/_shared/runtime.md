@@ -1,5 +1,7 @@
 # Atlas runtime contract for Codex
 
+Use `human-intents.md` for the user-facing action and keep specialist/query mechanics behind the conversation.
+
 Resolve the live `ATLAS_ROOT` from the current skill location (three directories above an Atlas skill directory) and validate `atlas-package.json` with `schema_version: atlas-package/1.0`. If unavailable, state that Atlas was not consulted, ask the user to make the current checkout available, and offer bounded repository inspection. Keep Atlas root, product Git root and current path separate. Use absolute internal paths but repository-relative paths in user-facing references.
 
 Resolve explicit stable IDs directly. Otherwise infer likely types and run `python <ATLAS_ROOT>/scripts/atlas_query.py --root <ATLAS_ROOT> --format json find <query> --type <type> --path <current-path>`. Treat results as candidates; preserve ambiguity and let the question/evidence decide. Use the relevant collection/domain index when results are weak or ambiguous, then the curated root index. Open the selected page and use maps only for reverse or multi-hop traversal. The manifest registers routes but is not a mandatory navigation hop.

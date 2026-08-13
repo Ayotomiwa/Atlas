@@ -44,6 +44,8 @@ Separate:
 - recovery actually performed;
 - reusable learning inferred from the evidence.
 
+A curation-ready incident record includes the shortest evidenced causal narrative that connects trigger or condition, propagation, impact, detection and recovery. Preserve competing explanations and missing links; a timeline alone does not prove cause.
+
 ## Granularity
 
 One staging entry should cover a coherent incident/near-miss/exercise learning context. It may later produce multiple curated updates (incident learning, flow, component, infra, runbook, standard) if the evidence supports them.

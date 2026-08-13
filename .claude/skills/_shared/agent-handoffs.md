@@ -20,3 +20,5 @@ Every analyst returns:
 7. recommended next routes only when they add value.
 
 The parent skill verifies that references support the exact claims, preserves the analyst's chosen presentation, adds no unsupported synthesis, and exposes material file hops at the adaptive depth required by the answer. The complete ledger stays internal unless requested or required for an audit artifact.
+
+For a write-capable specialist, also pass the exact persistence preview, the user's approval and the permitted files/claims/status effects. The specialist must not expand that scope or ask for the same approval again; it returns a material change to the parent for a revised preview.
