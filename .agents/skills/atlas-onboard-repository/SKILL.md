@@ -15,6 +15,6 @@ Read shared human-intent/persistence/runtime/provenance/handoff and curation-saf
 6. Prepare one repository/component discovery record plus independent curation-ready flow/infra/schema/operations/governance records when justified. Include exact anchors and a causal walkthrough per component; never placeholders or folder-shaped components.
 7. Immediately before preview, clean up through the snapshot helper so it verifies the selected commit and clean state. A mismatch invalidates the analysis; never force cleanup.
 8. Show one batch preview including exclusions, unresolved lenses, source snapshot and future intake anchor. After one approval, complete the shared taxonomy/contract and destination-contract reads, then write the unchanged batch without repeated handoff approval. Do not advance `_intake/`.
-9. Validate and report plain-language outcomes plus the full evidence matrix/scan manifest as audit detail.
+9. Validate, create one exact-path local commit for the approved staging batch, and report branch/commit plus the full evidence matrix/scan manifest as audit detail.
 
 An infra-only folder normally produces infra evidence; a component needs an independently addressable behavior boundary.

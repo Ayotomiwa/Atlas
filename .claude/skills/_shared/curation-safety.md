@@ -1,39 +1,42 @@
 # Curation safety and scoped validation
 
-Read this contract before any Atlas authoring, staging handoff or curation. The curation parent owns guards, generation, validation, repair, review and lifecycle changes; a curator agent only materialises its approved pages.
+Read this contract before Atlas authoring, staging handoff or curation. The parent owns the feature branch, local commits, generation, validation, repair, review and lifecycle changes; a curator agent only materialises approved pages.
 
 ## Authoring prerequisites
 
-Before staging or curating, read `atlas-package.json` and resolve taxonomy/contracts through its registered paths. Always read the registered `types` and `statuses`. Read registered `concept_fields` only when selecting controlled concept, asset, or resource fields; read registered `standard_categories` for standards; and read the registered `map_fields` contract before selecting map-bound fields or relationships. Do not load unrelated taxonomy merely because it is registered. Then read the destination's `README.md`, `_template.md`, and `index.md`: use the staging root/bucket files for staging and the target collection's three files for curation. Complete the relevant reads before selecting fields, IDs, lifecycle values, or relationship forms.
+Before staging or curating, read `atlas-package.json` and resolve taxonomy/contracts through its registered paths. Always read registered `types` and `statuses`. Read `concept_fields` only when selecting controlled concept, asset or resource fields; `standard_categories` for standards; and `map_fields` before map-bound fields or relationships. Do not load unrelated taxonomy. Then read the destination `README.md`, `_template.md`, and `index.md`: staging root/bucket files for staging and the target collection's files for curation.
 
-Author relationships exactly where they mean something:
+- Coverage says what the record includes; confidence says how well a fact is evidenced. Never substitute one for the other.
+- Keep reviewed evidence distinct from a non-reviewed explanatory note.
+- Use `consumes` and `produces` only for component, schema or data-asset contracts. Use resource fields such as `reads_from` and `writes_to` for infrastructure/resource interaction. Put flow participation only in ordered `steps`.
 
-- Coverage says what the record or map is known to include; confidence says how well each claimed fact is evidenced. Do not use one to stand in for the other.
-- Keep reviewed evidence distinct from a non-reviewed explanatory note; a note cannot upgrade an evidence-backed claim.
-- Use `consumes` and `produces` only for component, schema, or data-asset contracts. Use resource fields such as `reads_from` and `writes_to` only for infrastructure/resource interaction. Put participation in a flow only in its ordered `steps`.
+## Scoped validation for authoring
 
-## Scoped curation sequence
+Before an approved staging or curation write, record full lint JSON from the clean branch. After writing, run full lint again. Findings owned by a new/touched page, a changed shared contract/configuration, or newly introduced package behavior block that write. An unchanged finding on an unrelated page is reported after the scoped result and is not repaired or allowed to block staging/semantic curation. The global command may therefore remain non-zero while the scoped write is valid; report package health separately and never describe the whole package as clean.
 
-After the one approved preview, perform this order without skipping or reordering it:
+## Git-backed curation sequence
 
-1. Start a work guard: record the approved files, claims, staging statuses, expected generated effects, tracked diff, and relevant untracked pages. Use `python scripts/atlas_work_guard.py start --root . --path <approved-existing-file> --missing-path <approved-new-file> --generated-path <approved-generated-file> --id <active-staging-id> --format json`; repeat or omit selectors as needed, but pass exact file targets rather than directories. Retain both returned OS-temporary paths, `state` and `key_file`. The parent keeps both and never passes the key file to the curator. A changed active record or changed scope stops the batch for a revised preview.
-2. Mark only the approved staging records `curating` and have the curator materialise only its matrix.
-3. Make an automatic materialized checkpoint with `python scripts/atlas_work_guard.py checkpoint --root . --state <state-dir> --key-file <key-file>` before validation or repair. It covers only the exact guarded curated pages and status changes; it is not permission to restore all `_curated/`.
-4. Run one aggregate full `python scripts/atlas_lint.py .` and classify each finding: current/shared/new/unexpected findings block; a demonstrably pre-existing unrelated baseline finding is advisory. Never repair unrelated baseline findings and never let them block staging or semantic curation.
-5. Make at most two aggregate passes of uniquely determined, meaning-preserving, in-scope mechanical repairs. Never use `sed`, regex replacement, line deletion, minimal-frontmatter rewrites, resource/relation/evidence deletion or emptying, ID/type renaming, or a global confidence downgrade. Consolidate semantic ambiguity for the user instead of guessing.
-6. Verify the approved scope with `python scripts/atlas_work_guard.py validate --root . --state <state-dir> --key-file <key-file>`, then run `python scripts/rebuild_atlas.py` and `python scripts/rebuild_atlas.py --check`. Run review only from that clean, materialized scope.
-7. Independently review, apply only allowed meaning-preserving follow-up repairs with a new fingerprint/re-review, then mark successful staging evidence `consumed`. Run `python scripts/atlas_work_guard.py cleanup --root . --state <state-dir> --key-file <key-file>` only after completion; authenticated cleanup removes both the state directory and key file.
+Use the feature branch selected by `persistence-approval.md`. A branch is reused for related work; curation does not create one branch per batch.
 
-Threat model: the work guard is an operational integrity and recovery mechanism, not an operating-system security sandbox. The parent process is trusted to preserve the approved scope; never pass the bearer key to the curator. Anyone running as the same account who can read that key can authenticate guard actions. The guard detects accidental or cross-agent alteration of guarded state and authenticates restore/cleanup, but it does not cryptographically constrain the parent or another key holder.
+Before the preview, record the starting `HEAD`, the shared lint baseline, and `python scripts/rebuild_atlas.py --check`. Retain page/record diagnostics. An unrelated existing failure is visible package health, not permission to repair it or a reason to block the current preview.
 
-An unrelated pre-existing generator or freshness failure may be discovered by lint, generation, or the freshness check itself. Do not repair unrelated records. Disclose generated freshness as deferred, then allow independent semantic review and consumption when the approved current scope is semantically complete. A current-cause failure or an unexplained lint/compiler inconsistency stops the batch in `curating`; do not consume evidence.
+After the one approved preview, perform this order:
 
-Global `atlas_lint.py` and CI remain strict: classification limits this workflow's repair/blocking decision and does not redefine package health.
+1. Recheck the branch, starting `HEAD`, actual content-clean state, queue eligibility and approved paths. A changed record, branch, or scope stops for a revised preview. Mark only approved evidence `curating`, then have the curator materialise only its matrix.
+2. Inspect the complete exact-path diff. If it matches the preview, stage only those paths and create `atlas: curate checkpoint <scope>` before any validation repair. Do not bypass hooks. If the checkpoint cannot be committed, stop with the diff intact.
+3. Run aggregate full lint once. Compare findings with the recorded baseline by owning path/record and message. Current-scope, changed-shared, new or unexplained findings block; demonstrably unchanged unrelated findings are advisory. Make at most two aggregate passes of uniquely determined, meaning-preserving in-scope repairs.
+4. Never use `sed`, regex replacement, line deletion, minimal-frontmatter rewrites, resource/relation/evidence deletion or emptying, ID/type renaming, or global confidence downgrades to satisfy validation. Bring semantic ambiguity to the user.
+5. After current-scope structured findings are clean, run `python scripts/rebuild_atlas.py` and `python scripts/rebuild_atlas.py --check`. If only an unchanged unrelated baseline generator/freshness problem prevents this, disclose freshness as deferred and continue semantic review without touching the unrelated record. A current-cause failure or unexplained lint/compiler inconsistency stops the batch in `curating`.
+6. Verify every changed path remains approved. Stage exact repair/generated paths and create `atlas: curate validated <scope>` when anything changed after the checkpoint; otherwise the checkpoint commit is the proposal commit.
+7. Give the independent reviewer the immutable range `<starting-sha>..<proposal-sha>`, exact staging/source evidence and source checkout commits. Require the same proposal `HEAD` and content-clean state before and immediately after review. Drift invalidates the review. Supported fixes use an exact-path `atlas: curate review fixes <scope>` commit and a fresh review of the full range.
+8. After clean semantic review, mark successful evidence `consumed`, apply other approved terminal outcomes, update the compact checkpoint, and rebuild when available. Create `atlas: curate finalize <scope>` from exact paths. The finalization diff may contain only planned lifecycle/checkpoint and deterministic generated effects; any semantic change requires validation and full re-review.
+
+Global lint and CI remain strict. Scoped classification controls only whether this workflow repairs or blocks; it never reclassifies package health.
 
 ## Recovery and completion
 
-Already-consumed evidence uses a repair-only/recovery entry path. Preview the exact damaged curated pages and claims, evidence source, intended repair and generated effects; obtain approval for that exact repair scope; then start a target-specific guard and follow the materialize/checkpoint/validate/generate/review sequence. Consumed records remain `consumed` throughout: do not mutate lifecycle. A current-scope failure stops active/new records that entered the current batch in `curating`; a recovery failure leaves previously consumed records `consumed`.
+Already-consumed evidence uses a repair-only entry path with an exact preview and no lifecycle mutation. Record its starting SHA, commit the supported repair, validate, generate when possible, and independently review the immutable range.
 
-Recover only an exact guarded damaged curated page from its verified revision or with `python scripts/atlas_work_guard.py restore --root . --state <state-dir> --key-file <key-file> --to pre` or `python scripts/atlas_work_guard.py restore --root . --state <state-dir> --key-file <key-file> --to materialized`. The guard must contain only the intended recovery targets; never guard or restore all `_curated/` when the checkout has mixed work. Preserve both the tracked diff and untracked pages. The state directory and key file stay in the operating-system temporary directory; retain both while recovery may still be needed, and run authenticated cleanup only after completion.
+For a damaged in-progress page, inspect the diff and restore only approved paths from the local checkpoint commit with `git restore --source=<checkpoint-sha> -- <paths>`. Never restore all `_curated/`, run a broad reset, or overwrite unrelated tracked/untracked work.
 
-Completion reports use these headings: **Current work**, **Scope validation**, **Generated freshness**, and **Package health**. Separate current blockers from unrelated baseline advisories and list any deferred freshness check.
+Completion reports use **Current work**, **Scope validation**, **Generated freshness**, and **Package health**. Separate current blockers from unrelated baseline advisories and deferred freshness. Local commits do not authorise push, merge, approval or publication.

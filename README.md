@@ -107,7 +107,7 @@ After structured page, domain or lifecycle changes, Atlas rebuilds maps, curated
 
 ## Curation safety
 
-Curation is deliberately scoped: after one approved preview, Atlas records a work guard, materialises only the approved claims, preserves a narrow materialized checkpoint, classifies full-lint findings, performs no more than two safe mechanical repair passes, checks scope, rebuilds, reviews independently, and only then consumes evidence. Current/shared/new/unexpected findings block. A demonstrably unrelated pre-existing baseline problem is neither repaired nor allowed to block staging or semantic curation, although global lint and CI remain strict and any resulting freshness deferral is reported. Recovery restores only an identified damaged curated page from that checkpoint or a verified revision; it never replaces all of `_curated/` in a mixed checkout.
+Curation is deliberately scoped and Git-backed. Atlas reuses the developer's current feature branch, records lint/freshness baselines, materialises only approved claims, creates an exact-path checkpoint commit before repair, validates and rebuilds, then independently reviews an immutable commit range before consuming evidence in a finalization commit. Current, changed-shared, new or unexplained findings block; an unchanged unrelated baseline problem is reported but neither repaired nor allowed to block semantic curation. Global lint and CI remain strict, and any resulting freshness deferral is explicit. Recovery restores only approved paths from the checkpoint commit or another verified revision.
 
 ## Navigation mechanics
 
@@ -124,6 +124,8 @@ Incremental repository sync fetches the selected source's remote default branch,
 Full repository onboarding selects one immutable source state with `scripts/atlas_source_snapshot.py`. A clean current `HEAD` is read in place; an explicit historical/unmerged commit or a dirty active checkout uses a protected detached temporary worktree. The helper never switches, resets, cleans or stashes the active checkout, never fetches, and never advances intake state.
 
 Path context discovers the physical Git root/remote and returns logical repository/component candidates ordered by path specificity. It preserves ambiguity; Claude chooses context from the question and discloses that selection.
+
+When Claude or Codex is running inside Atlas itself, a question about stored engineering knowledge searches curated records without applying the Atlas checkout as product-path evidence. A question about Atlas scripts, contracts or workflow implementation uses local source instead. Atlas implementation is never used as fallback evidence for an unrelated product.
 
 Every substantive Atlas-assisted answer cites the curated page or repository source for its material claims and includes a compact route/file-hop disclosure when traversal matters. Generated/query output explains routes but is never cited as semantic authority.
 
@@ -144,7 +146,7 @@ Every substantive Atlas-assisted answer cites the curated page or repository sou
 | `scripts/atlas_query.py` | Supported candidate lookup and routing/traversal CLI |
 | `scripts/atlas_intake.py` | Read and compare-and-swap shared merged-source checkpoints |
 | `scripts/rebuild_atlas.py` | Unified deterministic generator |
-| `scripts/atlas_review_snapshot.py` | Temporary review-input fingerprinting; manifests never enter Atlas |
+| `scripts/atlas_review_snapshot.py` | Temporary fingerprinting for explicit uncommitted audits; routine curation reviews Git commit ranges |
 | `scripts/atlas_source_snapshot.py` | Safe immutable source selection for full repository onboarding; manifests/worktrees stay temporary |
 | `scripts/atlas_eval.py` | Reusable sealed-evaluation preparation, answer freezing, validation and scoring contract |
 | `evaluation/` | Fixture-independent evaluation protocol and frozen rubric |

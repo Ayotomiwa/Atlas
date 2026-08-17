@@ -7,7 +7,7 @@ Most engineers can use Atlas through ordinary language: ask a question, teach it
 | Ask Atlas | `atlas-discover`, `atlas-impact` | `atlas_query.py find`, `resolve`, `context`, `neighbors`, `impact` |
 | Teach Atlas | `atlas-stage`, `atlas-questions` | `atlas_query.py questions`, `staging`; `atlas_lint.py` |
 | Sync Atlas | `atlas-onboard-repository`, `atlas-onboard-standards`, `atlas-stage-changes` | `atlas_source_snapshot.py`, `atlas_query.py context`, `atlas_intake.py` |
-| Curate Atlas | `atlas-curate`; `atlas-review` for an audit/second opinion | `rebuild_atlas.py`, `atlas_review_snapshot.py`, `atlas_lint.py` |
+| Curate Atlas | `atlas-curate`; `atlas-review` for an audit/second opinion | Git commit ranges, `rebuild_atlas.py`, `atlas_lint.py`; `atlas_review_snapshot.py` only for an uncommitted audit |
 
 These names are useful for explicit invocation but are not a prerequisite for normal use. Claude chooses among them from the user's request and current context.
 
@@ -65,20 +65,21 @@ python scripts/rebuild_atlas.py
 python scripts/rebuild_atlas.py --check
 ```
 
-## Scoped curation and recovery
+## Feature branches, scoped curation and recovery
 
-Before authoring, read `atlas-package.json` and follow its registered paths: load `types` and `statuses` always, `concept_fields` when selecting controlled concept/asset/resource fields, `standard_categories` for standards, and `map_fields` before map-bound fields or relationships. Also read the destination README, template and index. After the approved curation preview, use this fixed sequence:
+Before any repo-tracked write, reuse an existing non-default branch with shared default-branch history and state its name. Do not make a branch per write. On the default branch, detached HEAD or unrelated history, ask the user to confirm a suggested branch, select an existing branch or supply a custom name. Require actual content-clean diffs and no non-ignored untracked files. One persistence approval may include the exact local commits shown in its preview; it never includes push or merge.
 
-1. Record the work guard: exact approved files, claims, staging status effects, expected generated effects, tracked diff and relevant untracked pages.
-2. Mark only approved evidence `curating`, materialise the decision matrix, then preserve a materialized checkpoint of only the exact curated pages and status changes.
-3. Run `python scripts/atlas_lint.py .` once across the package. Current/shared/new/unexpected findings block; demonstrably unrelated pre-existing baseline findings are advisory. Do not repair baseline issues or let them block staging/semantic curation.
+Before authoring, read `atlas-package.json` and follow its registered paths: load `types` and `statuses` always, `concept_fields` when selecting controlled concept/asset/resource fields, `standard_categories` for standards, and `map_fields` before map-bound fields or relationships. Also read the destination README, template and index. Use this curation sequence:
+
+1. Record starting `HEAD`, aggregate lint JSON and rebuild-check diagnostics as the baseline; preview exact paths, claims, lifecycle effects, generated effects, branch and commit boundaries.
+2. After approval, mark only approved evidence `curating`, materialise the matrix, inspect the exact diff and create `atlas: curate checkpoint <scope>` before repair.
+3. Run `python scripts/atlas_lint.py .` once across the package. Current, changed-shared, new or unexplained findings block; demonstrably unchanged unrelated baseline findings are advisory. Do not repair baseline issues or let them block staging/semantic curation.
 4. Make no more than two aggregate passes of uniquely determined, meaning-preserving, in-scope mechanical repairs. Do not use regex or line deletion; do not empty/delete resources, relations or evidence; do not rename an ID/type, rewrite minimal frontmatter, or globally lower confidence. Bring semantic ambiguity to the user.
-5. Verify the approved scope is clean; run rebuild and rebuild check; fingerprint and independently review; re-fingerprint after every permitted follow-up repair; then consume successful evidence.
-
-The work guard is an operational integrity and recovery mechanism, not an OS security sandbox. The parent remains trusted to preserve approved scope and must never pass the bearer key to the curator. Anyone under the same account who can read the key can authenticate guard actions. The guard detects accidental or cross-agent state alteration and authenticates cleanup/restore; it does not cryptographically constrain the parent or another key holder.
+5. Verify exact paths, rebuild/check and create the validated commit. Independently review the immutable starting-to-proposal range with the same clean `HEAD` before/after; commit supported fixes and re-review the full range.
+6. Consume successful evidence, update the compact checkpoint/generated effects and create the exact finalization commit. Semantic changes in finalization require full validation and review.
 
 A current-cause problem or a lint/compiler mismatch leaves evidence `curating`. If freshness is blocked solely by an unrelated baseline issue, semantic curation may complete and consume with generated freshness explicitly deferred. This does not relax strict global lint or CI.
 
-Completion reports separate **Current work**, **Scope validation**, **Generated freshness**, and **Package health**. A consumed staging record remains consumed. Restore only an identified damaged curated page from the automatic materialized checkpoint or verified revision; never restore all `_curated/` in a mixed checkout, and preserve both tracked diff and untracked pages.
+Completion reports separate **Current work**, **Scope validation**, **Generated freshness**, and **Package health**. A consumed staging record remains consumed. Restore only approved paths from the local checkpoint commit or a verified revision; never reset broadly or restore all `_curated/`.
 
 Use `/atlas-evaluate prepare|run|score` only for a sealed end-to-end benchmark. Keep its fixture, personas, ground truth, frozen answers and results in the selected external sealed directory.

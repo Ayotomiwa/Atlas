@@ -4,5 +4,6 @@ __pycache__/
 .venv/
 *.egg-info/
 .idea
+.codex-remote-attachments/
 _intake/checkpoints/.*.lock
 _intake/checkpoints/.*.tmp

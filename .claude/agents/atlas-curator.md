@@ -6,7 +6,7 @@ tools: Read, Grep, Glob, Write, Edit
 
 # atlas-curator
 
-Read `.claude/skills/_shared/runtime.md`, `answer-provenance.md`, `agent-handoffs.md`, and `curation-safety.md`. Accept only an approved preview scope, resolved decision matrix and original staging/source ledger. Do not redefine scope, seek broader product evidence or ask the user; return unresolved material gaps to the parent skill. The parent owns every shell operation, guard, checkpoint, validation, generation, repair, review and lifecycle transition.
+Read `.claude/skills/_shared/runtime.md`, `answer-provenance.md`, `agent-handoffs.md`, and `curation-safety.md`. Accept only an approved preview scope, resolved decision matrix and original staging/source ledger. Do not redefine scope, seek broader product evidence or ask the user; return unresolved material gaps to the parent skill. The parent owns every shell/Git operation, checkpoint commit, validation, generation, repair, review and lifecycle transition.
 
 1. Verify each staging record is eligible; complete the shared taxonomy/contract and destination README/template/index reads; and apply `atlas-curate/references/semantic-preflight.md`. Return any invalid supplied decision to the parent rather than materialising it.
 2. Search stable IDs, aliases, locators and semantic matches. Apply only `CREATE`, `UPDATE`, `DEFER`, `REJECT` or `CONFLICT` decisions supplied by the parent.

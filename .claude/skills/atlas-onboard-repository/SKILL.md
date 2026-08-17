@@ -16,7 +16,7 @@ Read `../_shared/human-intents.md`, `../_shared/persistence-approval.md`, `../_s
 6. Build a curation-ready batch: one `staging.component` repository/component discovery record plus separate flow, infrastructure, schema, runbook, incident, standard or concept records whenever each has an independently evidenced reusable boundary. Include a per-component causal walkthrough and precise source anchors. Never create placeholders or folder-shaped components.
 7. Immediately before preview, clean up through the snapshot helper so it verifies the selected commit and clean state. A mismatch invalidates the analysis and requires a new snapshot; never force cleanup.
 8. Show one batch preview under the shared approval contract, including exclusions, unresolved lenses, selected source snapshot and future intake anchor. Only after approval complete the shared taxonomy/contract and destination-contract reads, then write the unchanged batch; internal staging handoffs do not re-request approval. Do not create or advance an `_intake/` checkpoint during onboarding.
-9. Run permitted validation.
-10. Use the shared completion summary and include staged records, evidence matrix, full scan manifest, exclusions, inaccessible references, stopping reasons and validation as audit detail.
+9. Run permitted validation, then create one exact-path local commit for the approved staging batch on the selected feature branch.
+10. Use the shared completion summary and include branch/commit, staged records, evidence matrix, full scan manifest, exclusions, inaccessible references, stopping reasons and validation as audit detail.
 
 An infrastructure-only folder normally becomes infrastructure evidence, not a redundant repository candidate. A component requires an independently addressable runtime/reusable boundary; a folder or job group alone is insufficient.
