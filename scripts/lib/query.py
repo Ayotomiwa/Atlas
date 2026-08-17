@@ -194,6 +194,7 @@ class ExactResolver:
             "status": page.frontmatter.get("status"),
             "trust": self._page_trust(page.frontmatter.get("status")),
             "checkout_state": self._page_checkout_state(page.path, page.frontmatter.get("status")),
+            "primary_domain": page.frontmatter.get("primary_domain", ""),
         }
 
     def _record_diagnostic(self, page: CuratedPage, identifier: object, exc: Exception) -> None:
@@ -319,6 +320,7 @@ class ExactResolver:
                     "map": map_key,
                     "collection": collection,
                     **record,
+                    "status": frontmatter.get("status"),
                     "trust": self._page_trust(frontmatter.get("status")),
                     "checkout_state": self._page_checkout_state(candidate, frontmatter.get("status")),
                 }

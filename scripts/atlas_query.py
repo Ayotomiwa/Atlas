@@ -342,10 +342,10 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "resolve":
         try:
             resolver = ExactResolver(Path(args.root))
+            payload["record"] = resolver.resolve(args.identifier)
         except (MapBuildError, OSError, json.JSONDecodeError) as exc:
             print(f"Atlas query failed: {exc}", file=sys.stderr)
             return 1
-        payload["record"] = resolver.resolve(args.identifier)
         if resolver.warnings:
             payload["warnings"] = resolver.warnings
         if resolver.structured_diagnostics:

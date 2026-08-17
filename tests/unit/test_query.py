@@ -180,6 +180,16 @@ def _page_only_records(root: Path) -> None:
         standard.pop(field, None)
     _write(root, "_curated/standards/general/standard.md", standard)
 
+    runbook = {
+        **standard,
+        "id": "runbook.fixture",
+        "type": "runbook",
+        "title": "Fixture runbook",
+        "description": "A page-only runbook.",
+        "last_exercised": "2026-08-11",
+    }
+    _write(root, "_curated/runbooks/runbook.md", runbook)
+
     infra = {
         **schema,
         "id": "infra.fixture",
@@ -276,6 +286,62 @@ def test_exact_resolver_rejects_archived_or_reassigned_mapped_owners(tmp_path: P
     reassigned = resolver_type(reassigned_root)
     assert reassigned.resolve("comp.fixture") is None
     assert any("Generated map route for 'comp.fixture' is stale" in warning for warning in reassigned.warnings)
+
+
+def test_exact_resolver_preserves_page_only_json_metadata_and_runbooks(tmp_path: Path):
+    root, _ = _root(tmp_path)
+    maps = build_maps(root)
+    _write_maps(root, maps)
+    _page_only_records(root)
+
+    resolver_type = getattr(query_module, "ExactResolver", None)
+    assert resolver_type is not None
+    resolver = resolver_type(root)
+    query = AtlasQuery(root)
+
+    for identifier in ("standard.fixture", "runbook.fixture"):
+        exact = resolver.resolve(identifier)
+        previous = query.resolve(identifier)
+        assert exact["primary_domain"] == previous["primary_domain"]
+        assert exact["page"] == previous["page"]
+    assert resolver.resolve("runbook.fixture")["type"] == "runbook"
+
+
+def test_exact_resolver_overlays_deprecated_mapped_owner_status(tmp_path: Path):
+    root, _ = _root(tmp_path)
+    maps = build_maps(root)
+    _write_maps(root, maps)
+    component_path = root / "_curated/components/test/component.md"
+    component_path.write_text(
+        component_path.read_text(encoding="utf-8").replace("status: curated", "status: deprecated"),
+        encoding="utf-8",
+    )
+
+    resolver_type = getattr(query_module, "ExactResolver", None)
+    assert resolver_type is not None
+    record = resolver_type(root).resolve("comp.fixture")
+
+    assert record["status"] == "deprecated"
+    assert record["trust"] == "historical"
+    assert record["checkout_state"] is None
+
+
+def test_cli_resolve_reports_lazy_map_and_frontmatter_failures(tmp_path: Path, capsys):
+    map_root, _ = _root(tmp_path / "map")
+    maps = build_maps(map_root)
+    _write_maps(map_root, maps)
+    map_output_paths(map_root)["flow-component-map.json"].write_text("{", encoding="utf-8")
+
+    assert atlas_query.main(["--root", str(map_root), "resolve", "comp.fixture"]) == 1
+    assert capsys.readouterr().err.startswith("Atlas query failed: ")
+
+    frontmatter_root, _ = _root(tmp_path / "frontmatter")
+    broken = frontmatter_root / "_curated/standards/broken.md"
+    broken.parent.mkdir(parents=True)
+    broken.write_text("---\ninvalid: [\n---\n", encoding="utf-8")
+
+    assert atlas_query.main(["--root", str(frontmatter_root), "resolve", "missing.fixture"]) == 1
+    assert capsys.readouterr().err.startswith("Atlas query failed: ")
 
 
 def test_cli_resolve_uses_exact_resolver_without_atlas_query(tmp_path: Path, monkeypatch, capsys):
