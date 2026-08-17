@@ -3,9 +3,10 @@ from __future__ import annotations
 from pathlib import Path
 import os
 import re
+from typing import Sequence
 
 from scripts.lib.frontmatter import parse_frontmatter
-from scripts.lib.maps import curated_pages, iso_date_text, load_package_config
+from scripts.lib.maps import CuratedPage, curated_pages, iso_date_text, load_package_config
 from scripts.lib.query import AtlasQuery
 from scripts.lib.taxonomy import load_taxonomy
 
@@ -18,6 +19,10 @@ GOVERNANCE_COLLECTIONS = {
     "incidents": "incident-learning",
     "business-concepts": "business-concept",
 }
+
+# These high-volume queues are queried live instead of projected as generated
+# catalogues. Keep their old generated paths eligible for stale cleanup.
+QUERY_ROUTED_STAGING_COLLECTIONS = {"components", "flows"}
 
 
 CATALOGUE_START = "<!-- atlas:generated-catalogue:start -->"
@@ -57,11 +62,13 @@ def _relative_link(from_path: Path, to_path: Path) -> str:
     return Path(os.path.relpath(to_path, from_path.parent)).as_posix()
 
 
-def _curated_records(root: Path, folder: str, typ: str) -> list[tuple[Path, dict]]:
+def _curated_records(
+    root: Path, folder: str, typ: str, pages: Sequence[CuratedPage]
+) -> list[tuple[Path, dict]]:
     base = root / "_curated" / folder
     return [
         (path, fm)
-        for path, fm, _ in curated_pages(root)
+        for path, fm, _ in pages
         if fm.get("type") == typ and path.is_relative_to(base)
     ]
 
@@ -148,7 +155,7 @@ def _replace_catalogue(text: str, catalogue: str) -> str:
 
 
 def _domain_grouped_staging_collections(root: Path) -> list[tuple[str, str]]:
-    """Return taxonomy-declared staging collections routed by candidate domain."""
+    """Return generated staging collections routed by candidate domain."""
     collections: list[tuple[str, str]] = []
     for record_type in load_taxonomy(root)["types"].get("types") or []:
         name = record_type.get("name")
@@ -161,13 +168,21 @@ def _domain_grouped_staging_collections(root: Path) -> list[tuple[str, str]]:
         ):
             continue
         folder_path = Path(folder)
-        if folder_path.parts[:1] == ("_staging",) and len(folder_path.parts) == 2:
+        if (
+            folder_path.parts[:1] == ("_staging",)
+            and len(folder_path.parts) == 2
+            and folder_path.name not in QUERY_ROUTED_STAGING_COLLECTIONS
+        ):
             collections.append((folder_path.name, name))
     return collections
 
 
-def build_index_outputs(root: str | Path) -> dict[Path, bytes]:
+def build_index_outputs(
+    root: str | Path, *, pages: Sequence[CuratedPage] | None = None
+) -> dict[Path, bytes]:
     root = Path(root).resolve()
+    if pages is None:
+        pages = curated_pages(root)
     config = load_package_config(root)
     outputs: dict[Path, bytes] = {}
     collections = {
@@ -179,7 +194,7 @@ def build_index_outputs(root: str | Path) -> dict[Path, bytes]:
     }
     domain_ids = [item["id"] for item in config.get("domains") or []]
     for folder, typ in collections.items():
-        rows = _curated_records(root, folder, typ)
+        rows = _curated_records(root, folder, typ, pages)
         index_path = root / "_curated" / folder / "index.md"
         catalogue = _catalogue(rows, index_path)
         if index_path.exists():
@@ -208,7 +223,7 @@ def build_index_outputs(root: str | Path) -> dict[Path, bytes]:
 
     categories = load_taxonomy(root)["categories"].get("categories") or []
     for folder, typ in GOVERNANCE_COLLECTIONS.items():
-        rows = _curated_records(root, folder, typ)
+        rows = _curated_records(root, folder, typ, pages)
         index_path = root / "_curated" / folder / "index.md"
         mode = "standard" if folder == "standards" else "governance"
         catalogue = _catalogue(rows, index_path, mode=mode)
@@ -297,6 +312,7 @@ def generated_index_candidates(root: str | Path) -> set[Path]:
         *(root / "_curated" / folder for folder in ("repositories", "components", "flows", "infra", "schema-info")),
         *(root / "_curated" / folder for folder in GOVERNANCE_COLLECTIONS),
         *(root / "_staging" / folder for folder, _ in _domain_grouped_staging_collections(root)),
+        *(root / "_staging" / folder for folder in QUERY_ROUTED_STAGING_COLLECTIONS),
     ]
     candidates: set[Path] = set()
     for base in bases:
@@ -572,19 +588,21 @@ def _conflict_block(fm: dict) -> str | None:
     return "\n".join(lines).rstrip()
 
 
-def build_page_view_outputs(root: str | Path, *, compiled_maps: dict[str, dict] | None = None) -> dict[Path, bytes]:
+def build_page_view_outputs(
+    root: str | Path,
+    *,
+    compiled_maps: dict[str, dict] | None = None,
+    pages: Sequence[CuratedPage] | None = None,
+) -> dict[Path, bytes]:
     root = Path(root).resolve()
+    if pages is None:
+        pages = curated_pages(root)
     outputs: dict[Path, bytes] = {}
-    query = AtlasQuery(root, compiled_maps=compiled_maps)
-    for path in sorted((root / "_curated").rglob("*.md")):
-        if (
-            path.name in {"README.md", "index.md", "_template.md"}
-            or "maps" in path.parts
-            or "status" in path.parts
-        ):
-            continue
+    query = AtlasQuery(root, compiled_maps=compiled_maps, pages=pages)
+    for page in pages:
+        path = page.path
+        fm = page.frontmatter
         text = path.read_text(encoding="utf-8")
-        fm, _ = parse_frontmatter(text)
         rendered = text
         if fm.get("type") == "flow":
             rendered = _managed(rendered, "steps-table", _flow_steps_table(root, path, fm, query.routes))

@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Sequence
 import datetime as dt
 import json
 import re
+from typing import Iterator
 
 from scripts.lib.frontmatter import parse_frontmatter
 from scripts.lib.ids import valid_curated_id
@@ -59,6 +61,21 @@ class MapDiagnostic:
 
     def render(self) -> str:
         return f"{self.source}: {self.relationship} -> {self.target or '<missing>'}: {self.reason}"
+
+
+@dataclass(frozen=True)
+class CuratedPage:
+    """One parsed curated Markdown page, shared by map and query readers."""
+
+    path: Path
+    frontmatter: dict
+    body: str
+
+    def __iter__(self):
+        """Keep existing tuple-unpacking callers compatible during the lazy migration."""
+        yield self.path
+        yield self.frontmatter
+        yield self.body
 
 
 def stable_bytes(obj: object) -> bytes:
@@ -139,16 +156,15 @@ def map_output_paths(root: str | Path) -> dict[str, Path]:
     return {name: root / config["maps"][key] for name, key in MAP_KEYS.items()}
 
 
-def curated_pages(
+def iter_curated_pages(
     root: str | Path,
     *,
     collect_errors: list[MapValidationIssue] | None = None,
-) -> list[tuple[Path, dict, str]]:
+) -> Iterator[CuratedPage]:
     root = Path(root)
     curated = root / "_curated"
-    out: list[tuple[Path, dict, str]] = []
     if not curated.exists():
-        return out
+        return
     for path in sorted(curated.rglob("*.md")):
         rel = path.relative_to(root)
         if path.name in {"README.md", "index.md", "_template.md"}:
@@ -164,8 +180,16 @@ def curated_pages(
             collect_errors.append(MapValidationIssue(rel.as_posix(), None, f"invalid frontmatter: {exc}"))
             continue
         if fm.get("status") != "archived":
-            out.append((path, fm, body))
-    return out
+            yield CuratedPage(path, fm, body)
+
+
+def curated_pages(
+    root: str | Path,
+    *,
+    collect_errors: list[MapValidationIssue] | None = None,
+) -> list[CuratedPage]:
+    """Materialise curated pages for compatibility with existing bulk callers."""
+    return list(iter_curated_pages(root, collect_errors=collect_errors))
 
 
 def iso_date_text(value: object) -> str:
@@ -724,6 +748,7 @@ def _metadata(name: str, config: dict, map_contract: dict) -> dict:
 def build_maps(
     root: str | Path,
     *,
+    pages: Sequence[CuratedPage] | None = None,
     include_diagnostics: bool = False,
     collect_errors: list[MapValidationIssue] | None = None,
     include_body_questions: bool = True,
@@ -755,7 +780,8 @@ def build_maps(
     active_types = {name: spec for name, spec in type_specs.items() if spec.get("status") == "active"}
     domain_ids = {item["id"] for item in config.get("domains") or []}
 
-    pages = curated_pages(root, collect_errors=collect_errors)
+    if pages is None:
+        pages = curated_pages(root, collect_errors=collect_errors)
     page_by_id: dict[str, tuple[Path, dict, str]] = {}
     for absolute_path, fm, body in pages:
         rel = absolute_path.relative_to(root)

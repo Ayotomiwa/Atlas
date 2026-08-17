@@ -36,6 +36,11 @@ def broken_links(path: str | Path) -> list[str]:
         clean = _clean_target(target)
         if not clean:
             continue
+        # Windows normalises a path made only of dots to the containing
+        # directory. Markdown's common `...` placeholder is not a real route.
+        if clean == "...":
+            out.append(raw)
+            continue
         if not (path.parent / clean).resolve().exists():
             out.append(raw)
     return out
@@ -47,7 +52,7 @@ def links_to(path: str | Path, target: str | Path) -> bool:
     target = Path(target).resolve()
     for raw in markdown_links(path.read_text(encoding="utf-8")):
         clean = _clean_target(raw)
-        if not clean or raw.startswith(REMOTE_SCHEMES):
+        if not clean or clean == "..." or raw.startswith(REMOTE_SCHEMES):
             continue
         if (path.parent / clean).resolve() == target:
             return True

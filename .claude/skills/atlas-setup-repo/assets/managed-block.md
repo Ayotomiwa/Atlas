@@ -25,6 +25,8 @@ Atlas relevance triggers:
 
 Typed search and index fallback: resolve exact stable IDs directly; otherwise use type-directed candidate search. If candidates are weak or ambiguous, use the relevant Atlas index. Open the selected curated page and follow its links; use maps only for reverse or multi-hop traversal.
 
+Within one conversation, keep only ephemeral Atlas session context: Atlas/product roots and current path, selected stable IDs/opened curated pages, inspected source paths, the coverage endpoint, and whether the checkout advisory was disclosed. Reuse it only while repository, record/evidence and question type are unchanged. Re-enter Atlas for a repository/record change, suspected source/checkout change, the end of recorded coverage, or impact, ownership, conflict, standards, recovery or other cross-boundary work; carry still-valid context through internal handoffs. New conversations start cold and persist none of this state.
+
 Trust rules: preserve ambiguity; disclose `not-verified` repository context in every answer that uses it; treat every `_curated/` page with `status: curated` as authoritative; treat `_staging/` as evidence only; disclose source fallback; and give one short non-blocking checkout advisory outside `main`/`master` or for modified/untracked pages.
 
 Missing-Atlas instructions: if Atlas cannot be resolved or its manifest is invalid, state that Atlas was not consulted, tell the user to restart with `claude --add-dir <path-to-current-Atlas-checkout>`, and offer to continue with bounded repository evidence. Do not interpret an unavailable or moved Atlas checkout as absent coverage.

@@ -7,8 +7,10 @@ import json
 import re
 import subprocess
 from urllib.parse import urlsplit
+from typing import Sequence
 
-from scripts.lib.maps import curated_pages, load_package_config
+from scripts.lib.frontmatter import parse_frontmatter
+from scripts.lib.maps import CuratedPage, curated_pages, iter_curated_pages, load_package_config
 from scripts.lib.questions import QuestionParseError, parse_open_questions
 from scripts.lib.staging import ACTIVE_STAGING_STATUSES, read_staging_pages
 from scripts.lib.structured import StructuredFrontmatterError, parse_conflicts, parse_data_assets
@@ -107,13 +109,289 @@ def _specificity(path: str) -> int:
     return 0 if path == "." else len(path.split("/"))
 
 
+class ExactResolver:
+    """Resolve one stable ID without constructing the traversal/search graph."""
+
+    def __init__(self, root: str | Path):
+        self.root = Path(root).resolve()
+        self.config = load_package_config(self.root)
+        self.taxonomy = load_taxonomy(self.root)
+        self._branch = self._git_branch()
+        self.warnings = self._branch_warnings()
+        self.structured_diagnostics: list[dict] = []
+        self._stale_identifiers: set[str] = set()
+
+    def _git_branch(self) -> str | None:
+        try:
+            result = subprocess.run(
+                ["git", "branch", "--show-current"],
+                cwd=self.root,
+                check=True,
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            return result.stdout.strip()
+        except (OSError, subprocess.SubprocessError):
+            return None
+
+    def _branch_warnings(self) -> list[str]:
+        if self._branch is None:
+            return ["Atlas branch could not be determined; curated records remain authoritative."]
+        if not self._branch:
+            return ["Atlas is on a detached checkout; curated records remain authoritative."]
+        if self._branch not in {"main", "master"}:
+            return [
+                f"Atlas is on {self._branch}, not main or master; curated records are authoritative, "
+                "but this checkout may include unmerged changes."
+            ]
+        return []
+
+    @staticmethod
+    def _page_trust(status: object) -> str:
+        if status == "curated":
+            return "authoritative"
+        if status == "deprecated":
+            return "historical"
+        return "unknown"
+
+    def _page_checkout_state(self, path: Path, status: object) -> str | None:
+        if status != "curated":
+            return None
+        if self._branch is None:
+            return "git-unknown"
+        relative = path.relative_to(self.root).as_posix()
+        try:
+            tracked = subprocess.run(
+                ["git", "ls-files", "--error-unmatch", "--", relative],
+                cwd=self.root,
+                capture_output=True,
+                text=True,
+                timeout=5,
+            ).returncode == 0
+            unchanged = subprocess.run(
+                ["git", "diff", "--quiet", "HEAD", "--", relative],
+                cwd=self.root,
+                timeout=5,
+            ).returncode == 0
+        except (OSError, subprocess.SubprocessError):
+            return "git-unknown"
+        if not tracked:
+            return "untracked"
+        if not unchanged:
+            return "modified"
+        if not self._branch:
+            return "detached"
+        if self._branch not in {"main", "master"}:
+            return "off-main"
+        return "main-clean"
+
+    def _page_route(self, page: CuratedPage) -> dict:
+        return {
+            "id": page.frontmatter.get("id"),
+            "type": page.frontmatter.get("type"),
+            "title": page.frontmatter.get("title", ""),
+            "page": page.path.relative_to(self.root).as_posix(),
+            "status": page.frontmatter.get("status"),
+            "trust": self._page_trust(page.frontmatter.get("status")),
+            "checkout_state": self._page_checkout_state(page.path, page.frontmatter.get("status")),
+            "primary_domain": page.frontmatter.get("primary_domain", ""),
+        }
+
+    def _record_diagnostic(self, page: CuratedPage, identifier: object, exc: Exception) -> None:
+        self.structured_diagnostics.append(
+            {
+                "page": page.path.relative_to(self.root).as_posix(),
+                "record_id": identifier,
+                "message": str(exc),
+            }
+        )
+
+    @staticmethod
+    def _concise(value: object, limit: int = 240) -> str:
+        text = re.sub(r"\s+", " ", str(value or "")).strip()
+        return text if len(text) <= limit else text[: limit - 3].rstrip() + "..."
+
+    def _asset_record(self, page: CuratedPage, identifier: str) -> dict | None:
+        frontmatter = page.frontmatter
+        if frontmatter.get("type") != "schema-info":
+            return None
+        try:
+            assets = parse_data_assets(page.path.relative_to(self.root), frontmatter, self.taxonomy)
+        except StructuredFrontmatterError as exc:
+            self._record_diagnostic(page, frontmatter.get("id"), exc)
+            return None
+        for asset in assets:
+            if asset["id"] != identifier:
+                continue
+            return {
+                **asset,
+                "type": "data-asset",
+                "title": asset["name"],
+                "description": self._concise(asset.get("description")),
+                "status": frontmatter.get("status"),
+                "trust": self._page_trust(frontmatter.get("status")),
+                "checkout_state": self._page_checkout_state(page.path, frontmatter.get("status")),
+                "primary_domain": frontmatter.get("primary_domain", ""),
+                "related_domains": [
+                    value for value in frontmatter.get("related_domains") or [] if isinstance(value, str)
+                ],
+                "page": page.path.relative_to(self.root).as_posix(),
+                "collection_index": SEARCH_INDEXES["data-asset"],
+                "aliases": [],
+                "keywords": [],
+                "repository_locator": "",
+                "repository_root": "",
+                "repository_paths": [],
+                "package_path": "",
+                "source_paths": list(asset.get("evidence") or []),
+                "parent_schema": frontmatter.get("id"),
+                "collection": "assets",
+            }
+        return None
+
+    def _resource_record(self, page: CuratedPage, identifier: str) -> dict | None:
+        frontmatter = page.frontmatter
+        if frontmatter.get("type") != "infra":
+            return None
+        for resource in frontmatter.get("promoted_resources") or []:
+            if not isinstance(resource, dict) or resource.get("id") != identifier:
+                continue
+            return {
+                "id": identifier,
+                "type": "infra-resource",
+                "title": str(resource.get("name") or identifier),
+                "description": self._concise(resource.get("promotion_reason")),
+                "status": frontmatter.get("status"),
+                "trust": self._page_trust(frontmatter.get("status")),
+                "checkout_state": self._page_checkout_state(page.path, frontmatter.get("status")),
+                "primary_domain": frontmatter.get("primary_domain", ""),
+                "related_domains": [
+                    value for value in frontmatter.get("related_domains") or [] if isinstance(value, str)
+                ],
+                "page": page.path.relative_to(self.root).as_posix(),
+                "collection_index": SEARCH_INDEXES["infra-resource"],
+                "aliases": [],
+                "keywords": [],
+                "repository_locator": "",
+                "repository_root": "",
+                "repository_paths": [],
+                "package_path": frontmatter.get("package_path", ""),
+                "source_paths": [str(resource.get("defined_in_path") or "")],
+                "parent_package": frontmatter.get("id"),
+                "resource_type": resource.get("resource_type", ""),
+            }
+        return None
+
+    def _page_owns(self, page: CuratedPage, identifier: str) -> bool:
+        if page.frontmatter.get("id") == identifier:
+            return True
+        return self._asset_record(page, identifier) is not None or self._resource_record(page, identifier) is not None
+
+    def _mapped_record(self, identifier: str) -> dict | None:
+        for map_key, relative in self.config["maps"].items():
+            path = self.root / relative
+            if not path.exists():
+                continue
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            for collection, records in payload.items():
+                if collection == "metadata" or not isinstance(records, dict):
+                    continue
+                record = records.get(identifier)
+                if not isinstance(record, dict):
+                    continue
+                routed_page = record.get("page")
+                candidate = (self.root / routed_page).resolve() if isinstance(routed_page, str) else None
+                if candidate is not None and not candidate.is_relative_to(self.root):
+                    candidate = None
+                try:
+                    frontmatter, body = parse_frontmatter(candidate) if candidate and candidate.exists() else ({}, "")
+                except Exception:
+                    frontmatter, body = {}, ""
+                page = CuratedPage(candidate, frontmatter, body) if candidate and frontmatter else None
+                if page is None or frontmatter.get("status") == "archived" or not self._page_owns(page, identifier):
+                    if identifier not in self._stale_identifiers:
+                        self._stale_identifiers.add(identifier)
+                        self.warnings.append(
+                            f"Generated map route for {identifier!r} is stale; its route was not trusted."
+                        )
+                    continue
+                return {
+                    "id": identifier,
+                    "map": map_key,
+                    "collection": collection,
+                    **record,
+                    "status": frontmatter.get("status"),
+                    "trust": self._page_trust(frontmatter.get("status")),
+                    "checkout_state": self._page_checkout_state(candidate, frontmatter.get("status")),
+                }
+        return None
+
+    def _find_owner_page(self, identifier: str) -> CuratedPage | None:
+        for page in iter_curated_pages(self.root):
+            if page.frontmatter.get("id") == identifier:
+                return page
+        return None
+
+    def _conflict(self, identifier: str) -> dict | None:
+        owner_id, separator, _ = identifier.partition("#")
+        if not separator or not owner_id:
+            return None
+        page = self._find_owner_page(owner_id)
+        if page is None:
+            return None
+        try:
+            conflicts = parse_conflicts(page.path.relative_to(self.root), page.frontmatter)
+        except StructuredFrontmatterError as exc:
+            self._record_diagnostic(page, owner_id, exc)
+            return None
+        for conflict in conflicts:
+            if conflict["id"] == identifier:
+                route = self._page_route(page)
+                return {
+                    **conflict,
+                    "type": "conflict",
+                    "owner_id": owner_id,
+                    "owner_title": page.frontmatter.get("title", ""),
+                    "page": route["page"],
+                    "status": route["status"],
+                    "trust": route["trust"],
+                    "checkout_state": route["checkout_state"],
+                }
+        return None
+
+    def resolve(self, identifier: str) -> dict | None:
+        if "#" in identifier:
+            return self._conflict(identifier)
+        mapped = self._mapped_record(identifier)
+        if mapped is not None:
+            return mapped
+        for page in iter_curated_pages(self.root):
+            if page.frontmatter.get("id") == identifier:
+                return self._page_route(page)
+            asset = self._asset_record(page, identifier)
+            if asset is not None:
+                return asset
+            resource = self._resource_record(page, identifier)
+            if resource is not None:
+                return resource
+        return None
+
+
 class AtlasQuery:
-    def __init__(self, root: str | Path, *, compiled_maps: dict[str, dict] | None = None):
+    def __init__(
+        self,
+        root: str | Path,
+        *,
+        compiled_maps: dict[str, dict] | None = None,
+        pages: Sequence[CuratedPage] | None = None,
+    ):
         self.root = Path(root).resolve()
         self.config = load_package_config(self.root)
         self.taxonomy = load_taxonomy(self.root)
         self.map_contract = load_contracts(self.root)["map_fields"]
         self.compiled_maps = compiled_maps
+        self.pages = pages if pages is not None else curated_pages(self.root)
         self.records: dict[str, dict] = {}
         self.routes: dict[str, dict] = {}
         self.search_records: dict[str, dict] = {}
@@ -123,6 +401,7 @@ class AtlasQuery:
         self.question_diagnostics: list[dict] = []
         self.structured_diagnostics: list[dict] = []
         self._branch = self._git_branch()
+        self._checkout_states: dict[Path, str | None] = {}
         self.warnings = self._branch_warnings()
         self._load()
 
@@ -167,8 +446,13 @@ class AtlasQuery:
     def _page_checkout_state(self, path: Path, status: object) -> str | None:
         if status != "curated":
             return None
+        path = path.resolve()
+        if path in self._checkout_states:
+            return self._checkout_states[path]
         if self._branch is None:
-            return "git-unknown"
+            state = "git-unknown"
+            self._checkout_states[path] = state
+            return state
         relative = path.relative_to(self.root).as_posix()
         try:
             tracked = subprocess.run(
@@ -184,16 +468,21 @@ class AtlasQuery:
                 timeout=5,
             ).returncode == 0
         except (OSError, subprocess.SubprocessError):
-            return "git-unknown"
+            state = "git-unknown"
+            self._checkout_states[path] = state
+            return state
         if not tracked:
-            return "untracked"
-        if not unchanged:
-            return "modified"
-        if not self._branch:
-            return "detached"
-        if self._branch not in {"main", "master"}:
-            return "off-main"
-        return "main-clean"
+            state = "untracked"
+        elif not unchanged:
+            state = "modified"
+        elif not self._branch:
+            state = "detached"
+        elif self._branch not in {"main", "master"}:
+            state = "off-main"
+        else:
+            state = "main-clean"
+        self._checkout_states[path] = state
+        return state
 
     def _load(self) -> None:
         map_payloads: list[tuple[str, dict]] = []
@@ -222,7 +511,7 @@ class AtlasQuery:
                         "page": record.get("page", ""),
                         "status": record.get("status"),
                     }
-        pages = curated_pages(self.root)
+        pages = self.pages
         for path, frontmatter, _ in pages:
             identifier = frontmatter.get("id")
             if isinstance(identifier, str):
@@ -688,7 +977,7 @@ class AtlasQuery:
         routed = self.routes.get(identifier)
         if routed:
             return routed
-        for path, frontmatter, _ in curated_pages(self.root):
+        for path, frontmatter, _ in self.pages:
             if frontmatter.get("id") == identifier:
                 route = {
                     "id": identifier,

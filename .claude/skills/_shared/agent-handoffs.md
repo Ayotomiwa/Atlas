@@ -5,6 +5,7 @@ Give an analyst:
 - objective and requested output;
 - absolute Atlas root, product Git root and current path;
 - typed find/path-context candidates or exact stable IDs, including `not-verified` state;
+- reusable session state: selected stable IDs, curated pages already opened, product-source paths already inspected, the coverage endpoint and whether the checkout advisory was disclosed;
 - authorised scan boundary, exclusions and fallback limits;
 - known user-confirmed facts and unresolved ambiguity;
 - validation deferrals and write prohibition where applicable.

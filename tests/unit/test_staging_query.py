@@ -451,3 +451,14 @@ def test_staging_rejects_unknown_filters_and_invalid_date(tmp_path: Path, capsys
         ["--root", str(tmp_path), "staging", "--date", "2026-02-30"]
     ) == 1
     assert "valid ISO YYYY-MM-DD date" in capsys.readouterr().out
+
+
+def test_staging_query_retrieves_component_and_flow_records_by_domain(tmp_path: Path):
+    """The staging command is the queue interface for both former catalogue buckets."""
+    _fixture(tmp_path)
+
+    components = query_staging(tmp_path, buckets=["components"], domain="payments")
+    flows = query_staging(tmp_path, buckets=["flows"], domain="orders")
+
+    assert [record["id"] for record in components["results"]] == ["STG-20260810-payments"]
+    assert [record["id"] for record in flows["results"]] == ["STG-20260809-order-flow"]

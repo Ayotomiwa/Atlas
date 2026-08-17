@@ -15,6 +15,7 @@ from scripts.lib.maps import (
     MapDiagnostic,
     MapValidationIssue,
     build_maps,
+    curated_pages,
     map_output_paths,
     stable_bytes,
 )
@@ -24,8 +25,10 @@ def generation_preflight(
     root: Path,
 ) -> tuple[dict[Path, bytes] | None, list[MapDiagnostic], list[MapValidationIssue]]:
     errors: list[MapValidationIssue] = []
+    pages = curated_pages(root, collect_errors=errors)
     maps, diagnostics = build_maps(
         root,
+        pages=pages,
         include_diagnostics=True,
         collect_errors=errors,
         include_body_questions=True,
@@ -37,8 +40,8 @@ def generation_preflight(
     outputs: dict[Path, bytes] = {
         map_output_paths(root)[name]: stable_bytes(value) for name, value in maps.items()
     }
-    outputs.update(build_index_outputs(root))
-    outputs.update(build_page_view_outputs(root, compiled_maps=maps))
+    outputs.update(build_index_outputs(root, pages=pages))
+    outputs.update(build_page_view_outputs(root, compiled_maps=maps, pages=pages))
     return outputs, diagnostics, []
 
 
