@@ -12,13 +12,13 @@ source_type: ""
 
 # Infrastructure evidence: <package or topic>
 
-> Store this record at `_staging/infra/<candidate-domain-or-unassigned>/<STG-ID>.md`. Use a candidate domain only when evidence or a user confirmation supports it; the committed path remains immutable.
+> Store this record at `_staging/infra/<candidate-domain-or-unassigned>/<STG-ID>.md`. Use exactly one grouping folder. Choose a candidate domain only when evidence or a user confirmation supports it; otherwise use `unassigned`. Do not encode repository or package paths in the grouping, and remember that the committed path remains immutable.
 
 > Capture the package/resource context deeply enough to preserve structure, relationships and operational significance. This is raw evidence, not a trusted infrastructure model. Do not promote every resource or infer consumers/blast radius from names alone.
 
 ## Summary
 
-Identify the infrastructure package/resource context, why it was inspected and why the evidence is reusable.
+State what package or infrastructure context was inspected, what question triggered the work, and why the result is reusable. Use plain technical language before Atlas terms.
 
 ### Candidate package identity and scope
 
@@ -64,7 +64,7 @@ Capture only files/paths that matter to understanding deployment, configuration,
 
 ### Package and resource behavior
 
-Explain in prose how this package is deployed or invoked, what the important resources do, and how evidenced reads, writes, triggers, schedules, permissions, monitoring or deployment actions connect them to components and flows. Distinguish declared configuration from observed runtime behavior.
+Explain causally how deployment or execution introduces the important resources and how evidenced reads, writes, triggers, schedules, permissions, monitoring, or deployment actions connect them to components and flows. Distinguish declared configuration from observed runtime behavior.
 
 - Deployment/execution path:
 - Resource responsibilities and causal interactions:

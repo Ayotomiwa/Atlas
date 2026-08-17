@@ -2,6 +2,10 @@
 
 `repository-component-map.json` separates source topology from architectural behavior. Repositories answer where code is organised; components answer what independently addressable units do.
 
+## When to use this map
+
+Use it after selecting a repository or component ID when you need source membership, direct component dependencies, durable I/O, or infrastructure actions. Open the page for architectural explanation and coverage limits; use the query tool for reverse and multi-hop impact.
+
 ## Shape
 
 The common `metadata` object is described in the maps overview. `repositories` and `components` are keyed by stable IDs.

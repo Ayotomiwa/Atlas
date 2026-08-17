@@ -6,7 +6,7 @@
 
 Use this bucket when the important knowledge is primarily about infrastructure rather than application/component behaviour.
 
-Store a record at `_staging/infra/<domain>/<STG-ID>.md` only when its candidate primary domain is evidenced or user-confirmed. Otherwise use `unassigned`. A committed staging path is immutable by policy, so folder neatness is not evidence.
+Group records one level below the bucket by candidate domain: use `_staging/infra/<domain>/<STG-ID>.md` only when the candidate primary domain is evidenced or user-confirmed; otherwise use `_staging/infra/unassigned/<STG-ID>.md`. Do not use repository paths, package paths, or nested folders as grouping. A committed staging path is immutable by policy, so folder neatness is not evidence.
 
 A useful infra entry should help an investigator answer:
 
@@ -61,7 +61,7 @@ If infrastructure knowledge was discovered during a change, it may first appear 
 
 Stage the **meaningful infrastructure package/context first**. An entry may describe the package layout and multiple internal resources without creating one staging file per cloud resource.
 
-Lower-level resources normally remain internal evidence. When a resource looks operationally significant, capture evidence against the canonical [curated resource-promotion criteria](../../_curated/infra/README.md#resource-promotion). This is **input to a later promotion decision, never the decision itself**.
+Lower-level resources normally remain internal evidence. Record operational significance when it is observed, but leave the promotion decision to curation.
 
 ## Discovery lenses
 
@@ -107,9 +107,9 @@ Do not assume every resource should become a promoted impact-analysis node.
 
 ## Evidence expectations
 
-Prefer concrete references such as:
-
 A curation-ready record also includes a concise package/resource behavior narrative. Explain how deployment or execution introduces the important resources, which natural actions connect them to components/flows, and which operational or deletion consequences are evidenced. A resource inventory alone is insufficient.
+
+Prefer concrete references such as:
 
 - package/template/module paths;
 - service/deployment metadata;

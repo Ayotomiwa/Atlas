@@ -8,8 +8,42 @@ Most engineers can use Atlas through ordinary language: ask a question, teach it
 | Teach Atlas | `atlas-stage`, `atlas-questions` | `atlas_query.py questions`, `staging`; `atlas_lint.py` |
 | Sync Atlas | `atlas-onboard-repository`, `atlas-onboard-standards`, `atlas-stage-changes` | `atlas_source_snapshot.py`, `atlas_query.py context`, `atlas_intake.py` |
 | Curate Atlas | `atlas-curate`; `atlas-review` for an audit/second opinion | Git commit ranges, `rebuild_atlas.py`, `atlas_lint.py`; `atlas_review_snapshot.py` only for an uncommitted audit |
+| Improve Atlas prose | `atlas-humanize`; `atlas-lint` for correctness/contradictions | Atlas lint plus focused parser/freshness checks when relevant |
 
 These names are useful for explicit invocation but are not a prerequisite for normal use. Claude chooses among them from the user's request and current context.
+
+## Package identity, domains and federation
+
+[`atlas-package.json`](../atlas-package.json) is the machine-only manifest. It declares package identity, ownership, aliases, controlled domains, entry points, map paths, taxonomy paths, and compiler-contract paths. Once a package is known, normal navigation opens its indexes, maps, stable IDs, or pages directly; the manifest is configuration, not a mandatory human navigation hop.
+
+Register a domain before adding the first domain-routed repository, component, flow, infrastructure, or schema page:
+
+```json
+{
+  "id": "orders",
+  "title": "Orders",
+  "aliases": ["order-processing"],
+  "routing_description": "Order capture, validation and fulfilment architecture."
+}
+```
+
+The page folder and `primary_domain` must match a registered domain. Domain registration is not required merely to begin using Atlas or to capture evidence that is not yet a curated architecture page. Domains and paths route records; stable IDs remain unchanged when those locators move.
+
+A future Atlas-core registry needs only the package ID, aliases, authorised manifest location, and package status. The Datalens package aliases include `datalens`, `data-lens`, and `clearwater`.
+
+## Navigation model
+
+`find` performs deterministic candidate retrieval over curated frontmatter, embedded data assets, and promoted resources. It searches identifiers, titles, descriptions, aliases, optional keywords, types, domains, conflict text, and low-weight locators. It has no embeddings, vector store, or language model. Claude selects from the candidates using the question and evidence, or preserves ambiguity.
+
+After a stable ID is selected, pages and their direct links remain the main semantic navigation surface. Maps are used for reverse or multi-hop traversal. Lifecycle determines semantic trust; Git reports a separate checkout advisory and does not downgrade a curated page. A `not-verified` path match stays available but must be disclosed as routing rather than identity proof.
+
+When Claude or Codex runs inside the Atlas checkout, questions about stored engineering knowledge search curated records without treating the Atlas repository itself as product-path evidence. Questions about Atlas scripts, contracts, or workflow implementation use local source instead.
+
+## Persisted writing
+
+The shared `clear-writing.md` contract applies while Atlas skills and agents draft pages or durable reports. It requires plain technical language while preserving evidence, confidence, coverage, controlled terms, safety requirements, parser-owned headings, tables, links, and generated markers.
+
+Use `atlas-humanize` for an approved, bounded prose cleanup. It separates style problems from semantic contradictions, refuses generated content and committed staging evidence, previews once, and verifies that no material claim changed or disappeared. Use `atlas-lint` for validation failures, broken links, contradictions, and evidence-sensitive repair routing.
 
 ## Source snapshots
 

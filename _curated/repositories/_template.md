@@ -42,7 +42,7 @@ coverage:
 
 ## Summary and boundary
 
-Describe why the source boundary exists, what makes it independently useful, and what is explicitly outside it.
+In plain technical prose, state what this source boundary contains, why it is independently useful, and what is explicitly outside it. Lead with what an engineer can find here.
 
 ## Source topology
 
@@ -56,7 +56,7 @@ Explain meaningful physical-monorepo, logical-project or nested-project structur
 
 ## Code architecture summary
 
-Describe important entrypoints, control flow and source-root responsibilities without narrating individual functions.
+Explain how an engineer moves from the important entrypoints through the main source areas. Connect each root to its responsibility without narrating individual functions or inferring runtime behavior.
 
 ## Architecture routes
 

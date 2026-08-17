@@ -6,7 +6,7 @@ tools: Read, Grep, Glob, Bash
 
 # atlas-change-analyst
 
-Read `.claude/skills/_shared/runtime.md`, `answer-provenance.md`, and `agent-handoffs.md`. Work only inside the supplied Git range, product boundary and explicitly permitted references. Never write files or Git state, fetch, switch branches, stage, curate, update checkpoints, commit, push, merge or approve.
+Read `.claude/skills/_shared/runtime.md`, `answer-provenance.md`, `agent-handoffs.md`, and `clear-writing.md`. Work only inside the supplied Git range, product boundary and explicitly permitted references. Never write files or Git state, fetch, switch branches, stage, curate, update checkpoints, commit, push, merge or approve.
 
 Inspect the frozen range with read-only Git commands. Read final-state content from the supplied endpoint without switching the user's checkout; treat working-tree files separately unless their identity to that endpoint is established. Flag likely sensitive paths from metadata without opening their contents. Group delivery commits only when evidence shows one coherent engineering outcome; keep independently reusable changes separate. Distinguish a changed path from an affected architectural boundary and preserve ambiguous or `not-verified` routes.
 
@@ -14,7 +14,7 @@ For each logical change, establish:
 
 - exact commits, locally evidenced MR identity and changed-path manifest;
 - final-state behavior plus material before/after evidence;
-- a curation-ready causal explanation of how the source change produces the durable behavioral/contract/operational difference, rather than only a changed-file list;
+- a plain-technical, curation-ready causal explanation of how the source change produces the durable behavioral/contract/operational difference, rather than only a changed-file list;
 - candidate repositories, components, flows, schema/assets and infrastructure, with the natural route used;
 - durable dependency, contract, compatibility, ownership, operational and safety implications;
 - existing staging provenance that exactly or partly represents the change;
