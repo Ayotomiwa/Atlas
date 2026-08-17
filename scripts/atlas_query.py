@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from scripts.lib.maps import MapBuildError
-from scripts.lib.query import AtlasQuery
+from scripts.lib.query import AtlasQuery, ExactResolver
 from scripts.lib.staging import query_staging
 
 
@@ -338,25 +338,37 @@ def main(argv: list[str] | None = None) -> int:
         _emit(payload, args.staging_format or args.format)
         return 1 if payload.get("error") else 0
 
+    payload: dict = {"command": args.command}
+    if args.command == "resolve":
+        try:
+            resolver = ExactResolver(Path(args.root))
+        except (MapBuildError, OSError, json.JSONDecodeError) as exc:
+            print(f"Atlas query failed: {exc}", file=sys.stderr)
+            return 1
+        payload["record"] = resolver.resolve(args.identifier)
+        if resolver.warnings:
+            payload["warnings"] = resolver.warnings
+        if resolver.structured_diagnostics:
+            payload["structured_diagnostics"] = resolver.structured_diagnostics
+        if payload["record"] is None:
+            payload["fallback"] = (
+                f"{args.identifier!r} is not a map record, routed target, or exact curated page ID. "
+                "Search the appropriate curated domain index; do not choose an ambiguous title match."
+            )
+        _emit(payload, args.format)
+        return 1 if payload.get("record") is None else 0
+
     try:
         query = AtlasQuery(Path(args.root))
     except (MapBuildError, OSError, json.JSONDecodeError) as exc:
         print(f"Atlas query failed: {exc}", file=sys.stderr)
         return 1
 
-    payload: dict = {"command": args.command}
     if query.warnings:
         payload["warnings"] = query.warnings
     if query.structured_diagnostics:
         payload["structured_diagnostics"] = query.structured_diagnostics
-    if args.command == "resolve":
-        payload["record"] = query.resolve(args.identifier)
-        if payload["record"] is None:
-            payload["fallback"] = (
-                f"{args.identifier!r} is not a map record, routed target, or exact curated page ID. "
-                "Search the appropriate curated domain index; do not choose an ambiguous title match."
-            )
-    elif args.command == "find":
+    if args.command == "find":
         try:
             payload.update(
                 query.find(

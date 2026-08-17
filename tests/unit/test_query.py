@@ -8,8 +8,10 @@ import subprocess
 import yaml
 
 from scripts.lib.frontmatter import parse_frontmatter
-from scripts.lib.maps import build_maps
+from scripts import atlas_query
+from scripts.lib.maps import build_maps, map_output_paths, stable_bytes
 from scripts.lib.query import AtlasQuery
+import scripts.lib.query as query_module
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -154,6 +156,173 @@ def _git_commit(root: Path) -> None:
     subprocess.run(["git", "config", "user.email", "fixture@example.invalid"], cwd=root, check=True)
     subprocess.run(["git", "add", "."], cwd=root, check=True)
     subprocess.run(["git", "commit", "-m", "fixture"], cwd=root, check=True, capture_output=True)
+
+
+def _write_maps(root: Path, maps: dict[str, dict]) -> None:
+    for name, payload in maps.items():
+        path = map_output_paths(root)[name]
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(stable_bytes(payload))
+
+
+def _page_only_records(root: Path) -> None:
+    schema, _ = parse_frontmatter(root / "_curated/schema-info/test/schema.md")
+    standard = {
+        **schema,
+        "id": "standard.fixture",
+        "type": "standard",
+        "title": "Fixture standard",
+        "description": "A page-only standard.",
+        "standard_category": "general",
+        "requirement_level": "recommended",
+    }
+    for field in ("primary_domain", "related_domains", "asset_type", "physical_name", "platform", "temporal_model", "classification", "assets"):
+        standard.pop(field, None)
+    _write(root, "_curated/standards/general/standard.md", standard)
+
+    infra = {
+        **schema,
+        "id": "infra.fixture",
+        "type": "infra",
+        "title": "Fixture infrastructure",
+        "description": "An infrastructure owner for an embedded resource.",
+        "infra_package": "fixture",
+        "repository": "repo.fixture",
+        "package_path": "infra",
+        "template_path": "infra/main.tf",
+        "environments": ["test"],
+        "depends_on": [], "uses_resources": [], "reads_from": [], "writes_to": [],
+        "triggers": [], "scheduled_by": [], "imports_values": [], "exports_values": [],
+        "permissions": [], "monitored_by": [], "deployed_by": [],
+        "promoted_resources": [{
+            "id": "resource.fixture.bucket",
+            "name": "Fixture bucket",
+            "resource_type": "s3-bucket",
+            "defined_in_path": "infra/main.tf",
+            "environments": ["test"],
+            "promotion_reason": "A direct boundary.",
+            "confidence": "reviewed",
+            "coverage": {"level": "partial", "notes": []},
+            "evidence": ["infra/main.tf"],
+        }],
+        "runbooks": [], "standards": [], "incident_learnings": [],
+    }
+    for field in ("asset_type", "physical_name", "platform", "temporal_model", "classification", "assets", "links"):
+        infra.pop(field, None)
+    _write(root, "_curated/infra/test/infra.md", infra)
+
+
+def test_exact_resolver_layers_maps_pages_and_embedded_owners(tmp_path: Path):
+    root, _ = _root(tmp_path)
+    maps = build_maps(root)
+    _write_maps(root, maps)
+    _page_only_records(root)
+
+    resolver_type = getattr(query_module, "ExactResolver", None)
+    assert resolver_type is not None
+    resolver = resolver_type(root)
+
+    assert resolver.resolve("comp.fixture") == AtlasQuery(root).resolve("comp.fixture")
+    assert resolver.resolve("asset.fixture.output")["parent_schema"] == "schema.fixture"
+    assert resolver.resolve("resource.fixture.bucket")["parent_package"] == "infra.fixture"
+    assert resolver.resolve("standard.fixture")["page"] == "_curated/standards/general/standard.md"
+    assert resolver.resolve("schema.fixture#publication")["owner_id"] == "schema.fixture"
+    assert resolver.resolve("missing.fixture") is None
+
+
+def test_exact_resolver_rejects_stale_map_routes_and_archived_pages(tmp_path: Path):
+    root, schema_path = _root(tmp_path)
+    maps = build_maps(root)
+    maps["repository-component-map.json"]["components"]["comp.fixture"]["page"] = "_curated/components/test/missing.md"
+    _write_maps(root, maps)
+
+    resolver_type = getattr(query_module, "ExactResolver", None)
+    assert resolver_type is not None
+    resolver = resolver_type(root)
+
+    assert resolver.resolve("comp.fixture")["page"] == "_curated/components/test/component.md"
+    assert resolver.warnings.count("Generated map route for 'comp.fixture' is stale; its route was not trusted.") == 1
+    schema_path.write_text(
+        schema_path.read_text(encoding="utf-8").replace("status: curated", "status: archived"),
+        encoding="utf-8",
+    )
+    assert resolver_type(root).resolve("schema.fixture") is None
+
+
+def test_exact_resolver_rejects_archived_or_reassigned_mapped_owners(tmp_path: Path):
+    resolver_type = getattr(query_module, "ExactResolver", None)
+    assert resolver_type is not None
+
+    archived_root, _ = _root(tmp_path / "archived")
+    archived_maps = build_maps(archived_root)
+    _write_maps(archived_root, archived_maps)
+    component_path = archived_root / "_curated/components/test/component.md"
+    component_path.write_text(
+        component_path.read_text(encoding="utf-8").replace("status: curated", "status: archived"),
+        encoding="utf-8",
+    )
+    archived = resolver_type(archived_root)
+    assert archived.resolve("comp.fixture") is None
+    assert any("Generated map route for 'comp.fixture' is stale" in warning for warning in archived.warnings)
+
+    reassigned_root, _ = _root(tmp_path / "reassigned")
+    reassigned_maps = build_maps(reassigned_root)
+    _write_maps(reassigned_root, reassigned_maps)
+    component_path = reassigned_root / "_curated/components/test/component.md"
+    component_path.write_text(
+        component_path.read_text(encoding="utf-8").replace("comp.fixture", "comp.reassigned"),
+        encoding="utf-8",
+    )
+    reassigned = resolver_type(reassigned_root)
+    assert reassigned.resolve("comp.fixture") is None
+    assert any("Generated map route for 'comp.fixture' is stale" in warning for warning in reassigned.warnings)
+
+
+def test_cli_resolve_uses_exact_resolver_without_atlas_query(tmp_path: Path, monkeypatch, capsys):
+    root, _ = _root(tmp_path)
+    maps = build_maps(root)
+    _write_maps(root, maps)
+
+    def unexpected_atlas_query(*args, **kwargs):
+        raise AssertionError("resolve must not instantiate AtlasQuery")
+
+    monkeypatch.setattr(atlas_query, "AtlasQuery", unexpected_atlas_query)
+
+    assert atlas_query.main(["--root", str(root), "--format", "json", "resolve", "comp.fixture"]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["record"]["id"] == "comp.fixture"
+
+
+def test_exact_resolver_preserves_checkout_and_history_advisories(tmp_path: Path):
+    root, schema_path = _root(tmp_path)
+    resolver_type = getattr(query_module, "ExactResolver", None)
+    assert resolver_type is not None
+
+    assert resolver_type(root).resolve("asset.fixture.output")["checkout_state"] == "git-unknown"
+    _git_commit(root)
+    assert resolver_type(root).resolve("schema.fixture")["checkout_state"] == "main-clean"
+
+    schema_path.write_text(schema_path.read_text(encoding="utf-8") + "\nlocal edit\n", encoding="utf-8")
+    assert resolver_type(root).resolve("schema.fixture")["checkout_state"] == "modified"
+    subprocess.run(["git", "checkout", "--", str(schema_path.relative_to(root))], cwd=root, check=True)
+
+    subprocess.run(["git", "switch", "-c", "feature/exact"], cwd=root, check=True, capture_output=True)
+    assert resolver_type(root).resolve("repo.fixture")["checkout_state"] == "off-main"
+    subprocess.run(["git", "checkout", "--detach"], cwd=root, check=True, capture_output=True)
+    assert resolver_type(root).resolve("repo.fixture")["checkout_state"] == "detached"
+
+    repo_frontmatter, _ = parse_frontmatter(root / "_curated/repositories/test/repo.md")
+    repo_frontmatter.update({"id": "repo.untracked", "title": "Untracked repository"})
+    _write(root, "_curated/repositories/test/untracked.md", repo_frontmatter)
+    assert resolver_type(root).resolve("repo.untracked")["checkout_state"] == "untracked"
+
+    schema_path.write_text(
+        schema_path.read_text(encoding="utf-8").replace("status: curated", "status: deprecated"),
+        encoding="utf-8",
+    )
+    historical = resolver_type(root).resolve("schema.fixture")
+    assert historical["trust"] == "historical"
+    assert historical["checkout_state"] is None
 
 
 def test_assets_are_searchable_and_lineage_is_traversable(tmp_path: Path):
