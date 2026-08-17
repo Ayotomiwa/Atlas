@@ -26,4 +26,4 @@ The preview identifies the concrete files or records to be written. Approval suc
 
 ## Completion summary
 
-Report: saved or changed; already covered; left unknown; deferred for human input; excluded; validation; and next publication step. Audit details may add staging IDs, lifecycle codes and internal dispositions without making them prerequisites for ordinary use.
+For curation, report **Current work**, **Scope validation**, **Generated freshness**, and **Package health** separately. State current blockers, unrelated baseline advisories, and deferred freshness without weakening global lint/CI requirements. Then report saved or changed; already covered; left unknown; deferred for human input; excluded; and next publication step. Audit details may add staging IDs, lifecycle codes and internal dispositions without making them prerequisites for ordinary use.

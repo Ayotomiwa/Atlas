@@ -65,4 +65,20 @@ python scripts/rebuild_atlas.py
 python scripts/rebuild_atlas.py --check
 ```
 
+## Scoped curation and recovery
+
+Before authoring, read `atlas-package.json` and follow its registered paths: load `types` and `statuses` always, `concept_fields` when selecting controlled concept/asset/resource fields, `standard_categories` for standards, and `map_fields` before map-bound fields or relationships. Also read the destination README, template and index. After the approved curation preview, use this fixed sequence:
+
+1. Record the work guard: exact approved files, claims, staging status effects, expected generated effects, tracked diff and relevant untracked pages.
+2. Mark only approved evidence `curating`, materialise the decision matrix, then preserve a materialized checkpoint of only the exact curated pages and status changes.
+3. Run `python scripts/atlas_lint.py .` once across the package. Current/shared/new/unexpected findings block; demonstrably unrelated pre-existing baseline findings are advisory. Do not repair baseline issues or let them block staging/semantic curation.
+4. Make no more than two aggregate passes of uniquely determined, meaning-preserving, in-scope mechanical repairs. Do not use regex or line deletion; do not empty/delete resources, relations or evidence; do not rename an ID/type, rewrite minimal frontmatter, or globally lower confidence. Bring semantic ambiguity to the user.
+5. Verify the approved scope is clean; run rebuild and rebuild check; fingerprint and independently review; re-fingerprint after every permitted follow-up repair; then consume successful evidence.
+
+The work guard is an operational integrity and recovery mechanism, not an OS security sandbox. The parent remains trusted to preserve approved scope and must never pass the bearer key to the curator. Anyone under the same account who can read the key can authenticate guard actions. The guard detects accidental or cross-agent state alteration and authenticates cleanup/restore; it does not cryptographically constrain the parent or another key holder.
+
+A current-cause problem or a lint/compiler mismatch leaves evidence `curating`. If freshness is blocked solely by an unrelated baseline issue, semantic curation may complete and consume with generated freshness explicitly deferred. This does not relax strict global lint or CI.
+
+Completion reports separate **Current work**, **Scope validation**, **Generated freshness**, and **Package health**. A consumed staging record remains consumed. Restore only an identified damaged curated page from the automatic materialized checkpoint or verified revision; never restore all `_curated/` in a mixed checkout, and preserve both tracked diff and untracked pages.
+
 Use `/atlas-evaluate prepare|run|score` only for a sealed end-to-end benchmark. Keep its fixture, personas, ground truth, frozen answers and results in the selected external sealed directory.

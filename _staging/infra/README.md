@@ -6,6 +6,8 @@
 
 Use this bucket when the important knowledge is primarily about infrastructure rather than application/component behaviour.
 
+Store a record at `_staging/infra/<domain>/<STG-ID>.md` only when its candidate primary domain is evidenced or user-confirmed. Otherwise use `unassigned`. A committed staging path is immutable by policy, so folder neatness is not evidence.
+
 A useful infra entry should help an investigator answer:
 
 > **What infrastructure package or resource context exists, how is it structured, what does it create/connect, who uses it, and what evidence exists about operational or blast-radius significance?**
@@ -137,6 +139,8 @@ Keep these states distinct:
 Evidence may support `_curated/infra/` and linked component/flow/runbook/incident pages. Reviewed connection fields may later regenerate the infra/flow projections.
 
 Do **not** hand-maintain generated map connections from staging. Curated Markdown fields remain the authoring source of truth.
+
+The generated [queue index](index.md) is catalogue-only. README policy and staging evidence are never generated.
 
 ## Immutability
 

@@ -13,7 +13,7 @@ Engineers do not need to select Atlas skills or commands. Use four ordinary inte
 | Ask Atlas | “How does this publish data?” “What could this change affect?” | discovery, impact routing, links, maps and bounded source fallback |
 | Teach Atlas | “Save this fact.” “What does Atlas still need to know?” | provenance, duplicate/conflict checks, bucket selection and one approved evidence write |
 | Sync Atlas | “Onboard this repository.” “Update Atlas for this repo.” | full baseline onboarding, standards discovery or merged-change intake |
-| Curate Atlas | “Curate pending evidence for payments.” | scoped reconciliation, generation and independent semantic review |
+| Curate Atlas | “Curate pending evidence for payments.” | scoped reconciliation, guarded validation, generated freshness and independent semantic review |
 
 Atlas remains sophisticated behind the conversation: staging is still evidence, writes still require approval, uncertainty is preserved, curation still receives independent review, and publication remains human-controlled. Exact skills and commands are available in the [advanced reference](onboarding/advanced-reference.md).
 
@@ -91,7 +91,7 @@ Architecture pages are grouped by one controlled primary domain. Secondary invol
 
 ## Relationship and map model
 
-Pages author natural fields such as `depends_on`, `consumes`, `produces`, `reads_from`, `writes_to`, `steps` and `upstream_flows`. Architecture pages route `runbooks`, `standards` and `incident_learnings` directly. The containing field supplies the meaning; entries identify a stable local `id` or external `name` and do not repeat a generic relationship value.
+Pages author natural fields such as `depends_on`, `consumes`, `produces`, `reads_from`, `writes_to`, `steps` and `upstream_flows`. Architecture pages route `runbooks`, `standards` and `incident_learnings` directly. The containing field supplies the meaning; entries identify a stable local `id` or external `name` and do not repeat a generic relationship value. Coverage states what the record includes, while confidence states the evidence strength of each fact. A reviewed evidence claim remains distinct from an explanatory note. Use `consumes`/`produces` for component, schema or data-asset contracts; use resource fields for infrastructure/resource interaction; and put flow participation only in ordered `steps`.
 
 The three committed generated maps are:
 
@@ -104,6 +104,10 @@ They use stable-ID keys, readable named fields, sparse records and only three hi
 ## Generated artifacts
 
 After structured page, domain or lifecycle changes, Atlas rebuilds maps, curated catalogues, staging queue indexes, structured body tables and opted-in flow diagrams together. Managed blocks and generated JSON are never hand-edited. Deterministic lint covers frontmatter semantics and existing relative Markdown file targets; generation freshness and semantic prose review remain separate checks. Exact maintainer commands are in the [advanced reference](onboarding/advanced-reference.md).
+
+## Curation safety
+
+Curation is deliberately scoped: after one approved preview, Atlas records a work guard, materialises only the approved claims, preserves a narrow materialized checkpoint, classifies full-lint findings, performs no more than two safe mechanical repair passes, checks scope, rebuilds, reviews independently, and only then consumes evidence. Current/shared/new/unexpected findings block. A demonstrably unrelated pre-existing baseline problem is neither repaired nor allowed to block staging or semantic curation, although global lint and CI remain strict and any resulting freshness deferral is reported. Recovery restores only an identified damaged curated page from that checkpoint or a verified revision; it never replaces all of `_curated/` in a mixed checkout.
 
 ## Navigation mechanics
 

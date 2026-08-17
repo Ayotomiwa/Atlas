@@ -66,7 +66,18 @@ def _curated_records(root: Path, folder: str, typ: str) -> list[tuple[Path, dict
     ]
 
 
-def _catalogue(rows: list[tuple[Path, dict]], index_path: Path, *, mode: str = "domain") -> str:
+def _staging_candidate_domain(path: Path, base: Path) -> str:
+    relative_parts = path.relative_to(base).parts
+    return relative_parts[0]
+
+
+def _catalogue(
+    rows: list[tuple[Path, dict]],
+    index_path: Path,
+    *,
+    mode: str = "domain",
+    staging_base: Path | None = None,
+) -> str:
     headers = {
         "domain": "| ID | Title | Description | Status | Primary domain | Coverage | Page |",
         "staging": "| ID | Title | Status | Candidate domain | Source context | Page |",
@@ -84,10 +95,11 @@ def _catalogue(rows: list[tuple[Path, dict]], index_path: Path, *, mode: str = "
         link = _relative_link(index_path, path)
         description = _cell(fm.get("description")) or "—"
         if mode == "staging":
-            # Candidate domain belongs to the record path, not the catalogue
-            # currently rendering it. A per-domain index has the same parent
-            # as its records and must not relabel them as `unassigned`.
-            domain = path.parent.name if path.parent.name not in {"components", "flows"} else "unassigned"
+            # Candidate domain is the first segment of the exact
+            # <candidate-domain>/<staging-id>.md path below the collection.
+            if staging_base is None:
+                raise ValueError("staging catalogue requires its collection base")
+            domain = _staging_candidate_domain(path, staging_base)
             lines.append(
                 f"| `{fm.get('id', '')}` | {_cell(fm.get('title'))} | `{fm.get('status', '')}` | "
                 f"`{domain}` | {_cell(fm.get('source_type'))} | [page]({link}) |"
@@ -133,6 +145,25 @@ def _replace_catalogue(text: str, catalogue: str) -> str:
     if pattern.search(text):
         return pattern.sub(lambda _: catalogue, text)
     return text.rstrip() + "\n\n" + catalogue + "\n"
+
+
+def _domain_grouped_staging_collections(root: Path) -> list[tuple[str, str]]:
+    """Return taxonomy-declared staging collections routed by candidate domain."""
+    collections: list[tuple[str, str]] = []
+    for record_type in load_taxonomy(root)["types"].get("types") or []:
+        name = record_type.get("name")
+        folder = record_type.get("folder")
+        if (
+            not isinstance(name, str)
+            or not name.startswith("staging.")
+            or record_type.get("grouped") != "domain"
+            or not isinstance(folder, str)
+        ):
+            continue
+        folder_path = Path(folder)
+        if folder_path.parts[:1] == ("_staging",) and len(folder_path.parts) == 2:
+            collections.append((folder_path.name, name))
+    return collections
 
 
 def build_index_outputs(root: str | Path) -> dict[Path, bytes]:
@@ -209,7 +240,7 @@ def build_index_outputs(root: str | Path) -> dict[Path, bytes]:
                 )
             outputs[category_index] = category_text.encode("utf-8")
 
-    for folder, typ in {"components": "staging.component", "flows": "staging.flow"}.items():
+    for folder, typ in _domain_grouped_staging_collections(root):
         base = root / "_staging" / folder
         rows: list[tuple[Path, dict]] = []
         if base.exists():
@@ -217,10 +248,10 @@ def build_index_outputs(root: str | Path) -> dict[Path, bytes]:
                 if path.name in {"README.md", "index.md", "_template.md"}:
                     continue
                 fm, _ = parse_frontmatter(path)
-                if fm.get("type") == typ:
+                if fm.get("type") == typ and len(path.relative_to(base).parts) == 2:
                     rows.append((path, fm))
         index_path = base / "index.md"
-        catalogue = _catalogue(rows, index_path, mode="staging")
+        catalogue = _catalogue(rows, index_path, mode="staging", staging_base=base)
         rendered = (
             _replace_catalogue(index_path.read_text(encoding="utf-8"), catalogue)
             if index_path.exists()
@@ -232,7 +263,7 @@ def build_index_outputs(root: str | Path) -> dict[Path, bytes]:
         )
         outputs[index_path] = rendered.encode("utf-8")
         domains = sorted(
-            {path.relative_to(base).parts[0] for path, _ in rows if len(path.relative_to(base).parts) > 1}
+            {_staging_candidate_domain(path, base) for path, _ in rows}
             | set(domain_ids)
             | {"unassigned"}
         )
@@ -240,10 +271,12 @@ def build_index_outputs(root: str | Path) -> dict[Path, bytes]:
             domain_rows = [
                 (path, fm)
                 for path, fm in rows
-                if len(path.relative_to(base).parts) > 1 and path.relative_to(base).parts[0] == domain
+                if _staging_candidate_domain(path, base) == domain
             ]
             domain_index = base / domain / "index.md"
-            domain_catalogue = _catalogue(domain_rows, domain_index, mode="staging")
+            domain_catalogue = _catalogue(
+                domain_rows, domain_index, mode="staging", staging_base=base
+            )
             rendered = (
                 _replace_catalogue(domain_index.read_text(encoding="utf-8"), domain_catalogue)
                 if domain_index.exists()
@@ -263,8 +296,7 @@ def generated_index_candidates(root: str | Path) -> set[Path]:
     bases = [
         *(root / "_curated" / folder for folder in ("repositories", "components", "flows", "infra", "schema-info")),
         *(root / "_curated" / folder for folder in GOVERNANCE_COLLECTIONS),
-        root / "_staging" / "components",
-        root / "_staging" / "flows",
+        *(root / "_staging" / folder for folder, _ in _domain_grouped_staging_collections(root)),
     ]
     candidates: set[Path] = set()
     for base in bases:

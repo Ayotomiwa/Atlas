@@ -12,6 +12,8 @@ source_type: ""
 
 # Infrastructure evidence: <package or topic>
 
+> Store this record at `_staging/infra/<candidate-domain-or-unassigned>/<STG-ID>.md`. Use a candidate domain only when evidence or a user confirmation supports it; the committed path remains immutable.
+
 > Capture the package/resource context deeply enough to preserve structure, relationships and operational significance. This is raw evidence, not a trusted infrastructure model. Do not promote every resource or infer consumers/blast radius from names alone.
 
 ## Summary

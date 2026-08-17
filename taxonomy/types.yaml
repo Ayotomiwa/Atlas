@@ -19,7 +19,7 @@ types:
   - {name: staging.change, folder: _staging/changes, status: active}
   - {name: staging.component, folder: _staging/components, grouped: domain, status: active}
   - {name: staging.flow, folder: _staging/flows, grouped: domain, status: active}
-  - {name: staging.infra, folder: _staging/infra, status: active}
+  - {name: staging.infra, folder: _staging/infra, grouped: domain, status: active}
   - {name: staging.schema-info, folder: _staging/schema-info, status: active}
   - {name: staging.business-concept, folder: _staging/business-concepts, status: active}
   - {name: staging.incident, folder: _staging/incidents, status: active}
