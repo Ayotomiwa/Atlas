@@ -1,6 +1,8 @@
 # Curated flows
 
-Flow pages describe an evidenced end-to-end path and its outcome. The structured steps are the authority for participant identity, order, material handoffs and optional branch topology.
+Use a flow page to answer: **what ordered path produces this outcome, which conditions move it forward, and where do material handoffs cross boundaries?**
+
+A step is an activity in the path, not a second kind of component. Its participant may be a component, infrastructure package or resource, external system, manual action, or unresolved item. The structured steps are the single authoring source for participant identity, order, material handoffs, and optional branch topology.
 
 ## Domain and boundary
 
@@ -38,3 +40,5 @@ Before approving a flow page, confirm that:
 - entry points match real triggers, with `entry_point_type` supported by a schedule, event or caller;
 - failure paths and their operational consequences are evidenced, not inferred from the happy path;
 - gaps in the chain are declared as coverage limits, so a partial flow is never read as complete.
+
+This README defines the flow page model and review rules. Flow discovery and curation workflows own investigation, approvals, persistence, validation, and independent review.

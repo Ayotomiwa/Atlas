@@ -14,7 +14,7 @@ Use Atlas through ordinary language:
 - **Sync Atlas** by asking to onboard or update this repository.
 - **Curate Atlas** by asking to reconcile pending evidence for this context.
 
-Claude selects the specialist workflow. For writes, it shows one concrete scope preview and requests one approval; internal handoffs do not ask for the same approval again.
+Claude selects the specialist workflow. For writes, it reuses and states a current non-default branch with shared default-branch history. On the default branch, detached HEAD, or unrelated history, it asks the user to confirm a suggested branch, choose an existing branch, or enter a custom branch. It then shows one concrete scope preview and requests one approval. Internal handoffs do not repeat approval. Local commits never imply push or merge.
 
 Atlas relevance triggers:
 

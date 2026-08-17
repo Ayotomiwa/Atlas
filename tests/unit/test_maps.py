@@ -239,6 +239,67 @@ def test_embedded_asset_and_conflict_errors_are_strict_and_page_attributed(tmp_p
     )
 
 
+def test_relationship_type_error_lists_allowed_types_and_field_hints(tmp_path: Path):
+    root = _coherent_root(tmp_path)
+    component_path = root / "_curated/components/test/component.md"
+    frontmatter, body = component_path.read_text(encoding="utf-8").split("---", 2)[1:]
+    component = yaml.safe_load(frontmatter)
+    component["writes_to"] = [{
+        "id": "asset.fixture.output",
+        "confidence": "reviewed",
+        "evidence": ["src/config.yaml"],
+    }]
+    component_path.write_text(
+        "---\n" + yaml.safe_dump(component, sort_keys=False) + "---" + body,
+        encoding="utf-8",
+    )
+
+    issue = next(
+        item for item in validate_map_frontmatter(root) if item.path.endswith("component.md")
+    )
+
+    assert "allowed target types: infra, infra-resource" in issue.message
+    assert "fields accepting data-asset: consumes, produces" in issue.message
+
+
+def test_confidence_error_distinguishes_claim_trust_from_coverage(tmp_path: Path):
+    root = _coherent_root(tmp_path)
+    component_path = root / "_curated/components/test/component.md"
+    frontmatter, body = component_path.read_text(encoding="utf-8").split("---", 2)[1:]
+    component = yaml.safe_load(frontmatter)
+    component["writes_to"][0]["confidence"] = "partial"
+    component_path.write_text(
+        "---\n" + yaml.safe_dump(component, sort_keys=False) + "---" + body,
+        encoding="utf-8",
+    )
+
+    issue = next(
+        item for item in validate_map_frontmatter(root) if item.path.endswith("component.md")
+    )
+
+    assert "confidence describes claim trust" in issue.message
+    assert "coverage describes completeness" in issue.message
+    assert "allowed confidence values" in issue.message
+
+
+def test_resource_coverage_error_lists_levels_and_separates_confidence(tmp_path: Path):
+    root = _coherent_root(tmp_path)
+    infra_path = root / "_curated/infra/test/infra.md"
+    frontmatter, body = infra_path.read_text(encoding="utf-8").split("---", 2)[1:]
+    infra = yaml.safe_load(frontmatter)
+    infra["promoted_resources"][0]["coverage"] = {"level": "reviewed", "notes": []}
+    infra_path.write_text(
+        "---\n" + yaml.safe_dump(infra, sort_keys=False) + "---" + body,
+        encoding="utf-8",
+    )
+
+    issue = next(item for item in validate_map_frontmatter(root) if item.path.endswith("infra.md"))
+
+    assert "coverage describes completeness" in issue.message
+    assert "confidence describes claim trust" in issue.message
+    assert "allowed coverage levels" in issue.message
+
+
 def test_generation_is_deterministic_and_freshness_command_detects_missing_outputs(tmp_path: Path):
     root = _coherent_root(tmp_path)
     first = build_maps(root)
@@ -310,3 +371,146 @@ def test_rebuild_removes_obsolete_staging_queue_indexes(tmp_path: Path):
     assert set(queue_indexes) <= generated_index_candidates(root)
     assert rebuild_atlas.main(["--root", str(root)]) == 0
     assert not any(path.exists() for path in queue_indexes)
+
+
+def test_rebuild_preflight_reports_all_page_errors_and_writes_nothing(tmp_path: Path):
+    root = _coherent_root(tmp_path)
+    infra_path = root / "_curated/infra/test/infra.md"
+    infra_frontmatter, infra_body = infra_path.read_text(encoding="utf-8").split("---", 2)[1:]
+    infra = yaml.safe_load(infra_frontmatter)
+    infra["promoted_resources"] = "wrong"
+    infra_path.write_text(
+        "---\n" + yaml.safe_dump(infra, sort_keys=False) + "---" + infra_body,
+        encoding="utf-8",
+    )
+    repo_path = root / "_curated/repositories/test/repo.md"
+    repo_frontmatter, repo_body = repo_path.read_text(encoding="utf-8").split("---", 2)[1:]
+    repository = yaml.safe_load(repo_frontmatter)
+    repository["repository_type"] = "wrong"
+    repo_path.write_text(
+        "---\n" + yaml.safe_dump(repository, sort_keys=False) + "---" + repo_body,
+        encoding="utf-8",
+    )
+    output = root / "_curated/maps/flow-component/flow-component-map.json"
+    output.parent.mkdir(parents=True)
+    output.write_bytes(b"sentinel\r\n")
+
+    result = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "rebuild_atlas.py"), "--root", str(root)],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 1
+    assert "_curated/infra/test/infra.md" in result.stderr
+    assert "_curated/repositories/test/repo.md" in result.stderr
+    assert output.read_bytes() == b"sentinel\r\n"
+
+
+def test_staging_candidate_domain_is_stable_in_root_and_domain_catalogues(tmp_path: Path):
+    root = _root(tmp_path)
+    staging = {
+        "id": "STG-20260811-fixture",
+        "type": "staging.infra",
+        "package": "fixtures",
+        "timestamp": "2026-08-11",
+        "title": "Fixture discovery",
+        "description": "Fixture staging evidence.",
+        "status": "curating",
+        "captured_by": "Fixture Curator",
+        "source_type": "repository",
+    }
+    _write(root, "_staging/infra/test/STG-20260811-fixture.md", staging)
+    outputs = build_index_outputs(root)
+
+    root_index = outputs[root / "_staging/infra/index.md"].decode("utf-8")
+    domain_index = outputs[root / "_staging/infra/test/index.md"].decode("utf-8")
+    assert "| `test` | repository |" in root_index
+    assert "| `test` | repository |" in domain_index
+    assert "| `unassigned` | repository |" not in domain_index
+
+
+def test_taxonomy_grouped_staging_infra_generates_domain_queues_and_candidates(tmp_path: Path):
+    root = _root(tmp_path)
+    staging = {
+        "id": "STG-20260817-infra-fixture",
+        "type": "staging.infra",
+        "package": "fixtures",
+        "timestamp": "2026-08-17",
+        "title": "Fixture infrastructure discovery",
+        "description": "Fixture staging evidence.",
+        "status": "new",
+        "captured_by": "Fixture Curator",
+        "source_type": "repository",
+    }
+    _write(root, "_staging/infra/test/STG-20260817-infra-fixture.md", staging)
+
+    outputs = build_index_outputs(root)
+
+    root_index_path = root / "_staging/infra/index.md"
+    domain_index_path = root / "_staging/infra/test/index.md"
+    assert "| `test` | repository |" in outputs[root_index_path].decode("utf-8")
+    assert "| `test` | repository |" in outputs[domain_index_path].decode("utf-8")
+
+    for path, content in outputs.items():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(content)
+
+    candidates = generated_index_candidates(root)
+    assert root_index_path.resolve() in candidates
+    assert domain_index_path.resolve() in candidates
+
+
+def test_flat_staging_infra_is_not_catalogued_but_exact_unassigned_path_is(tmp_path: Path):
+    root = _root(tmp_path)
+    staging = {
+        "type": "staging.infra",
+        "package": "fixtures",
+        "timestamp": "2026-08-17",
+        "description": "Fixture staging evidence.",
+        "status": "new",
+        "captured_by": "Fixture Curator",
+        "source_type": "repository",
+    }
+    _write(
+        root,
+        "_staging/infra/STG-20260817-flat.md",
+        {**staging, "id": "STG-20260817-flat", "title": "Flat evidence"},
+    )
+    _write(
+        root,
+        "_staging/infra/unassigned/STG-20260817-unassigned.md",
+        {**staging, "id": "STG-20260817-unassigned", "title": "Unassigned evidence"},
+    )
+
+    outputs = build_index_outputs(root)
+
+    root_index = outputs[root / "_staging/infra/index.md"].decode("utf-8")
+    unassigned_index = outputs[root / "_staging/infra/unassigned/index.md"].decode("utf-8")
+    assert "STG-20260817-flat" not in root_index
+    assert "STG-20260817-flat" not in unassigned_index
+    assert "| `STG-20260817-unassigned` | Unassigned evidence | `new` | `unassigned` |" in unassigned_index
+
+
+def test_excessively_nested_staging_infra_is_not_catalogued(tmp_path: Path):
+    root = _root(tmp_path)
+    staging = {
+        "id": "STG-20260817-nested",
+        "type": "staging.infra",
+        "package": "fixtures",
+        "timestamp": "2026-08-17",
+        "title": "Nested infrastructure evidence",
+        "description": "Fixture staging evidence.",
+        "status": "new",
+        "captured_by": "Fixture Curator",
+        "source_type": "repository",
+    }
+    _write(root, "_staging/infra/test/nested/STG-20260817-nested.md", staging)
+
+    outputs = build_index_outputs(root)
+
+    root_index = outputs[root / "_staging/infra/index.md"].decode("utf-8")
+    domain_index = outputs[root / "_staging/infra/test/index.md"].decode("utf-8")
+    assert "STG-20260817-nested" not in root_index
+    assert "STG-20260817-nested" not in domain_index

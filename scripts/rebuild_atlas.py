@@ -3,23 +3,54 @@ from __future__ import annotations
 
 from pathlib import Path
 import argparse
+import json
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from scripts.lib.generated import build_index_outputs, build_page_view_outputs, generated_index_candidates
-from scripts.lib.maps import MapBuildError, build_maps, curated_pages, map_output_paths, stable_bytes
+from scripts.lib.maps import (
+    MapBuildError,
+    MapDiagnostic,
+    MapValidationIssue,
+    build_maps,
+    curated_pages,
+    map_output_paths,
+    stable_bytes,
+)
 
 
-def expected_outputs(root: Path) -> tuple[dict[Path, bytes], list]:
-    pages = curated_pages(root)
-    maps, diagnostics = build_maps(root, pages=pages, include_diagnostics=True)
+def generation_preflight(
+    root: Path,
+) -> tuple[dict[Path, bytes] | None, list[MapDiagnostic], list[MapValidationIssue]]:
+    errors: list[MapValidationIssue] = []
+    pages = curated_pages(root, collect_errors=errors)
+    maps, diagnostics = build_maps(
+        root,
+        pages=pages,
+        include_diagnostics=True,
+        collect_errors=errors,
+        include_body_questions=True,
+    )
+    if errors:
+        return None, diagnostics, sorted(
+            errors, key=lambda item: (item.path, item.record_id or "", item.message)
+        )
     outputs: dict[Path, bytes] = {
         map_output_paths(root)[name]: stable_bytes(value) for name, value in maps.items()
     }
     outputs.update(build_index_outputs(root, pages=pages))
     outputs.update(build_page_view_outputs(root, compiled_maps=maps, pages=pages))
+    return outputs, diagnostics, []
+
+
+def expected_outputs(root: Path) -> tuple[dict[Path, bytes], list[MapDiagnostic]]:
+    outputs, diagnostics, errors = generation_preflight(root)
+    if errors:
+        first = errors[0]
+        raise MapBuildError(first.message, path=first.path)
+    assert outputs is not None
     return outputs, diagnostics
 
 
@@ -29,14 +60,46 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--check", action="store_true", help="report drift without writing")
     parser.add_argument("--root", default=str(ROOT), help=argparse.SUPPRESS)
+    parser.add_argument("--format", choices=("text", "json"), default="text")
     args = parser.parse_args(argv)
     root = Path(args.root).resolve()
 
     try:
-        outputs, diagnostics = expected_outputs(root)
+        outputs, diagnostics, preflight_errors = generation_preflight(root)
     except (MapBuildError, ValueError) as exc:
-        print(f"Atlas generation failed: {exc}", file=sys.stderr)
+        if args.format == "json":
+            print(json.dumps({"status": "failed", "error": str(exc)}, indent=2))
+        else:
+            print(f"Atlas generation failed: {exc}", file=sys.stderr)
         return 1
+    if preflight_errors:
+        if args.format == "json":
+            print(
+                json.dumps(
+                    {
+                        "status": "preflight-failed",
+                        "issues": [
+                            {
+                                "path": item.path,
+                                "record_id": item.record_id,
+                                "message": item.message,
+                            }
+                            for item in preflight_errors
+                        ],
+                    },
+                    indent=2,
+                )
+            )
+        else:
+            for item in preflight_errors:
+                record = f" [{item.record_id}]" if item.record_id else ""
+                print(f"ERROR ATLAS009 {item.path}{record}: {item.message}", file=sys.stderr)
+            print(
+                f"Atlas generation preflight failed: {len(preflight_errors)} error(s); no files written",
+                file=sys.stderr,
+            )
+        return 1
+    assert outputs is not None
 
     drift: list[str] = []
     stale_indexes = sorted(
@@ -57,12 +120,27 @@ def main(argv: list[str] | None = None) -> int:
         else:
             path.unlink()
 
-    for diagnostic in diagnostics:
-        print(f"INFO unprojected link: {diagnostic.render()}")
+    if args.format == "text":
+        for diagnostic in diagnostics:
+            print(f"INFO unprojected link: {diagnostic.render()}")
     if drift:
-        print("Atlas generated drift: " + ", ".join(drift))
+        if args.format == "json":
+            print(json.dumps({"status": "drift", "paths": drift}, indent=2))
+        else:
+            print("Atlas generated drift: " + ", ".join(drift))
         return 1
-    print("Atlas generated surfaces clean" if args.check else "Atlas generated surfaces rebuilt")
+    if args.format == "json":
+        print(
+            json.dumps(
+                {
+                    "status": "clean" if args.check else "rebuilt",
+                    "diagnostics": [item.render() for item in diagnostics],
+                },
+                indent=2,
+            )
+        )
+    else:
+        print("Atlas generated surfaces clean" if args.check else "Atlas generated surfaces rebuilt")
     return 0
 
 

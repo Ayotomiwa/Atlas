@@ -10,6 +10,13 @@ Keep these locations distinct:
 - product root: the physical Git root containing the source being discussed;
 - current path: the user's immediate file or directory, which may identify a logical repository/component inside a monorepo.
 
+The locations may overlap. When the current path is inside `ATLAS_ROOT`, classify the question before routing:
+
+- **Stored-knowledge mode:** the question asks what Atlas knows about an engineering repository, component, flow, infrastructure, schema, standard, operation, concept, ownership route or stable ID. Resolve an explicit ID directly; otherwise run typed `find` without `--path`, then use the relevant curated collection/domain index and root index as fallback. Do not run product path context or offer product setup for Atlas itself.
+- **Atlas-implementation mode:** the question asks about Atlas scripts, skills, contracts, templates, generation, lint, tests or repository behavior. Inspect the Atlas repository as ordinary local source. Do not force a curated lookup merely because the checkout is Atlas.
+
+If stored knowledge needs repository fallback, use an explicitly supplied product path or the selected repository record's locator only when it resolves to an available separate checkout. Never treat `ATLAS_ROOT` as product evidence for an unrelated record. If no product checkout is available, state where Atlas coverage ended.
+
 Pass absolute paths internally and to agents. In user-facing answers, cite paths relative to the applicable Atlas or product root.
 
 Keep an ephemeral Atlas session state inside the current conversation only:
@@ -20,11 +27,11 @@ Keep an ephemeral Atlas session state inside the current conversation only:
 - the current coverage endpoint;
 - whether the checkout advisory has already been disclosed.
 
-A new conversation starts cold; never persist this state. Reuse it only while the product repository, selected record and evidence, and question type remain unchanged and no source or checkout change is suspected. For an unchanged local follow-up, do not repeat an Atlas query, page open or source read that the retained context already answers.
+A new conversation starts cold; never persist this state. Reuse it only while the selected routing mode, product repository where applicable, selected record and evidence, and question type remain unchanged and no source or checkout change is suspected. For an unchanged local follow-up, do not repeat an Atlas query, page open or source read that the retained context already answers.
 
-Re-enter Atlas when the repository or selected record changes, source or checkout state may have changed, the question crosses the recorded coverage endpoint, or the work concerns impact, ownership, conflicts, standards, recovery or another boundary. Re-entry opens only the routes needed for the new scope and carries still-valid session state into any specialist handoff.
+Re-enter the applicable Atlas routing mode when the repository or selected record changes, source or checkout state may have changed, the question crosses the recorded coverage endpoint, or the work concerns impact, ownership, conflicts, standards, recovery or another boundary. Re-entry opens only the routes needed for the new scope and carries still-valid session state into any specialist handoff.
 
-For ordinary product questions, use a typed hybrid entrance. Resolve an explicit stable ID directly. Otherwise infer likely curated types and run:
+For ordinary product questions outside `ATLAS_ROOT`, use a typed hybrid entrance. Resolve an explicit stable ID directly. Otherwise infer likely curated types and run:
 
 ```text
 python <ATLAS_ROOT>/scripts/atlas_query.py --root <ATLAS_ROOT> --format json find <query> --type <type> --path <current-path>
@@ -32,7 +39,7 @@ python <ATLAS_ROOT>/scripts/atlas_query.py --root <ATLAS_ROOT> --format json fin
 
 Search returns candidates, not truth. Select using the question, match reasons, path specificity and curated evidence; preserve ambiguity. Consult the relevant collection/domain index when results are weak or ambiguous, then the curated root index. Open the selected page and follow its links. Use maps only after stable-ID selection for reverse or multi-hop traversal. Use `context` separately when repository/component path candidates need inspection.
 
-Allow `locator_match: not-verified` candidates, but state in every substantive answer that uses one that path context was routing evidence rather than proof of repository identity. If an Atlas-relevant product repository lacks a valid managed instructions block, make one non-blocking `atlas-setup-repo` offer per repository/session; discovery remains read-only.
+Allow `locator_match: not-verified` product candidates, but state in every substantive answer that uses one that path context was routing evidence rather than proof of repository identity. If an Atlas-relevant product repository outside `ATLAS_ROOT` lacks a valid managed instructions block, make one non-blocking `atlas-setup-repo` offer per repository/session; discovery remains read-only.
 
 Route through curated Atlas before broad product-source exploration. If Atlas is insufficient, state where coverage ended and continue with a bounded source inspection inside the user's scope. Never use staging, generated maps, query output, generation or lint as semantic authority.
 

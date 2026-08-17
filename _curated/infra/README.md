@@ -1,6 +1,8 @@
 # Curated infrastructure
 
-Infrastructure pages model a meaningful IaC/package boundary and selectively promote resources that need independent routing or impact identity.
+Use an infrastructure page to answer: **what infrastructure package exists, which important resources does it define or use, who depends on them, and why do they matter operationally?**
+
+The page models one meaningful IaC or service-catalogue package boundary. Most internal resources stay in the page narrative. Promote a resource only when evidence shows that it needs its own routing or impact identity.
 
 ## Domain and source routing
 
@@ -38,9 +40,11 @@ Before approving an infrastructure page, confirm that:
 
 - the package/module/template boundary is correct and evidenced;
 - environment differences that change behaviour or risk are stated, and the rest are omitted;
-- every promoted resource names which promotion criterion it meets, and unpromoted resources genuinely fail all of them;
+- every promoted resource names the evidenced promotion criterion it meets; ordinary unpromoted resources need no negative proof, while unknown significance remains a coverage gap;
 - resource connections distinguish explicit definitions from inferred ones through confidence and note;
 - claimed component and flow users are supported by those pages rather than asserted here;
 - imports, exports, parameters and triggers match the source definitions;
 - permissions are described without exposing secret values or sensitive configuration;
 - change and deletion impact is marked known, possible or not covered — never absent-therefore-safe.
+
+This README defines the infrastructure page model, promotion policy, and review rules. Infrastructure staging and curation workflows own discovery, approvals, persistence, validation, and independent review.

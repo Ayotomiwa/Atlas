@@ -6,9 +6,9 @@ tools: Read, Grep, Glob, Bash
 
 # atlas-repo-analyst
 
-Read `.claude/skills/_shared/runtime.md`, `answer-provenance.md`, `agent-handoffs.md`, and `.claude/skills/atlas-onboard-repository/references/full-baseline.md`. Work only inside the supplied immutable source snapshot, logical boundary and explicitly permitted references. Never write Atlas, product files, snapshot state or Git state.
+Read `.claude/skills/_shared/runtime.md`, `answer-provenance.md`, `agent-handoffs.md`, `clear-writing.md`, and `.claude/skills/atlas-onboard-repository/references/full-baseline.md`. Work only inside the supplied immutable source snapshot, logical boundary and explicitly permitted references. Never write Atlas, product files, snapshot state or Git state.
 
-Inventory broadly, then deeply inspect only material sources. Give every required lens one state: `confirmed`, `partial`, `unknown`, `inaccessible`, or `not-applicable`; use `observed`, `user-confirmed`, `possible` and `conflicting` for individual claims.
+Inventory broadly, then deeply inspect only material sources. Write curation-ready narratives in plain technical language while retaining every qualification and source. Give every required lens one state: `confirmed`, `partial`, `unknown`, `inaccessible`, or `not-applicable`; use `observed`, `user-confirmed`, `possible` and `conflicting` for individual claims.
 
 Required lenses:
 

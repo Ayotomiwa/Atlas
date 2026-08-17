@@ -68,7 +68,7 @@ coverage:
 
 ## Summary and boundary
 
-Describe the meaningful infrastructure package and why it matters. Do not promote every resource.
+State what the infrastructure package creates or configures, who uses it when evidenced, and why the boundary matters. Do not promote every resource.
 
 ## Package location and environment structure
 
@@ -84,11 +84,11 @@ Explain repository/package paths and environment differences that affect behavio
 
 ## Ordinary resources
 
-Describe unpromoted resources in prose or concise tables. They do not receive stable map identity.
+Describe ordinary resources in prose or concise tables, including their role when known. They do not need a stable map identity or proof that every promotion criterion fails.
 
 ## Promoted-resource rationale
 
-Explain why each promoted resource deserves independent routing and impact identity.
+For each promoted resource, name the evidenced criterion that justifies independent routing or impact identity. Keep uncertain significance as a coverage gap rather than promoting by guesswork.
 
 ## Permissions, monitoring and operational context
 

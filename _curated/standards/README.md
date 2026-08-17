@@ -122,7 +122,7 @@ Before completing curation, verify:
 - examples and anti-patterns match the rule;
 - exceptions are explicit and bounded;
 - overlaps/extensions/supersession with existing standards are resolved;
-- the root and category indexes are updated;
+- generation and `python scripts/rebuild_atlas.py --check` confirm that the root and category indexes are fresh;
 - no sensitive internal policy content has been copied beyond what Atlas should store.
 
 ## Index maintenance rule

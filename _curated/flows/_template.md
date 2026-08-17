@@ -55,11 +55,11 @@ coverage:
 
 ## Summary and boundary
 
-Describe the end-to-end outcome, start, end, in-scope behavior and explicit exclusions.
+State the outcome first, then the evidenced start, end, in-scope behavior, and explicit exclusions. Say when the captured path is partial.
 
 ## Entry points and boundary I/O
 
-Explain material triggers and external boundary contracts. Exact values are authored in frontmatter.
+Explain what starts the flow and which material inputs enter or outputs leave its boundary. Exact values are authored in frontmatter; do not duplicate them as a second topology.
 
 ## End-to-end steps
 
@@ -77,7 +77,7 @@ _No generated diagram requested._
 
 ## Failure and conditional paths
 
-Explain branches, retries, partial completion and operational implications supported by evidence.
+Explain why each supported branch, retry, or failure transition occurs and what partial completion means operationally. Do not infer success gating from display order.
 
 ## Infrastructure and operational routes
 

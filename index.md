@@ -2,7 +2,7 @@
 
 Route by question or trust layer:
 
-- **Ask Atlas:** ask an ordinary engineering or change-impact question. Claude selects discovery/impact internally, follows curated links, and uses search or indexes only to resolve the starting record.
+- **Ask Atlas:** ask an ordinary engineering or change-impact question. Claude selects discovery/impact internally, follows curated links, and uses search or indexes only to resolve the starting record. This also works from inside the Atlas checkout: stored-knowledge questions search curated records, while Atlas implementation questions use local source.
 - **Teach Atlas:** say “Save this to Atlas” or “What does Atlas still need to know?” Claude prepares attributable evidence and asks once before writing.
 - **Sync Atlas:** say “Onboard this repository”, “Update Atlas for this repository”, or “Learn the standards used here.” Claude chooses full onboarding, standards discovery or incremental merged-change processing.
 - **Curate Atlas:** say “Curate pending evidence for this repository/domain/topic.” Claude scopes the queue, materialises supported knowledge and runs independent review.

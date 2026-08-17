@@ -5,7 +5,7 @@ Home Atlas package: `{{PACKAGE}}`
 Repository seed: `{{REPOSITORY_SEED}}`
 Repository seed verification: `{{SEED_VERIFICATION}}`
 
-Use Atlas through ordinary language: **Ask Atlas** for engineering context/impact, **Teach Atlas** to save a fact or answer a gap, **Sync Atlas** to onboard or update the repository, and **Curate Atlas** to reconcile pending evidence. Codex selects the specialist workflow. A write gets one concrete scope preview and one approval; internal handoffs do not repeat it.
+Use Atlas through ordinary language: **Ask Atlas** for engineering context/impact, **Teach Atlas** to save a fact or answer a gap, **Sync Atlas** to onboard or update the repository, and **Curate Atlas** to reconcile pending evidence. Codex selects the specialist workflow. A write reuses and states a current non-default branch with shared default-branch history. On the default branch, detached HEAD, or unrelated history, it asks the user to confirm a suggested branch, choose an existing branch, or enter a custom branch. It then gets one concrete scope preview and one approval and may create only the shown local commits. Internal handoffs do not repeat approval; local commits never imply push or merge.
 
 Atlas relevance triggers:
 

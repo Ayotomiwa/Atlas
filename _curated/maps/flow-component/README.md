@@ -2,6 +2,10 @@
 
 `flow-component-map.json` is the generated ordered-flow interface. Flow `steps` are the only participant representation: a step may name a component, infrastructure package/resource, external system, manual actor or unknown actor. The map never repeats those steps as a later component or infrastructure roster.
 
+## When to use this map
+
+Use it after selecting a `flow.*` ID when you need the ordered path, its boundary inputs and outputs, or the evidence behind each participant and handoff. Use query traversal for reverse or transitive impact. Open the flow page for narrative boundary, failure behavior, and full question context.
+
 ## Shape
 
 `metadata` contains `schema_version`, `generated`, `generator`, `package`, `map_type`, `description`, `source_of_truth` and `related_maps`. It contains no timestamps, relationship enum dump or embedded author taxonomy.

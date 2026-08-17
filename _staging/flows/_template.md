@@ -14,9 +14,11 @@ source_type: ""
 
 > Capture the evidenced path, including its hand-offs and gaps. A flow may cross repositories and platforms. Do not manufacture missing steps or create a complete-looking path from inference alone.
 
+> Store this record one level below the bucket at `_staging/flows/<candidate-domain-or-unassigned>/<STG-ID>.md`. Use a domain only when evidenced or user-confirmed; otherwise use `unassigned`. Do not group by repository path.
+
 ## Summary
 
-Describe what end-to-end path this evidence appears to cover and why the knowledge is reusable.
+State the apparent outcome first, then the boundary and why this path is reusable. Use plain technical language before Atlas terms.
 
 ### Candidate purpose and boundary
 

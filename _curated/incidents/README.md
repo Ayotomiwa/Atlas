@@ -63,12 +63,11 @@ Use only page-link types registered in `contracts/map-fields.yaml`.
 Common relationships include:
 
 - `informed-by` from a runbook/standard/component/flow to the incident learning when it materially changes understanding;
-- `depends-on` only where the incident established a real durable dependency;
 - `operated-by` when a relevant reviewed runbook applies;
 - `must-follow` for standards implicated by the learning;
 - `supersedes` if a learning record replaces a prior sanitised interpretation.
 
-Do not create edges from speculative blast-radius observations until supported.
+If an incident establishes a durable architectural dependency, author it through the natural field on the owning repository, component, flow, or infrastructure page. Do not invent a generic page link. Do not create edges from speculative blast-radius observations until supported.
 
 ## Evidence expectations
 

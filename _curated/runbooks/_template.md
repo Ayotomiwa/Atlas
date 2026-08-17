@@ -23,7 +23,7 @@ last_exercised: ""
 
 # Runbook: <scenario or procedure>
 
-> Keep this operational, safe and executable. Do not invent missing recovery steps. Prefer durable decision guidance and links over copying commands that are owned elsewhere and likely to drift.
+> Keep this operational, safe and executable. `Not covered` entries are drafting prompts, but a final runbook must contain evidenced trigger/scope, an ordered diagnostic or recovery procedure, safety/stop conditions, and objective validation or escalation. If a core element is missing, retain the supported material on the applicable component or infrastructure page instead. Do not invent steps. Prefer durable decision guidance and links over copying commands that are owned elsewhere and likely to drift.
 
 ## Purpose
 

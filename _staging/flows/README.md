@@ -2,7 +2,7 @@
 
 This bucket captures attributable evidence about an apparent end-to-end path, ordering, participants, handoffs, infrastructure and gaps. It is not a curated flow and never authoritative.
 
-Use `_staging/flows/<domain>/<STG-ID>.md` only when the primary candidate domain is evidenced or user-confirmed; otherwise use `unassigned`. Because committed staging paths are immutable by policy, uncertain evidence must not be forced into a domain.
+Group records one level below the bucket by candidate domain: use `_staging/flows/<domain>/<STG-ID>.md` only when the primary candidate domain is evidenced or user-confirmed; otherwise use `_staging/flows/unassigned/<STG-ID>.md`. Do not use repository paths or nested folders as grouping. Because committed staging paths are immutable by policy, uncertain evidence must not be forced into a domain.
 
 Capture the observed normal path plus branches, retries and failure-only routes when evidence exists. Participants may be components, jobs, infrastructure, external systems, manual actors or unresolved items. Do not invent stable IDs or missing steps.
 
