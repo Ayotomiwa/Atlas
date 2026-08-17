@@ -16,7 +16,7 @@ source_type: ""
 
 ## Summary
 
-Explain why the scan was performed and what was found at a high level.
+Describe the source boundary and candidate runtime or reusable units in plain technical language. Lead with what an engineer can learn from this evidence, not the Atlas records it may later create.
 
 ## Discovery boundary
 

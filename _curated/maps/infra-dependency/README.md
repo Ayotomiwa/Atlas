@@ -2,6 +2,10 @@
 
 `infra-dependency-map.json` exposes meaningful infrastructure packages and only the resources explicitly promoted for independent routing or impact analysis.
 
+## When to use this map
+
+Use it after selecting an infrastructure package or promoted resource ID when you need its direct actions, package membership, or known users. Open the infrastructure page for ordinary resources, operational meaning, promotion evidence, and coverage gaps; use the query tool for broader impact traversal.
+
 ## Shape
 
 `packages` and `resources` are keyed by stable `infra.*` and `resource.*` IDs. Package records route to a repository and mutable `package_path` when source-controlled, expose a compact derived `resources` ID list, keep natural authored dependency/action fields and one typed `used_by` array.

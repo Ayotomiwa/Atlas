@@ -313,11 +313,19 @@ def _validate_confidence(path: Path, owner: str, entry: dict, taxonomy: dict) ->
     confidence = entry.get("confidence")
     allowed = set(taxonomy["statuses"]["connection_confidence"])
     if confidence not in allowed:
-        raise MapBuildError(f"{path}: {owner} has invalid confidence {confidence!r}")
+        raise MapBuildError(
+            f"{path}: {owner} has invalid confidence {confidence!r}; "
+            f"allowed confidence values: {', '.join(sorted(allowed))}; "
+            "confidence describes claim trust, while coverage describes completeness"
+        )
     if confidence == "reviewed" and not entry.get("evidence"):
-        raise MapBuildError(f"{path}: reviewed {owner} requires evidence")
+        raise MapBuildError(
+            f"{path}: reviewed {owner} requires non-empty evidence supporting the claim"
+        )
     if confidence != "reviewed" and not str(entry.get("note", "")).strip():
-        raise MapBuildError(f"{path}: non-reviewed {owner} requires note")
+        raise MapBuildError(
+            f"{path}: non-reviewed {owner} requires a non-empty note explaining the uncertainty"
+        )
     return confidence
 
 
@@ -329,6 +337,7 @@ def _project_entry(
     qualifier: str | None,
     allowed_qualifiers: set[str],
     allowed_target_types: set[str],
+    target_field_hints: dict[str, list[str]],
     page_by_id: dict[str, tuple[Path, dict, str]],
     resources: dict[str, dict],
     taxonomy: dict,
@@ -351,7 +360,13 @@ def _project_entry(
             projected.update({"id": identifier, "unresolved": True})
         else:
             if allowed_target_types and resolved_type not in allowed_target_types:
-                raise MapBuildError(f"{path}: {owner} id {identifier} has invalid type {resolved_type}")
+                allowed = ", ".join(sorted(allowed_target_types))
+                hints = target_field_hints.get(resolved_type) or []
+                hint_text = f"; fields accepting {resolved_type}: {', '.join(hints)}" if hints else ""
+                raise MapBuildError(
+                    f"{path}: {owner} id {identifier} has invalid type {resolved_type}; "
+                    f"allowed target types: {allowed}{hint_text}"
+                )
             projected["id"] = identifier
     else:
         if not isinstance(external_name, str) or not external_name.strip():
@@ -381,6 +396,10 @@ def _project_entries(
 ) -> list[dict]:
     values = _list_field(path, fm, field)
     spec = map_contract["fields"][source_type][field]
+    target_field_hints: dict[str, list[str]] = {}
+    for candidate_field, candidate_spec in map_contract["fields"][source_type].items():
+        for target_type in candidate_spec.get("target_types") or []:
+            target_field_hints.setdefault(target_type, []).append(candidate_field)
     qualifier = spec.get("qualifier")
     allowed_qualifiers = _enum_values(taxonomy, spec["values"]) if qualifier else set()
     return sorted(
@@ -392,6 +411,7 @@ def _project_entries(
                 qualifier=qualifier,
                 allowed_qualifiers=allowed_qualifiers,
                 allowed_target_types=set(spec.get("target_types") or []),
+                target_field_hints=target_field_hints,
                 page_by_id=page_by_id,
                 resources=resources,
                 taxonomy=taxonomy,
@@ -412,6 +432,10 @@ def _route_entries(
     map_contract: dict,
 ) -> dict[str, list[dict]]:
     out: dict[str, list[dict]] = {}
+    target_field_hints: dict[str, list[str]] = {}
+    for candidate_field, candidate_spec in map_contract["fields"]["routes"].items():
+        for target_type in candidate_spec.get("target_types") or []:
+            target_field_hints.setdefault(target_type, []).append(candidate_field)
     for field in ROUTE_FIELDS:
         values = _list_field(path, fm, field)
         spec = map_contract["fields"]["routes"][field]
@@ -424,6 +448,7 @@ def _route_entries(
                     qualifier=None,
                     allowed_qualifiers=set(),
                     allowed_target_types=set(spec.get("target_types") or []),
+                    target_field_hints=target_field_hints,
                     page_by_id=page_by_id,
                     resources=resources,
                     taxonomy=taxonomy,
@@ -545,6 +570,7 @@ def _flow_steps(
                         qualifier="asset_type",
                         allowed_qualifiers=asset_types,
                         allowed_target_types={"component", "schema-info", ASSET_TYPE},
+                        target_field_hints={},
                         page_by_id=page_by_id,
                         resources=resources,
                         taxonomy=taxonomy,
@@ -797,8 +823,13 @@ def build_maps(
                 if not isinstance(resource.get("environments"), list):
                     raise MapBuildError(f"{path}: promoted resource {ident} environments must be a list")
                 _validate_confidence(path, f"promoted resource {ident}", resource, taxonomy)
-                if _coverage(resource.get("coverage")) not in allowed_coverage:
-                    raise MapBuildError(f"{path}: promoted resource {ident} has invalid coverage")
+                coverage = _coverage(resource.get("coverage"))
+                if coverage not in allowed_coverage:
+                    raise MapBuildError(
+                        f"{path}: promoted resource {ident} has invalid coverage {coverage!r}; "
+                        f"allowed coverage levels: {', '.join(sorted(allowed_coverage))}; "
+                        "coverage describes completeness, while confidence describes claim trust"
+                    )
             except MapBuildError as exc:
                 _record_error(collect_errors, path, exc, parent_id)
                 continue

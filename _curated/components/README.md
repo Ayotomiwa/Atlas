@@ -1,6 +1,8 @@
 # Curated components
 
-Component pages describe independently addressable runtime or reusable engineering units. They explain architectural behavior without becoming source-code walkthroughs.
+Use a component page to answer: **what does this independently addressable runtime or reusable unit do, what does it use, what does it produce, and what does it not own?**
+
+For example, a scheduled worker can be a component when it has an independently meaningful runtime responsibility. The folder containing several workers is not automatically another component. Component pages explain architectural behavior without becoming function-by-function source walkthroughs.
 
 ## Boundary and granularity
 
@@ -42,3 +44,5 @@ Before approving a component page, confirm that:
 - no flow participation is authored here;
 - failure and operational context routes to runbooks and monitoring without copying sensitive logs;
 - coverage limits and open questions name what is unknown rather than leaving it blank.
+
+This README defines the component page model and review rules. Repository onboarding and curation workflows own discovery, approvals, persistence, validation, and independent review.

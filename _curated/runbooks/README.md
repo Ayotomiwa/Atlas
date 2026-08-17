@@ -62,12 +62,11 @@ Use only page-link types registered in `contracts/map-fields.yaml`.
 Typical relationships include:
 
 - `operated-by` from a component/flow/infra concept to the runbook;
-- `depends-on` when the procedure requires another governed capability;
 - `must-follow` for standards constraining recovery behaviour;
 - `informed-by` when incident learning materially shaped the runbook;
 - `supersedes` when a runbook replaces an older procedure.
 
-Do not create operational relationship edges unless the procedure actually applies to the target.
+Record operational prerequisites in the runbook body with direct links to their owning source. If a prerequisite is also a durable architectural dependency, author it through the natural dependency field on the owning repository, component, or infrastructure page. Do not invent a generic page link. Do not create operational relationship edges unless the procedure actually applies to the target.
 
 ## Evidence expectations
 
@@ -84,13 +83,17 @@ High-risk actions deserve stronger evidence than descriptive context. Where a co
 
 ## `not covered` rule
 
-When a required section lacks evidence, use exactly:
+The template uses this placeholder while evidence is still being assembled:
 
 ```markdown
 *Not covered — no evidence in current staging material.*
 ```
 
-Never invent a recovery, rollback or validation step to make a runbook appear complete.
+Before final curation, replace the placeholder in the four core elements: trigger/scope, ordered diagnostic or recovery procedure, safety/stop conditions, and objective validation or escalation.
+
+If any core element remains unsupported, do not curate a full runbook. Keep the supported material as an operational note on the narrowest applicable component or infrastructure page. Optional sections may retain the placeholder to show an explicit coverage gap.
+
+Never invent a recovery, rollback, or validation step to make a runbook appear complete.
 
 ## Agent curation instructions
 
@@ -107,6 +110,7 @@ Before completing curation, verify:
 - recovery steps are ordered and evidence-backed;
 - success validation is objective;
 - rollback and escalation paths are usable;
+- none of the four required core elements remains `Not covered`;
 - monitoring references remain valid;
 - sensitive values are not embedded;
 - `last_exercised` is not fabricated and coverage gaps are visible.

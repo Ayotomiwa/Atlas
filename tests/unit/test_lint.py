@@ -184,6 +184,22 @@ def test_structured_errors_are_attributed_to_owning_pages(tmp_path: Path):
     assert "repo.a -> repo.b -> repo.a" in cycle_issues[0]["message"]
 
 
+def test_duplicate_issue_exposes_record_and_related_path_metadata(tmp_path: Path):
+    root = _root(tmp_path)
+    _write(root, "_curated/repositories/test/first.md", _repository("repo.fixture"))
+    _write(root, "_curated/repositories/test/second.md", _repository("repo.fixture"))
+
+    duplicate = next(
+        item
+        for item in lint_repository(root)
+        if item["code"] == "ATLAS003" and "duplicate" in item["message"]
+    )
+
+    assert duplicate["record_id"] == "repo.fixture"
+    assert duplicate["related_ids"] == ["repo.fixture"]
+    assert duplicate["related_paths"] == ["_curated/repositories/test/first.md"]
+
+
 def test_body_shape_secrets_and_review_age_are_not_lint_rules(tmp_path: Path):
     root = _root(tmp_path)
     record = _repository("repo.fixture")
@@ -214,6 +230,64 @@ def test_lifecycle_and_candidate_staging_domain_rules(tmp_path: Path):
     issues = lint_repository(root)
     assert any(item["code"] == "ATLAS006" and "proposed" in item["message"] for item in issues)
     assert not any(item["code"] == "ATLAS027" and "not-yet-registered" in item["path"] for item in issues)
+
+
+def test_domain_grouped_staging_error_names_the_actual_type(tmp_path: Path):
+    root = _root(tmp_path)
+    staging = {
+        "id": "STG-20260817-infra",
+        "type": "staging.infra",
+        "package": "fixtures",
+        "timestamp": "2026-08-17",
+        "title": "Infrastructure evidence",
+        "description": "Evidence.",
+        "status": "new",
+        "captured_by": "Fixture Curator",
+        "source_type": "repository",
+    }
+    _write(root, "_staging/infra/Bad Group/STG-20260817-infra.md", staging)
+
+    issues = [item for item in lint_repository(root) if item["code"] == "ATLAS027"]
+
+    assert any("staging.infra must be under" in item["message"] for item in issues), issues
+    assert all("component/flow" not in item["message"] for item in issues)
+
+
+def test_domain_grouped_staging_rejects_flat_and_excessively_nested_paths(tmp_path: Path):
+    root = _root(tmp_path)
+    common = {
+        "package": "fixtures",
+        "timestamp": "2026-08-17",
+        "title": "Evidence",
+        "description": "Evidence.",
+        "status": "new",
+        "captured_by": "Fixture Curator",
+        "source_type": "repository",
+    }
+    _write(
+        root,
+        "_staging/components/test/nested/STG-20260817-component.md",
+        {**common, "id": "STG-20260817-component", "type": "staging.component"},
+    )
+    _write(
+        root,
+        "_staging/infra/test/nested/STG-20260817-infra-nested.md",
+        {**common, "id": "STG-20260817-infra-nested", "type": "staging.infra"},
+    )
+    _write(
+        root,
+        "_staging/infra/STG-20260817-infra-flat.md",
+        {**common, "id": "STG-20260817-infra-flat", "type": "staging.infra"},
+    )
+
+    issues = [item for item in lint_repository(root) if item["code"] == "ATLAS027"]
+
+    assert {item["path"] for item in issues} == {
+        "_staging/components/test/nested/STG-20260817-component.md",
+        "_staging/infra/STG-20260817-infra-flat.md",
+        "_staging/infra/test/nested/STG-20260817-infra-nested.md",
+    }
+    assert all("exactly <candidate-domain>/<staging-id>.md" in item["message"] for item in issues)
 
 
 def test_unquoted_transition_key_has_actionable_error(tmp_path: Path):
@@ -396,3 +470,25 @@ def test_lint_checkpoint_join_rejects_ambiguous_staging_id(tmp_path: Path):
 
     issues = [item for item in lint_repository(root) if item["code"] == "ATLAS028"]
     assert any("references ambiguous staging ID" in item["message"] for item in issues)
+
+
+def test_lint_reports_duplicate_staging_ids_with_related_paths(tmp_path: Path):
+    root = _root(tmp_path)
+    change = _merged_change()
+    _write(root, f"_staging/changes/{change['id']}.md", change)
+    duplicate = {**change, "type": "staging.runbook", "source_type": "repository"}
+    duplicate.pop("change_source")
+    _write(root, f"_staging/runbooks/{change['id']}.md", duplicate)
+
+    issue = next(
+        item
+        for item in lint_repository(root)
+        if item["code"] == "ATLAS003" and "duplicate staging id" in item["message"]
+    )
+
+    assert issue["record_id"] == change["id"]
+    assert issue["related_ids"] == [change["id"]]
+    assert issue["related_paths"] == [
+        f"_staging/changes/{change['id']}.md",
+        f"_staging/runbooks/{change['id']}.md",
+    ]

@@ -77,8 +77,29 @@ IDENTITY_CODES = {"ATLAS002", "ATLAS003", "ATLAS005", "ATLAS027"}
 GROUP_SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 
 
-def issue(code: str, level: str, path: str | Path, message: str) -> dict[str, str]:
-    return {"code": code, "level": level, "path": Path(path).as_posix(), "message": message}
+def issue(
+    code: str,
+    level: str,
+    path: str | Path,
+    message: str,
+    *,
+    record_id: str | None = None,
+    related_paths: list[str | Path] | None = None,
+    related_ids: list[str] | None = None,
+) -> dict[str, object]:
+    item: dict[str, object] = {
+        "code": code,
+        "level": level,
+        "path": Path(path).as_posix(),
+        "message": message,
+    }
+    if record_id is not None:
+        item["record_id"] = record_id
+    if related_paths:
+        item["related_paths"] = sorted({Path(value).as_posix() for value in related_paths})
+    if related_ids:
+        item["related_ids"] = sorted(set(related_ids))
+    return item
 
 
 def _is_skipped(rel: Path) -> bool:
@@ -138,9 +159,9 @@ def _boolean_key_paths(value: object, prefix: str = "frontmatter") -> list[str]:
 
 def lint_repository(
     root: str | Path,
-) -> list[dict[str, str]]:
+) -> list[dict[str, object]]:
     root = Path(root).resolve()
-    issues: list[dict[str, str]] = []
+    issues: list[dict[str, object]] = []
 
     try:
         package = load_package_config(root)
@@ -230,13 +251,15 @@ def lint_repository(
             if spec.get("grouped") == "domain":
                 inside = rel.relative_to(Path(spec["folder"]))
                 group = inside.parts[0] if len(inside.parts) > 1 else ""
-                if not GROUP_SLUG_RE.fullmatch(group):
+                exact_grouped_path = len(inside.parts) == 2 and GROUP_SLUG_RE.fullmatch(group)
+                if not exact_grouped_path:
                     issues.append(
                         issue(
                             "ATLAS027",
                             "ERROR",
                             rel,
-                            "staging component/flow must be under a valid candidate-domain slug or unassigned",
+                            f"{typ} must be under exactly <candidate-domain>/<staging-id>.md "
+                            "using a valid candidate-domain slug",
                         )
                     )
             continue
@@ -245,7 +268,17 @@ def lint_repository(
         if not valid_curated_id(ident, spec.get("id_prefix")):
             issues.append(issue("ATLAS003", "ERROR", rel, "invalid curated id prefix/grammar"))
         elif ident in seen_ids:
-            issues.append(issue("ATLAS003", "ERROR", rel, f"duplicate id also in {seen_ids[ident]}"))
+            issues.append(
+                issue(
+                    "ATLAS003",
+                    "ERROR",
+                    rel,
+                    f"duplicate id also in {seen_ids[ident]}",
+                    record_id=ident,
+                    related_paths=[seen_ids[ident]],
+                    related_ids=[ident],
+                )
+            )
         else:
             seen_ids[ident] = rel
 
@@ -336,6 +369,22 @@ def lint_repository(
                 issues.append(issue("ATLAS025", "ERROR", rel, f"{field} has invalid value {fm.get(field)!r}"))
         if typ == "standard" and status == "curated" and fm.get("requirement_level") == "unknown":
             issues.append(issue("ATLAS025", "ERROR", rel, "curated standards cannot use requirement_level: unknown"))
+
+    for staging_id, candidates in sorted(staging_records.items()):
+        if len(candidates) < 2:
+            continue
+        candidate_paths = [path for path, _ in candidates]
+        issues.append(
+            issue(
+                "ATLAS003",
+                "ERROR",
+                candidate_paths[-1],
+                f"duplicate staging id appears in {len(candidate_paths)} records",
+                record_id=staging_id,
+                related_paths=candidate_paths,
+                related_ids=[staging_id],
+            )
+        )
 
     checkpoint_root = root / "_intake" / "checkpoints"
     if checkpoint_root.exists():
@@ -475,7 +524,15 @@ def lint_repository(
         if record_error.path in already_reported:
             continue
         prefix = f"{record_error.record_id}: " if record_error.record_id else ""
-        issues.append(issue("ATLAS009", "ERROR", record_error.path, prefix + record_error.message))
+        issues.append(
+            issue(
+                "ATLAS009",
+                "ERROR",
+                record_error.path,
+                prefix + record_error.message,
+                record_id=record_error.record_id,
+            )
+        )
 
     issues.sort(key=lambda item: (item["path"], item["code"], item["level"], item["message"]))
     return issues

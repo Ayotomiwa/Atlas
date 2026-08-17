@@ -54,6 +54,8 @@ This is a default, not a rigid one-to-one invariant.
 
 A release/epic association alone is not sufficient reason to group unrelated changes.
 
+Every record should make clear **what changed**, **where**, **which final or merged state was inspected**, and **why the result may matter beyond this delivery item**.
+
 ## Belongs here
 
 Capture attributable evidence when a logical change reveals or modifies reusable context such as:
@@ -83,12 +85,6 @@ Do not use this bucket for:
 - a draft operational procedure — use `_staging/runbooks/`;
 - a candidate reusable engineering rule — use `_staging/standards/`;
 - routine ticket status, implementation diary or noise with no reusable Atlas value.
-
-## Logical-change boundary
-
-Group evidence when several implementation changes form one coherent engineering outcome. Split entries when their scope, evidence, consumers or curation targets are materially independent.
-
-The staging record should make clear **what changed**, **where**, **what final/merged state was inspected when applicable**, and **why it may matter beyond this delivery item**.
 
 ## Evidence and uncertainty
 

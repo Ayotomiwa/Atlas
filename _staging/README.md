@@ -36,7 +36,7 @@ A staging file may support a proposal, but it does not become trusted merely bec
 | `runbooks/` | Draft operational procedures |
 | `standards/` | Candidate reusable team standards/conventions |
 
-Use `_staging/index.md` to route to buckets. Component and flow queues have generated root/domain indexes because those records are domain-routed; other buckets continue to use Git/search rather than manually maintained catalogues.
+Use `_staging/index.md` to route to buckets. Component, flow, and infrastructure queues have generated root/domain indexes because those records are domain-routed; other buckets continue to use Git/search rather than manually maintained catalogues.
 
 ## Common staging contract
 

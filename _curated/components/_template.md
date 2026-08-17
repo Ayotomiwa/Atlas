@@ -53,11 +53,11 @@ coverage:
 
 ## Summary
 
-Describe what the component is, where it fits, and why an engineer would care.
+State what the component does, where it fits, and why an engineer would look it up. Use plain technical language before Atlas terminology.
 
 ## Responsibility and boundary
 
-State evidenced responsibilities, explicit non-responsibilities and whether this is an independently addressable architectural unit.
+State evidenced responsibilities and explicit non-responsibilities. Explain the independent runtime or reuse boundary instead of relying on a folder name.
 
 ## Source location and entrypoints
 
@@ -65,7 +65,7 @@ Explain the relevant repository paths and important code/configuration entrypoin
 
 ## Code architecture summary
 
-Describe important control flow and implementation structure without function-by-function narration.
+Explain the causal path from entry or trigger through material work and state changes to outputs, failure, and observable completion. Do not narrate every function or turn file adjacency into causality.
 
 ## Structured routing
 

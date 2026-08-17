@@ -1,6 +1,8 @@
 # Curated repositories
 
-Repository pages describe useful source boundaries and topology. They answer where code lives, how a source boundary is organised, which domain owns it, and which independently addressable components it contains. Runtime responsibility belongs on component pages; end-to-end execution belongs on flow pages.
+Use a repository page to answer: **where does this source boundary begin and end, how is it organised, who owns it, and where should an engineer start reading?**
+
+A repository page describes source organisation, not runtime behavior. For example, a logical project inside a monorepo may qualify when it has its own build, release, ownership, or product boundary. Its deployable worker still belongs on a component page, and the end-to-end execution path belongs on a flow page.
 
 ## Granularity
 
@@ -39,3 +41,5 @@ Before approving a repository page, confirm that:
 - unknown ownership, deployment and source areas are stated as open questions rather than omitted.
 
 Generated tables and maps are compiled with `python scripts/rebuild_atlas.py` and are never hand-edited.
+
+This README defines the repository page model and review rules. Repository onboarding and curation workflows own source scanning, approvals, staging, validation, and independent review.
