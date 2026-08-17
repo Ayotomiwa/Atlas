@@ -2283,9 +2283,9 @@ Maps connect concepts. Pages explain them. Lint checks consistency between the t
 
 | Map | Purpose | Primary key | Documentation |
 |---|---|---|---|
-| [flow-component-map.json](...) | Flow → component participation and routing | Flow ID | [README](...) |
-| [repo-dependency-map.json](...) | Component → component, API, event, table, data relationships | Component key | [README](...) |
-| [infra-dependency-map.json](...) | Infra package → resource, component/flow usage, impact | Package key | [README](...) |
+| `flow-component-map.json` | Flow → component participation and routing | Flow ID | `README` |
+| `repo-dependency-map.json` | Component → component, API, event, table, data relationships | Component key | `README` |
+| `infra-dependency-map.json` | Infra package → resource, component/flow usage, impact | Package key | `README` |
 
 ## Which map to use
 

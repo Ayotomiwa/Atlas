@@ -21,6 +21,16 @@ def test_broken_relative_link_is_reported(tmp_path: Path):
     assert broken_links(source) == ["nested/missing.md"]
 
 
+def test_ellipsis_placeholder_is_not_a_valid_relative_link(tmp_path: Path):
+    placeholder = tmp_path / "..."
+    placeholder.mkdir(exist_ok=True)
+    source = tmp_path / "source.md"
+    source.write_text("[placeholder](...)\n", encoding="utf-8")
+
+    assert broken_links(source) == ["..."]
+    assert not links_to(source, placeholder)
+
+
 def test_markdown_link_extractor_excludes_images():
     text = "[page](a.md) ![image](a.png) [other](b.md)"
     assert markdown_links(text) == ["a.md", "b.md"]
