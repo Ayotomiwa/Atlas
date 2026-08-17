@@ -9,16 +9,17 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from scripts.lib.generated import build_index_outputs, build_page_view_outputs, generated_index_candidates
-from scripts.lib.maps import MapBuildError, build_maps, map_output_paths, stable_bytes
+from scripts.lib.maps import MapBuildError, build_maps, curated_pages, map_output_paths, stable_bytes
 
 
 def expected_outputs(root: Path) -> tuple[dict[Path, bytes], list]:
-    maps, diagnostics = build_maps(root, include_diagnostics=True)
+    pages = curated_pages(root)
+    maps, diagnostics = build_maps(root, pages=pages, include_diagnostics=True)
     outputs: dict[Path, bytes] = {
         map_output_paths(root)[name]: stable_bytes(value) for name, value in maps.items()
     }
-    outputs.update(build_index_outputs(root))
-    outputs.update(build_page_view_outputs(root, compiled_maps=maps))
+    outputs.update(build_index_outputs(root, pages=pages))
+    outputs.update(build_page_view_outputs(root, compiled_maps=maps, pages=pages))
     return outputs, diagnostics
 
 

@@ -21,4 +21,4 @@ Use a single record even for a monorepo with several domains or deployables. Put
 
 A repository page can be proposed when the source boundary, physical locator, logical root, important source structure and primary domain are evidenced. A component page can be proposed only when responsibility, repository membership, an independent architectural boundary and causal behavior are evidenced. Tables route facts; they do not replace the per-component explanation. It is valid to curate the repository and defer some or all component candidates.
 
-The generated [queue index](index.md) is catalogue-only. README policy and staging evidence are never generated.
+Use `python scripts/atlas_query.py staging --bucket components` to inspect this evidence; add `--domain <domain>` when needed. README policy and staging evidence are never generated.

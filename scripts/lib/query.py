@@ -7,6 +7,7 @@ import json
 import re
 import subprocess
 from urllib.parse import urlsplit
+from typing import Sequence
 
 from scripts.lib.frontmatter import parse_frontmatter
 from scripts.lib.maps import CuratedPage, curated_pages, iter_curated_pages, load_package_config
@@ -378,12 +379,19 @@ class ExactResolver:
 
 
 class AtlasQuery:
-    def __init__(self, root: str | Path, *, compiled_maps: dict[str, dict] | None = None):
+    def __init__(
+        self,
+        root: str | Path,
+        *,
+        compiled_maps: dict[str, dict] | None = None,
+        pages: Sequence[CuratedPage] | None = None,
+    ):
         self.root = Path(root).resolve()
         self.config = load_package_config(self.root)
         self.taxonomy = load_taxonomy(self.root)
         self.map_contract = load_contracts(self.root)["map_fields"]
         self.compiled_maps = compiled_maps
+        self.pages = pages if pages is not None else curated_pages(self.root)
         self.records: dict[str, dict] = {}
         self.routes: dict[str, dict] = {}
         self.search_records: dict[str, dict] = {}
@@ -393,6 +401,7 @@ class AtlasQuery:
         self.question_diagnostics: list[dict] = []
         self.structured_diagnostics: list[dict] = []
         self._branch = self._git_branch()
+        self._checkout_states: dict[Path, str | None] = {}
         self.warnings = self._branch_warnings()
         self._load()
 
@@ -437,8 +446,13 @@ class AtlasQuery:
     def _page_checkout_state(self, path: Path, status: object) -> str | None:
         if status != "curated":
             return None
+        path = path.resolve()
+        if path in self._checkout_states:
+            return self._checkout_states[path]
         if self._branch is None:
-            return "git-unknown"
+            state = "git-unknown"
+            self._checkout_states[path] = state
+            return state
         relative = path.relative_to(self.root).as_posix()
         try:
             tracked = subprocess.run(
@@ -454,16 +468,21 @@ class AtlasQuery:
                 timeout=5,
             ).returncode == 0
         except (OSError, subprocess.SubprocessError):
-            return "git-unknown"
+            state = "git-unknown"
+            self._checkout_states[path] = state
+            return state
         if not tracked:
-            return "untracked"
-        if not unchanged:
-            return "modified"
-        if not self._branch:
-            return "detached"
-        if self._branch not in {"main", "master"}:
-            return "off-main"
-        return "main-clean"
+            state = "untracked"
+        elif not unchanged:
+            state = "modified"
+        elif not self._branch:
+            state = "detached"
+        elif self._branch not in {"main", "master"}:
+            state = "off-main"
+        else:
+            state = "main-clean"
+        self._checkout_states[path] = state
+        return state
 
     def _load(self) -> None:
         map_payloads: list[tuple[str, dict]] = []
@@ -492,7 +511,7 @@ class AtlasQuery:
                         "page": record.get("page", ""),
                         "status": record.get("status"),
                     }
-        pages = curated_pages(self.root)
+        pages = self.pages
         for path, frontmatter, _ in pages:
             identifier = frontmatter.get("id")
             if isinstance(identifier, str):
@@ -958,7 +977,7 @@ class AtlasQuery:
         routed = self.routes.get(identifier)
         if routed:
             return routed
-        for path, frontmatter, _ in curated_pages(self.root):
+        for path, frontmatter, _ in self.pages:
             if frontmatter.get("id") == identifier:
                 route = {
                     "id": identifier,

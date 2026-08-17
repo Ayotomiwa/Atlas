@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Sequence
 import datetime as dt
 import json
 import re
@@ -721,6 +722,7 @@ def _metadata(name: str, config: dict, map_contract: dict) -> dict:
 def build_maps(
     root: str | Path,
     *,
+    pages: Sequence[CuratedPage] | None = None,
     include_diagnostics: bool = False,
     collect_errors: list[MapValidationIssue] | None = None,
     include_body_questions: bool = True,
@@ -752,7 +754,8 @@ def build_maps(
     active_types = {name: spec for name, spec in type_specs.items() if spec.get("status") == "active"}
     domain_ids = {item["id"] for item in config.get("domains") or []}
 
-    pages = curated_pages(root, collect_errors=collect_errors)
+    if pages is None:
+        pages = curated_pages(root, collect_errors=collect_errors)
     page_by_id: dict[str, tuple[Path, dict, str]] = {}
     for absolute_path, fm, body in pages:
         rel = absolute_path.relative_to(root)

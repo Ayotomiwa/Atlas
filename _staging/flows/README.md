@@ -10,4 +10,4 @@ A curation-ready flow record includes a readable execution narrative as well as 
 
 Keep raw evidence in the body. Curation decides whether facts become structured entry points, boundary I/O, ordered steps, material step handoffs, transitions or compact question routes. A package/resource that performs work becomes a typed step participant; passive infrastructure connections belong on component or infrastructure records.
 
-The generated [queue index](index.md) is catalogue-only and groups evidence by lifecycle status/domain.
+Use `python scripts/atlas_query.py staging --bucket flows` to inspect this evidence; add `--domain <domain>` when needed.

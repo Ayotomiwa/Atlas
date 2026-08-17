@@ -8,8 +8,10 @@ import sys
 
 import yaml
 
-from scripts.lib.generated import build_index_outputs
-from scripts.lib.maps import MAP_NAMES, build_maps, stable_bytes, validate_map_frontmatter
+from scripts import rebuild_atlas
+from scripts.lib.generated import build_index_outputs, build_page_view_outputs, generated_index_candidates
+from scripts.lib.maps import MAP_NAMES, build_maps, curated_pages, stable_bytes, validate_map_frontmatter
+import scripts.lib.maps as maps_module
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -254,24 +256,57 @@ def test_generation_is_deterministic_and_freshness_command_detects_missing_outpu
     assert result.returncode == 1
 
 
-def test_staging_candidate_domain_is_stable_in_root_and_domain_catalogues(tmp_path: Path):
-    root = _root(tmp_path)
-    staging = {
-        "id": "STG-20260811-fixture",
-        "type": "staging.component",
-        "package": "fixtures",
-        "timestamp": "2026-08-11",
-        "title": "Fixture discovery",
-        "description": "Fixture staging evidence.",
-        "status": "curating",
-        "captured_by": "Fixture Curator",
-        "source_type": "repository",
-    }
-    _write(root, "_staging/components/test/STG-20260811-fixture.md", staging)
-    outputs = build_index_outputs(root)
+def test_shared_curated_snapshot_preserves_generated_outputs(tmp_path: Path):
+    """Changing a generator to reload pages must not change its rendered output."""
+    root = _coherent_root(tmp_path)
+    pages = curated_pages(root)
 
-    root_index = outputs[root / "_staging/components/index.md"].decode("utf-8")
-    domain_index = outputs[root / "_staging/components/test/index.md"].decode("utf-8")
-    assert "| `test` | repository |" in root_index
-    assert "| `test` | repository |" in domain_index
-    assert "| `unassigned` | repository |" not in domain_index
+    maps = build_maps(root, pages=pages)
+    assert maps == build_maps(root)
+    assert build_index_outputs(root, pages=pages) == build_index_outputs(root)
+    assert build_page_view_outputs(root, compiled_maps=maps, pages=pages) == build_page_view_outputs(
+        root, compiled_maps=maps
+    )
+
+
+def test_rebuild_loads_each_curated_page_once_and_is_deterministic(tmp_path: Path, monkeypatch):
+    """A rebuild shares one parsed snapshot across maps, catalogues, and page views."""
+    root = _coherent_root(tmp_path)
+    pages = curated_pages(root)
+    original = maps_module.parse_frontmatter
+    loaded: list[object] = []
+
+    def counting_parse(path_or_text):
+        loaded.append(path_or_text)
+        return original(path_or_text)
+
+    monkeypatch.setattr(maps_module, "parse_frontmatter", counting_parse)
+
+    first, first_diagnostics = rebuild_atlas.expected_outputs(root)
+    assert len(loaded) == len(pages)
+    assert all(isinstance(item, Path) for item in loaded)
+
+    loaded.clear()
+    second, second_diagnostics = rebuild_atlas.expected_outputs(root)
+    assert len(loaded) == len(pages)
+    assert first == second
+    assert first_diagnostics == second_diagnostics
+
+
+def test_rebuild_removes_obsolete_staging_queue_indexes(tmp_path: Path):
+    """Former component/flow queue projections remain stale-cleanup candidates."""
+    root = _root(tmp_path)
+    queue_indexes = [
+        root / "_staging/components/index.md",
+        root / "_staging/components/unassigned/index.md",
+        root / "_staging/flows/index.md",
+        root / "_staging/flows/unassigned/index.md",
+    ]
+    generated_block = "<!-- atlas:generated-catalogue:start -->\nold queue\n<!-- atlas:generated-catalogue:end -->\n"
+    for path in queue_indexes:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(generated_block, encoding="utf-8")
+
+    assert set(queue_indexes) <= generated_index_candidates(root)
+    assert rebuild_atlas.main(["--root", str(root)]) == 0
+    assert not any(path.exists() for path in queue_indexes)

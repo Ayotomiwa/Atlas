@@ -9,7 +9,7 @@ import yaml
 
 from scripts.lib.frontmatter import parse_frontmatter
 from scripts import atlas_query
-from scripts.lib.maps import build_maps, map_output_paths, stable_bytes
+from scripts.lib.maps import build_maps, curated_pages, map_output_paths, stable_bytes
 from scripts.lib.query import AtlasQuery
 import scripts.lib.query as query_module
 
@@ -429,6 +429,26 @@ def test_curated_authority_is_separate_from_page_checkout_state(tmp_path: Path):
     assert dirty.resolve("schema.fixture")["checkout_state"] == "modified"
     assert dirty.resolve("asset.fixture.output")["checkout_state"] == "modified"
     assert dirty.resolve("repo.fixture")["checkout_state"] == "main-clean"
+
+
+def test_atlas_query_checks_each_curated_page_once_per_instance(tmp_path: Path, monkeypatch):
+    """Search, routing, and embedded records reuse the page's checkout advisory."""
+    root, _ = _root(tmp_path)
+    _git_commit(root)
+    pages = curated_pages(root)
+    original_run = query_module.subprocess.run
+    checked: list[str] = []
+
+    def counting_run(command, *args, **kwargs):
+        if command[:3] == ["git", "ls-files", "--error-unmatch"]:
+            checked.append(command[-1])
+        return original_run(command, *args, **kwargs)
+
+    monkeypatch.setattr(query_module.subprocess, "run", counting_run)
+
+    AtlasQuery(root, compiled_maps=build_maps(root, pages=pages), pages=pages)
+
+    assert checked == sorted(page.path.relative_to(root).as_posix() for page in pages)
 
 
 def test_git_unavailable_does_not_remove_curated_authority_and_deprecated_is_historical(tmp_path: Path):
