@@ -12,6 +12,18 @@ Keep these locations distinct:
 
 Pass absolute paths internally and to agents. In user-facing answers, cite paths relative to the applicable Atlas or product root.
 
+Keep an ephemeral Atlas session state inside the current conversation only:
+
+- validated Atlas root, product root and current path;
+- selected stable IDs and curated pages already opened;
+- product-source paths already inspected;
+- the current coverage endpoint;
+- whether the checkout advisory has already been disclosed.
+
+A new conversation starts cold; never persist this state. Reuse it only while the product repository, selected record and evidence, and question type remain unchanged and no source or checkout change is suspected. For an unchanged local follow-up, do not repeat an Atlas query, page open or source read that the retained context already answers.
+
+Re-enter Atlas when the repository or selected record changes, source or checkout state may have changed, the question crosses the recorded coverage endpoint, or the work concerns impact, ownership, conflicts, standards, recovery or another boundary. Re-entry opens only the routes needed for the new scope and carries still-valid session state into any specialist handoff.
+
 For ordinary product questions, use a typed hybrid entrance. Resolve an explicit stable ID directly. Otherwise infer likely curated types and run:
 
 ```text

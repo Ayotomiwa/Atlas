@@ -1,6 +1,6 @@
 # Specialist-agent handoffs
 
-Supply objective/output, absolute roots/current path, typed find/path-context candidates or exact IDs including `not-verified` state, scan boundary/exclusions, fallback limits, user-confirmed facts, unresolved ambiguity and validation deferrals.
+Supply objective/output, absolute roots/current path, typed find/path-context candidates or exact IDs including `not-verified` state, and reusable session state: selected IDs, opened curated pages, inspected product-source paths, coverage endpoint and checkout-advisory disclosure. Also supply scan boundary/exclusions, fallback limits, user-confirmed facts, unresolved ambiguity and validation deferrals.
 
 Require findings plus a claim ledger containing claim, source classification, references, confidence/lifecycle, direct/inferred state and inference premises. Also require material route hops, consulted paths, relevant checked-but-not-found paths, coverage/conflicts/questions and useful next routes.
 
