@@ -136,8 +136,12 @@ def test_cleanup_refuses_a_dirty_temporary_worktree_and_leaves_it_registered(tmp
 
     assert snapshot.exists()
     assert manifest.exists()
-    registered = _git(repo, "worktree", "list", "--porcelain").replace("/", "\\").casefold()
-    assert str(snapshot.resolve()).casefold() in registered
+    registered = {
+        Path(line.removeprefix("worktree ")).resolve()
+        for line in _git(repo, "worktree", "list", "--porcelain").splitlines()
+        if line.startswith("worktree ")
+    }
+    assert snapshot.resolve() in registered
 
     (snapshot / "local.txt").unlink()
     cleanup_snapshot(manifest)
