@@ -36,6 +36,11 @@ OBSERVABLE_FIELDS = (
 BREAK_EVEN_FIELDS = (
     "bytes_read", "tool_calls", "latency_ms", "input_tokens", "output_tokens",
 )
+_WINDOWS_RESERVED_DEVICE_STEMS = {
+    "CON", "PRN", "AUX", "NUL",
+    *(f"COM{number}" for number in range(1, 10)),
+    *(f"LPT{number}" for number in range(1, 10)),
+}
 _MISSING = object()
 
 
@@ -141,6 +146,12 @@ def verify_answer_freeze(run_root: str | Path) -> list[str]:
 
 def _safe_run_id(value: object, owner: str = "run_id") -> str:
     if not isinstance(value, str) or not value.strip() or "/" in value or "\\" in value:
+        raise EvaluationError(f"{owner} must be one safe non-empty path component")
+    if (
+        value.endswith((" ", "."))
+        or any(ord(character) < 32 or ord(character) == 127 for character in value)
+        or value.partition(".")[0].upper() in _WINDOWS_RESERVED_DEVICE_STEMS
+    ):
         raise EvaluationError(f"{owner} must be one safe non-empty path component")
     posix = PurePosixPath(value)
     windows = PureWindowsPath(value)

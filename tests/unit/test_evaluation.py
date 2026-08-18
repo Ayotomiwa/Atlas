@@ -121,6 +121,56 @@ def test_prepare_rejects_absolute_run_id_before_creating_outside_destination(tmp
     assert not outside.exists()
 
 
+@pytest.mark.parametrize(
+    "run_id",
+    (
+        "CON", "con.txt", "PrN.log", "AUX", "aux.json", "NUL", "nul.md",
+        "COM1", "com2.txt", "Com3.log", "COM4", "com5.txt", "COM6.log", "com7", "COM8.md", "cOm9.data",
+        "LPT1", "lpt2.txt", "Lpt3.log", "LPT4", "lpt5.txt", "LPT6.log", "lpt7", "LPT8.md", "lPt9.data",
+    ),
+)
+def test_prepare_rejects_case_insensitive_windows_reserved_device_stems(tmp_path: Path, run_id: str):
+    fixture = tmp_path / "fixture"
+    fixture.mkdir()
+
+    with pytest.raises(EvaluationError, match="one safe non-empty path component"):
+        prepare_run(ROOT, tmp_path / "approved", run_id=run_id, fixture=fixture, fixture_head="abc")
+
+
+@pytest.mark.parametrize("run_id", ("name.", "name ", "...", "trailing..", "trailing. "))
+def test_prepare_rejects_run_ids_with_trailing_windows_spaces_or_dots(tmp_path: Path, run_id: str):
+    fixture = tmp_path / "fixture"
+    fixture.mkdir()
+
+    with pytest.raises(EvaluationError, match="one safe non-empty path component"):
+        prepare_run(ROOT, tmp_path / "approved", run_id=run_id, fixture=fixture, fixture_head="abc")
+
+
+@pytest.mark.parametrize(
+    "run_id",
+    ("bad\x00id", "bad\x01id", "bad\x1fid", "bad\x7fid"),
+    ids=("nul", "start-of-heading", "unit-separator", "delete"),
+)
+def test_prepare_normalizes_ascii_control_run_ids_to_evaluation_error(tmp_path: Path, run_id: str):
+    fixture = tmp_path / "fixture"
+    fixture.mkdir()
+
+    with pytest.raises(EvaluationError, match="one safe non-empty path component"):
+        prepare_run(ROOT, tmp_path / "approved", run_id=run_id, fixture=fixture, fixture_head="abc")
+
+
+@pytest.mark.parametrize(
+    "run_id", ("conduit", "COM0", "COM10", "LPT0", "LPT10", "auxiliary", "run.v2", ".hidden", "name with space")
+)
+def test_prepare_preserves_portable_run_ids_near_windows_reserved_names(tmp_path: Path, run_id: str):
+    fixture = tmp_path / "fixture"
+    fixture.mkdir()
+
+    run = prepare_run(ROOT, tmp_path / "approved", run_id=run_id, fixture=fixture, fixture_head="abc")
+
+    assert run.name == run_id
+
+
 def test_answer_freeze_detects_mutation_and_new_files(tmp_path: Path):
     run = tmp_path / "sealed" / "legacy-run"
     (run / "answers").mkdir(parents=True)
