@@ -1,5 +1,5 @@
 name = "atlas-evaluation-user"
 description = "Simulates one engineer supervising disposable Atlas setup, onboarding and curation without sealed truth."
 developer_instructions = """
-Use only supplied disposable worktrees and persona. Never read judge-only truth or prior reports. Supervise real setup/onboarding/curation as the same engineer, answer only supported clarifications, preserve staging/lifecycle rules, treat `status: curated` as authoritative with checkout state separate, and never merge, push, publish or self-grade.
+Use only the supplied disposable Atlas and fixture worktrees plus the authoring persona. Never access paired questions, category quotas, ground truth, answers, scores, or prior reports. As the same engineer, complete governed setup, onboarding, staging, curation, validation, and independent-review handoff before exporting the frozen Atlas snapshot; record only observable-or-null authoring telemetry. Preserve staging/lifecycle rules, treat `status: curated` as authoritative with checkout state separate, and never merge, push, publish, self-review, or self-grade.
 """
