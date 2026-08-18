@@ -1,5 +1,7 @@
+from copy import deepcopy
 from hashlib import sha256
 from pathlib import Path
+import json
 
 import pytest
 
@@ -262,3 +264,311 @@ def test_verify_freeze_keeps_legacy_success_output(tmp_path: Path, capsys: pytes
 
     assert atlas_eval_main(["verify-freeze", str(run)]) == 0
     assert capsys.readouterr().out == "Evaluation answer freeze is valid.\n"
+
+
+_PAIRED_QUESTIONS = [
+    {"id": "Q1", "category": "LOOKUP", "condition": "cold", "revision": "cold", "prompt": "Who owns it?"},
+    {"id": "Q2", "category": "IMPACT", "condition": "warm", "revision": "cold", "prompt": "What breaks?"},
+    {
+        "id": "Q3",
+        "category": "TRAP-UNKNOWABLE",
+        "condition": "cold",
+        "revision": "cold",
+        "prompt": "What cannot be known?",
+    },
+]
+
+
+def _question_telemetry(question_id: str, arm: str, **overrides: object) -> dict:
+    index = int(question_id[1:])
+    value = {
+        "schema_version": "atlas-evaluation-telemetry/1.0",
+        "question_id": question_id,
+        "arm": arm,
+        "bytes_read": (100 if arm == "atlas" else (400 - index * 100)),
+        "unique_evidence_sources": 1,
+        "tool_calls": (index if arm == "atlas" else index + 2),
+        "latency_ms": (1000 if arm == "atlas" else 2000),
+        "input_tokens": (None if arm == "atlas" and question_id == "Q1" else index * 10),
+        "output_tokens": (10 if arm == "atlas" else 30),
+        "atlas_hit": (question_id != "Q2" if arm == "atlas" else None),
+        "fallback_used": (question_id == "Q2" if arm == "atlas" else None),
+        "fallback_disclosed": (False if arm == "atlas" and question_id == "Q2" else None),
+        "source_accessed": arm == "control",
+        "atlas_accessed": arm == "atlas",
+    }
+    value.update(overrides)
+    return value
+
+
+def _v2_run_and_result(
+    tmp_path: Path,
+    *,
+    run_id: str = "comparison",
+    telemetry_overrides: dict[tuple[str, str], dict] | None = None,
+    authoring_overrides: dict | None = None,
+) -> tuple[Path, dict, dict]:
+    rubric = load_json(ROOT / "evaluation" / "rubric.json")
+    fixture = tmp_path / f"{run_id}-fixture"
+    fixture.mkdir()
+    run = prepare_run(ROOT, tmp_path / "sealed", run_id=run_id, fixture=fixture, fixture_head="abc")
+    _write_v2_inputs(run, [json.dumps(question, sort_keys=True) for question in _PAIRED_QUESTIONS])
+    (run / "telemetry" / "control").mkdir()
+    telemetry_overrides = telemetry_overrides or {}
+    for question in _PAIRED_QUESTIONS:
+        for arm in ("atlas", "control"):
+            telemetry = _question_telemetry(
+                question["id"], arm, **telemetry_overrides.get((question["id"], arm), {})
+            )
+            (run / "telemetry" / arm / f"{question['id']}.json").write_bytes(stable_json(telemetry))
+    authoring = {
+        "schema_version": "atlas-evaluation-phase-telemetry/1.0",
+        "phase": "authoring",
+        "bytes_read": 600,
+        "unique_evidence_sources": 5,
+        "tool_calls": 9,
+        "latency_ms": 9000,
+        "input_tokens": 100,
+        "output_tokens": 50,
+    }
+    authoring.update(authoring_overrides or {})
+    (run / "telemetry" / "authoring.json").write_bytes(stable_json(authoring))
+    freeze_run(run)
+    metadata = load_json(run / "run.json")
+    grades = {
+        "Q1": ("CORRECT", "PARTIAL"),
+        "Q2": ("PARTIAL", "CORRECT"),
+        "Q3": ("REFUSED-CORRECTLY", "WRONG"),
+    }
+    questions = []
+    for question in _PAIRED_QUESTIONS:
+        arms = {}
+        for arm, grade in zip(("atlas", "control"), grades[question["id"]]):
+            arms[arm] = {
+                "grade": grade,
+                "citation_validity": 1.0,
+                "provenance_disclosure": 1.0,
+                "citations": ["_curated/example.md" if arm == "atlas" else "src/example.py"],
+                "rationale": "Supported by the frozen key.",
+                "telemetry": f"telemetry/{arm}/{question['id']}.json",
+            }
+        questions.append({"id": question["id"], "category": question["category"], **arms})
+    result = {
+        "schema_version": "atlas-evaluation-result/2.0",
+        "rubric_sha256": metadata["rubric_sha256"],
+        "freeze_manifest_sha256": metadata["freeze_manifest_sha256"],
+        "gates": {
+            gate: {"passed": True, "evidence": ["manifests/fixture.json"]}
+            for gate in rubric["gates"]
+        },
+        "metrics": {
+            "M1": {"core_recall": 0.9, "bonus_recall": 0.6, "locator_accuracy": 1.0, "fabrication_count": 0},
+            "M2": {
+                "conflict_recall": 1.0,
+                "multi_file_recall": 1.0,
+                "tool_defaults_resisted": True,
+                "external_unknown": True,
+                "identity_ambiguity": True,
+                "dead_path_resistance": True,
+            },
+            "M4": {"lint": True, "freshness": True, "tests": True, "granularity": True},
+        },
+        "questions": questions,
+        "authoring_telemetry": "telemetry/authoring.json",
+    }
+    return run, rubric, result
+
+
+def test_v2_derives_literal_paired_comparison_and_break_even(tmp_path: Path):
+    run, rubric, result = _v2_run_and_result(tmp_path)
+
+    score = score_result(result, rubric, run_root=run)
+
+    assert score["comparison"] == {
+        "atlas_accuracy": 0.8333333333333334,
+        "control_accuracy": 0.5,
+        "accuracy_delta": 0.33333333333333337,
+        "atlas_hit_rate": 0.6666666666666666,
+        "fallback_disclosure": 0.0,
+        "read_cost_reduction": 0.5,
+        "conditions": {
+            "cold": {
+                "atlas_accuracy": 1.0,
+                "control_accuracy": 0.25,
+                "accuracy_delta": 0.75,
+                "read_cost_reduction": 0.5,
+            },
+            "warm": {
+                "atlas_accuracy": 0.5,
+                "control_accuracy": 1.0,
+                "accuracy_delta": -0.5,
+                "read_cost_reduction": 0.5,
+            },
+        },
+        "protocol_violations": [],
+        "arm_purity_pass": True,
+        "break_even": {
+            "bytes_read": 6.0,
+            "tool_calls": 4.5,
+            "latency_ms": 9.0,
+            "input_tokens": None,
+            "output_tokens": 2.5,
+        },
+    }
+    assert score["family_scores"]["M5"] == 13.5
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    (
+        (lambda result: result["questions"].pop(), "missing question results"),
+        (lambda result: result["questions"].append(deepcopy(result["questions"][0])), "duplicates id"),
+        (lambda result: result["questions"].append({**deepcopy(result["questions"][0]), "id": "Q9"}), "extra question results"),
+        (lambda result: result["questions"][0].update(category="IMPACT"), "category does not match"),
+    ),
+)
+def test_v2_requires_exact_paired_membership_and_categories(tmp_path: Path, mutation, message: str):
+    run, rubric, result = _v2_run_and_result(tmp_path)
+    mutation(result)
+
+    with pytest.raises(EvaluationError, match=message):
+        validate_result(result, rubric, run_root=run)
+
+
+def test_v2_requires_run_root_and_rejects_judge_entered_m5_m6(tmp_path: Path):
+    run, rubric, result = _v2_run_and_result(tmp_path)
+    with pytest.raises(EvaluationError, match="run_root"):
+        validate_result(result, rubric)
+
+    for metric in ("M5", "M6"):
+        invalid = deepcopy(result)
+        invalid["metrics"][metric] = {}
+        with pytest.raises(EvaluationError, match="exactly M1, M2 and M4"):
+            validate_result(invalid, rubric, run_root=run)
+
+
+@pytest.mark.parametrize(
+    ("evidence", "message"),
+    (
+        ([], "non-empty evidence"),
+        (["manifests/fixture.json", "manifests/fixture.json"], "duplicate evidence"),
+        (["../run.json"], "safe run-relative"),
+        (["C:/run.json"], "safe run-relative"),
+        ([{"path": "manifests/fixture.json"}], "safe run-relative"),
+        (["manifests/not-frozen.json"], "frozen file"),
+    ),
+)
+def test_v2_gates_require_safe_frozen_evidence(tmp_path: Path, evidence: list[object], message: str):
+    run, rubric, result = _v2_run_and_result(tmp_path)
+    result["gates"]["G1"]["evidence"] = evidence
+
+    with pytest.raises(EvaluationError, match=message):
+        validate_result(result, rubric, run_root=run)
+
+
+def test_v2_allows_bound_freeze_manifest_as_gate_evidence_and_rejects_gate_extras(tmp_path: Path):
+    run, rubric, result = _v2_run_and_result(tmp_path)
+    result["gates"]["G8"]["evidence"] = ["freeze-manifest.json"]
+    validate_result(result, rubric, run_root=run)
+
+    result["gates"]["G8"]["note"] = "judge prose"
+    with pytest.raises(EvaluationError, match="exactly passed and evidence"):
+        validate_result(result, rubric, run_root=run)
+
+
+def test_v2_preserves_negative_and_null_read_reduction_with_zero_positive_credit(tmp_path: Path):
+    negative_run, rubric, negative_result = _v2_run_and_result(
+        tmp_path, run_id="negative", telemetry_overrides={("Q1", "atlas"): {"bytes_read": 700}}
+    )
+    negative = score_result(negative_result, rubric, run_root=negative_run)
+    assert negative["comparison"]["read_cost_reduction"] == -0.5
+    assert negative["family_scores"]["M6"] == 7.0
+
+    null_run, rubric, null_result = _v2_run_and_result(
+        tmp_path, run_id="null", telemetry_overrides={("Q1", "atlas"): {"bytes_read": None}}
+    )
+    null_score = score_result(null_result, rubric, run_root=null_run)
+    assert null_score["comparison"]["read_cost_reduction"] is None
+    assert null_score["comparison"]["conditions"]["cold"]["read_cost_reduction"] is None
+    assert null_score["family_scores"]["M6"] == 7.0
+
+
+def test_v2_fallback_disclosure_handles_proportion_and_no_fallback(tmp_path: Path):
+    proportion_run, rubric, proportion_result = _v2_run_and_result(
+        tmp_path,
+        run_id="proportion",
+        telemetry_overrides={
+            ("Q1", "atlas"): {"fallback_used": True, "fallback_disclosed": True},
+        },
+    )
+    assert score_result(proportion_result, rubric, run_root=proportion_run)["comparison"]["fallback_disclosure"] == 0.5
+
+    no_fallback_run, rubric, no_fallback_result = _v2_run_and_result(
+        tmp_path,
+        run_id="no-fallback",
+        telemetry_overrides={("Q2", "atlas"): {"fallback_used": False, "fallback_disclosed": None}},
+    )
+    assert score_result(no_fallback_result, rubric, run_root=no_fallback_run)["comparison"]["fallback_disclosure"] == 1.0
+
+
+def test_v2_records_stable_arm_purity_violations_and_forces_not_ready(tmp_path: Path):
+    run, rubric, result = _v2_run_and_result(
+        tmp_path,
+        telemetry_overrides={
+            ("Q1", "atlas"): {"source_accessed": True},
+            ("Q2", "control"): {"atlas_accessed": True},
+        },
+    )
+
+    score = score_result(result, rubric, run_root=run)
+    assert score["comparison"]["protocol_violations"] == [
+        "Q1/atlas: source_accessed=true",
+        "Q2/control: atlas_accessed=true",
+    ]
+    assert score["comparison"]["arm_purity_pass"] is False
+    assert score["verdict"] == "Not ready"
+
+
+def test_v2_rejects_bad_telemetry_reference_and_schema(tmp_path: Path):
+    run, rubric, result = _v2_run_and_result(tmp_path, run_id="references")
+    result["questions"][0]["atlas"]["telemetry"] = "telemetry/control/Q1.json"
+    with pytest.raises(EvaluationError, match="arm-specific"):
+        validate_result(result, rubric, run_root=run)
+
+    bad_run, rubric, bad_result = _v2_run_and_result(
+        tmp_path,
+        run_id="bad-schema",
+        telemetry_overrides={("Q1", "atlas"): {"schema_version": "bad"}},
+    )
+    with pytest.raises(EvaluationError, match="telemetry schema_version"):
+        validate_result(bad_result, rubric, run_root=bad_run)
+
+
+def test_v2_rejects_invalid_optional_authoring_telemetry(tmp_path: Path):
+    run, rubric, result = _v2_run_and_result(
+        tmp_path, authoring_overrides={"phase": "judging"}
+    )
+    with pytest.raises(EvaluationError, match="authoring telemetry phase"):
+        validate_result(result, rubric, run_root=run)
+
+
+def test_v2_failed_gate_fabrication_and_refusal_force_not_ready(tmp_path: Path):
+    run, rubric, result = _v2_run_and_result(tmp_path)
+    for mutation in (
+        lambda value: value["gates"]["G1"].update(passed=False),
+        lambda value: value["metrics"]["M1"].update(fabrication_count=1),
+        lambda value: value["questions"][2]["atlas"].update(grade="REFUSED-WRONGLY"),
+    ):
+        invalid = deepcopy(result)
+        mutation(invalid)
+        assert score_result(invalid, rubric, run_root=run)["verdict"] == "Not ready"
+
+
+def test_v1_scoring_and_validation_ignore_optional_run_root(tmp_path: Path):
+    rubric = load_json(ROOT / "evaluation" / "rubric.json")
+    result = _result(rubric)
+    expected = score_result(result, rubric)
+
+    validate_result(result, rubric, run_root=tmp_path)
+    assert score_result(result, rubric, run_root=tmp_path) == expected
+    assert "comparison" not in expected

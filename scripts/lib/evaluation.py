@@ -1,14 +1,18 @@
 from __future__ import annotations
 
 from hashlib import sha256
-from pathlib import Path
+from math import isfinite
+from pathlib import Path, PurePosixPath, PureWindowsPath
 import json
 
 
 RESULT_SCHEMA = "atlas-evaluation-result/1.0"
+RESULT_SCHEMA_V2 = "atlas-evaluation-result/2.0"
 RUN_SCHEMA_V1 = "atlas-evaluation-run/1.0"
 RUN_SCHEMA_V2 = "atlas-evaluation-run/2.0"
 RUN_FREEZE_SCHEMA_V2 = "atlas-evaluation-run-freeze/2.0"
+QUESTION_TELEMETRY_SCHEMA = "atlas-evaluation-telemetry/1.0"
+PHASE_TELEMETRY_SCHEMA = "atlas-evaluation-phase-telemetry/1.0"
 CATEGORY_TO_WEIGHT = {
     "LOOKUP": "lookup",
     "SYNTHESIS": "synthesis",
@@ -25,6 +29,12 @@ REQUIRED_V2_MANIFESTS = (
 )
 IMMUTABLE_RUN_FIELDS = (
     "schema_version", "run_id", "fixture", "fixture_head", "incremental_head", "rubric_sha256", "sealed",
+)
+OBSERVABLE_FIELDS = (
+    "bytes_read", "unique_evidence_sources", "tool_calls", "latency_ms", "input_tokens", "output_tokens",
+)
+BREAK_EVEN_FIELDS = (
+    "bytes_read", "tool_calls", "latency_ms", "input_tokens", "output_tokens",
 )
 _MISSING = object()
 
@@ -201,7 +211,7 @@ def _protected_files(run_root: Path) -> dict[str, str]:
     return files
 
 
-def _validate_paired_questions(path: Path) -> None:
+def _load_paired_questions(path: Path) -> list[dict]:
     try:
         lines = path.read_text(encoding="utf-8").splitlines()
     except OSError as exc:
@@ -209,6 +219,7 @@ def _validate_paired_questions(path: Path) -> None:
     if not lines:
         raise EvaluationError("paired question bank is empty")
     ids: set[str] = set()
+    questions: list[dict] = []
     for number, line in enumerate(lines, start=1):
         try:
             question = json.loads(line)
@@ -230,6 +241,12 @@ def _validate_paired_questions(path: Path) -> None:
             raise EvaluationError(f"paired question line {number} has an unsupported revision")
         if not isinstance(question.get("prompt"), str) or not question["prompt"].strip():
             raise EvaluationError(f"paired question line {number} needs a non-empty prompt")
+        questions.append(question)
+    return questions
+
+
+def _validate_paired_questions(path: Path) -> None:
+    _load_paired_questions(path)
 
 
 def _validate_v2_freeze_inputs(run_root: Path, metadata: dict) -> dict:
@@ -339,7 +356,7 @@ def _bool(value: object, owner: str) -> bool:
     return value
 
 
-def validate_result(result: dict, rubric: dict) -> None:
+def _validate_v1_result(result: dict, rubric: dict) -> None:
     if result.get("schema_version") != RESULT_SCHEMA:
         raise EvaluationError(f"schema_version must be {RESULT_SCHEMA}")
     if result.get("rubric_sha256") != sha256(stable_json(rubric)).hexdigest():
@@ -396,12 +413,257 @@ def validate_result(result: dict, rubric: dict) -> None:
             raise EvaluationError(f"telemetry.{field} must be non-negative or null; never estimate it")
 
 
+def _exact_object(value: object, fields: set[str], owner: str) -> dict:
+    if not isinstance(value, dict) or set(value) != fields:
+        names = ", ".join(sorted(fields))
+        raise EvaluationError(f"{owner} must contain exactly {names}")
+    return value
+
+
+def _observable(value: object, owner: str) -> int | float | None:
+    if value is None:
+        return None
+    if (
+        not isinstance(value, (int, float))
+        or isinstance(value, bool)
+        or not isfinite(float(value))
+        or value < 0
+    ):
+        raise EvaluationError(f"{owner} must be a non-negative number or null; never estimate it")
+    return value
+
+
+def _safe_run_path(value: object, owner: str) -> str:
+    if not isinstance(value, str) or not value or "\\" in value:
+        raise EvaluationError(f"{owner} must be a safe run-relative path")
+    posix = PurePosixPath(value)
+    windows = PureWindowsPath(value)
+    if (
+        posix.is_absolute()
+        or windows.is_absolute()
+        or windows.drive
+        or posix.as_posix() != value
+        or any(part in {"", ".", ".."} for part in posix.parts)
+    ):
+        raise EvaluationError(f"{owner} must be a safe run-relative path")
+    return value
+
+
+def _validate_v2_core_metrics(metrics: object) -> dict:
+    if not isinstance(metrics, dict) or set(metrics) != {"M1", "M2", "M4"}:
+        raise EvaluationError("v2 metrics must contain exactly M1, M2 and M4")
+    m1 = _exact_object(
+        metrics["M1"], {"core_recall", "bonus_recall", "locator_accuracy", "fabrication_count"}, "M1"
+    )
+    for field in ("core_recall", "bonus_recall", "locator_accuracy"):
+        _ratio(m1[field], f"M1.{field}")
+    if (
+        not isinstance(m1["fabrication_count"], int)
+        or isinstance(m1["fabrication_count"], bool)
+        or m1["fabrication_count"] < 0
+    ):
+        raise EvaluationError("M1.fabrication_count must be a non-negative integer")
+    m2 = _exact_object(
+        metrics["M2"],
+        {
+            "conflict_recall", "multi_file_recall", "tool_defaults_resisted", "external_unknown",
+            "identity_ambiguity", "dead_path_resistance",
+        },
+        "M2",
+    )
+    for field in ("conflict_recall", "multi_file_recall"):
+        _ratio(m2[field], f"M2.{field}")
+    for field in ("tool_defaults_resisted", "external_unknown", "identity_ambiguity", "dead_path_resistance"):
+        _bool(m2[field], f"M2.{field}")
+    m4 = _exact_object(metrics["M4"], {"lint", "freshness", "tests", "granularity"}, "M4")
+    for field in ("lint", "freshness", "tests", "granularity"):
+        _bool(m4[field], f"M4.{field}")
+    return metrics
+
+
+def _validate_question_telemetry(value: dict, question_id: str, arm: str, owner: str) -> dict:
+    fields = {
+        "schema_version", "question_id", "arm", *OBSERVABLE_FIELDS,
+        "atlas_hit", "fallback_used", "fallback_disclosed", "source_accessed", "atlas_accessed",
+    }
+    value = _exact_object(value, fields, owner)
+    if value["schema_version"] != QUESTION_TELEMETRY_SCHEMA:
+        raise EvaluationError(f"{owner} telemetry schema_version must be {QUESTION_TELEMETRY_SCHEMA}")
+    if value["question_id"] != question_id:
+        raise EvaluationError(f"{owner} telemetry question_id does not match its result reference")
+    if value["arm"] != arm:
+        raise EvaluationError(f"{owner} telemetry arm does not match its result reference")
+    for field in OBSERVABLE_FIELDS:
+        _observable(value[field], f"{owner}.{field}")
+    if arm == "atlas":
+        for field in ("atlas_hit", "fallback_used", "source_accessed", "atlas_accessed"):
+            _bool(value[field], f"{owner}.{field}")
+        disclosure = value["fallback_disclosed"]
+        if value["fallback_used"]:
+            _bool(disclosure, f"{owner}.fallback_disclosed")
+        elif disclosure is not None and not isinstance(disclosure, bool):
+            raise EvaluationError(f"{owner}.fallback_disclosed must be boolean or null")
+    else:
+        for field in ("source_accessed", "atlas_accessed"):
+            _bool(value[field], f"{owner}.{field}")
+        for field in ("atlas_hit", "fallback_used", "fallback_disclosed"):
+            if value[field] is not None:
+                raise EvaluationError(f"{owner}.{field} must be null for the control arm")
+    return value
+
+
+def _validate_authoring_telemetry(value: dict, owner: str) -> dict:
+    value = _exact_object(value, {"schema_version", "phase", *OBSERVABLE_FIELDS}, owner)
+    if value["schema_version"] != PHASE_TELEMETRY_SCHEMA:
+        raise EvaluationError(f"{owner} schema_version must be {PHASE_TELEMETRY_SCHEMA}")
+    if value["phase"] != "authoring":
+        raise EvaluationError(f"{owner} phase must be authoring")
+    for field in OBSERVABLE_FIELDS:
+        _observable(value[field], f"{owner}.{field}")
+    return value
+
+
+def _v2_run_context(result: dict, rubric: dict, run_root: str | Path | None) -> tuple[Path, set[str], list[dict]]:
+    if run_root is None:
+        raise EvaluationError("v2 results require run_root")
+    root = Path(run_root).resolve()
+    metadata = load_json(root / "run.json")
+    if metadata.get("schema_version") != RUN_SCHEMA_V2:
+        raise EvaluationError(f"v2 result run_root must use {RUN_SCHEMA_V2}")
+    changes = verify_run_freeze(root)
+    if changes:
+        raise EvaluationError(f"v2 result run freeze is not clean: {changes[0]}")
+    rubric_digest = sha256(stable_json(rubric)).hexdigest()
+    if metadata.get("rubric_sha256") != rubric_digest or result.get("rubric_sha256") != rubric_digest:
+        raise EvaluationError("result, run and supplied rubric digests must match")
+    manifest_path = root / "freeze-manifest.json"
+    if (
+        result.get("freeze_manifest_sha256") != metadata.get("freeze_manifest_sha256")
+        or result.get("freeze_manifest_sha256") != digest_file(manifest_path)
+    ):
+        raise EvaluationError("result freeze_manifest_sha256 does not match the frozen run")
+    manifest = load_json(manifest_path)
+    frozen_files, _ = _validate_freeze_manifest(manifest)
+    return root, set(frozen_files), _load_paired_questions(root / "questions" / "paired.jsonl")
+
+
+def _validate_v2_result(result: dict, rubric: dict, run_root: str | Path | None) -> dict:
+    result_fields = {
+        "schema_version", "rubric_sha256", "freeze_manifest_sha256", "gates", "metrics", "questions",
+    }
+    if "authoring_telemetry" in result:
+        result_fields.add("authoring_telemetry")
+    _exact_object(result, result_fields, "v2 result")
+    root, frozen_files, paired = _v2_run_context(result, rubric, run_root)
+    gates = _exact_object(result["gates"], set(rubric["gates"]), "gates")
+    for gate, value in gates.items():
+        if not isinstance(value, dict) or set(value) != {"passed", "evidence"}:
+            raise EvaluationError(f"gates.{gate} must contain exactly passed and evidence")
+        _bool(value["passed"], f"gates.{gate}.passed")
+        evidence = value["evidence"]
+        if not isinstance(evidence, list) or not evidence:
+            raise EvaluationError(f"gates.{gate} must have a non-empty evidence list")
+        evidence_paths: set[str] = set()
+        for index, path_value in enumerate(evidence):
+            path = _safe_run_path(path_value, f"gates.{gate}.evidence[{index}]")
+            if path in evidence_paths:
+                raise EvaluationError(f"gates.{gate} has duplicate evidence paths")
+            evidence_paths.add(path)
+            if path != "freeze-manifest.json" and path not in frozen_files:
+                raise EvaluationError(f"gates.{gate}.evidence[{index}] must name a frozen file")
+    metrics = _validate_v2_core_metrics(result["metrics"])
+    question_results = result["questions"]
+    if not isinstance(question_results, list) or not question_results:
+        raise EvaluationError("questions must be a non-empty list")
+    by_id: dict[str, dict] = {}
+    telemetry: dict[tuple[str, str], dict] = {}
+    manifest_by_id = {question["id"]: question for question in paired}
+    for item in question_results:
+        item = _exact_object(item, {"id", "category", "atlas", "control"}, "question result")
+        question_id = item["id"]
+        if not isinstance(question_id, str) or not question_id:
+            raise EvaluationError("every question result requires a non-empty id")
+        if question_id in by_id:
+            raise EvaluationError(f"question results duplicates id {question_id!r}")
+        by_id[question_id] = item
+    missing = sorted(set(manifest_by_id) - set(by_id))
+    extra = sorted(set(by_id) - set(manifest_by_id))
+    if missing:
+        raise EvaluationError(f"missing question results: {', '.join(missing)}")
+    if extra:
+        raise EvaluationError(f"extra question results: {', '.join(extra)}")
+    arm_fields = {
+        "grade", "citation_validity", "provenance_disclosure", "citations", "rationale", "telemetry",
+    }
+    for question in paired:
+        question_id = question["id"]
+        item = by_id[question_id]
+        if item["category"] != question["category"]:
+            raise EvaluationError(f"question {question_id} category does not match the paired manifest")
+        for arm in ("atlas", "control"):
+            arm_result = _exact_object(item[arm], arm_fields, f"questions.{question_id}.{arm}")
+            if arm_result["grade"] not in rubric["question_values"]:
+                raise EvaluationError(f"unknown question grade: {arm_result['grade']!r}")
+            for field in ("citation_validity", "provenance_disclosure"):
+                _ratio(arm_result[field], f"questions.{question_id}.{arm}.{field}")
+            citations = arm_result["citations"]
+            if (
+                not isinstance(citations, list)
+                or not citations
+                or any(not isinstance(citation, str) or not citation.strip() for citation in citations)
+            ):
+                raise EvaluationError(f"questions.{question_id}.{arm}.citations must be non-empty strings")
+            if not isinstance(arm_result["rationale"], str) or not arm_result["rationale"].strip():
+                raise EvaluationError(f"questions.{question_id}.{arm}.rationale must be non-empty")
+            telemetry_path = _safe_run_path(
+                arm_result["telemetry"], f"questions.{question_id}.{arm}.telemetry"
+            )
+            if not telemetry_path.startswith(f"telemetry/{arm}/"):
+                raise EvaluationError(f"questions.{question_id}.{arm}.telemetry must be arm-specific")
+            if telemetry_path not in frozen_files:
+                raise EvaluationError(f"questions.{question_id}.{arm}.telemetry must name a frozen file")
+            telemetry[(question_id, arm)] = _validate_question_telemetry(
+                load_json(root / telemetry_path), question_id, arm, f"questions.{question_id}.{arm}"
+            )
+    authoring = None
+    if "authoring_telemetry" in result:
+        authoring_path = _safe_run_path(result["authoring_telemetry"], "authoring_telemetry")
+        if not authoring_path.startswith("telemetry/"):
+            raise EvaluationError("authoring_telemetry must be beneath telemetry/")
+        if authoring_path not in frozen_files:
+            raise EvaluationError("authoring_telemetry must name a frozen file")
+        authoring = _validate_authoring_telemetry(load_json(root / authoring_path), "authoring telemetry")
+    return {
+        "paired": paired,
+        "by_id": by_id,
+        "telemetry": telemetry,
+        "authoring": authoring,
+        "metrics": metrics,
+    }
+
+
+def validate_result(result: dict, rubric: dict, run_root: str | Path | None = None) -> None:
+    if result.get("schema_version") == RESULT_SCHEMA:
+        _validate_v1_result(result, rubric)
+        return
+    if result.get("schema_version") == RESULT_SCHEMA_V2:
+        _validate_v2_result(result, rubric, run_root)
+        return
+    raise EvaluationError(f"schema_version must be {RESULT_SCHEMA} or {RESULT_SCHEMA_V2}")
+
+
 def _target_score(value: float, target: float) -> float:
     return min(value / target, 1.0) if target else float(value > 0)
 
 
-def score_result(result: dict, rubric: dict) -> dict:
-    validate_result(result, rubric)
+def _score_validated_result(
+    result: dict,
+    rubric: dict,
+    *,
+    gates_pass: bool,
+    arm_purity_pass: bool = True,
+    comparison: dict | None = None,
+) -> dict:
     weights = rubric["internal_weights"]
     targets = rubric["targets"]
     metrics = result["metrics"]
@@ -443,13 +705,12 @@ def score_result(result: dict, rubric: dict) -> dict:
         + weights["M6"]["accuracy_delta"] * _target_score(max(m6["accuracy_delta"], 0), targets["control_accuracy_delta"])
     )
     total = round(sum(scores.values()), 2)
-    gates_pass = all(result["gates"].values())
     fabricated = m1["fabrication_count"] > 0 or any(
         item["grade"] == "FABRICATED" for item in atlas_questions
     )
     refusal = [item for item in atlas_questions if item["category"] == "TRAP-UNKNOWABLE"]
     refusal_pass = bool(refusal) and all(item["grade"] == "REFUSED-CORRECTLY" for item in refusal)
-    if not gates_pass or fabricated or not refusal_pass:
+    if not gates_pass or fabricated or not refusal_pass or not arm_purity_pass:
         verdict = "Not ready"
     elif total >= rubric["verdicts"]["ship"]:
         verdict = "Ship"
@@ -457,7 +718,7 @@ def score_result(result: dict, rubric: dict) -> dict:
         verdict = "Ship with fixes"
     else:
         verdict = "Not ready"
-    return {
+    score = {
         "schema_version": "atlas-evaluation-score/1.0",
         "family_scores": {key: round(value, 2) for key, value in scores.items()},
         "total": total,
@@ -466,3 +727,135 @@ def score_result(result: dict, rubric: dict) -> dict:
         "honest_refusal_gate": refusal_pass,
         "verdict": verdict,
     }
+    if comparison is not None:
+        score["comparison"] = comparison
+    return score
+
+
+def _mean(values: list[float | bool]) -> float:
+    return sum(float(value) for value in values) / len(values)
+
+
+def _read_reduction(records: list[tuple[dict, dict]], field: str = "bytes_read") -> float | None:
+    atlas_values = [atlas[field] for atlas, _ in records]
+    control_values = [control[field] for _, control in records]
+    if any(value is None for value in (*atlas_values, *control_values)):
+        return None
+    atlas_total = sum(atlas_values)
+    control_total = sum(control_values)
+    if control_total == 0:
+        return None
+    return (control_total - atlas_total) / control_total
+
+
+def _derive_v2(data: dict, rubric: dict) -> tuple[dict, dict]:
+    paired = data["paired"]
+    by_id = data["by_id"]
+    telemetry = data["telemetry"]
+    grade_values = rubric["question_values"]
+    atlas_accuracy = _mean([grade_values[by_id[item["id"]]["atlas"]["grade"]] for item in paired])
+    control_accuracy = _mean([grade_values[by_id[item["id"]]["control"]["grade"]] for item in paired])
+    records = [(telemetry[(item["id"], "atlas")], telemetry[(item["id"], "control")]) for item in paired]
+    atlas_records = [atlas for atlas, _ in records]
+    used_fallbacks = [record for record in atlas_records if record["fallback_used"]]
+    fallback_disclosure = (
+        _mean([record["fallback_disclosed"] for record in used_fallbacks]) if used_fallbacks else 1.0
+    )
+    conditions: dict[str, dict] = {}
+    for condition in sorted({item["condition"] for item in paired}):
+        condition_questions = [item for item in paired if item["condition"] == condition]
+        condition_atlas = _mean([
+            grade_values[by_id[item["id"]]["atlas"]["grade"]] for item in condition_questions
+        ])
+        condition_control = _mean([
+            grade_values[by_id[item["id"]]["control"]["grade"]] for item in condition_questions
+        ])
+        condition_records = [
+            (telemetry[(item["id"], "atlas")], telemetry[(item["id"], "control")])
+            for item in condition_questions
+        ]
+        conditions[condition] = {
+            "atlas_accuracy": condition_atlas,
+            "control_accuracy": condition_control,
+            "accuracy_delta": condition_atlas - condition_control,
+            "read_cost_reduction": _read_reduction(condition_records),
+        }
+    violations: list[str] = []
+    for item in paired:
+        question_id = item["id"]
+        if telemetry[(question_id, "atlas")]["source_accessed"]:
+            violations.append(f"{question_id}/atlas: source_accessed=true")
+        if telemetry[(question_id, "control")]["atlas_accessed"]:
+            violations.append(f"{question_id}/control: atlas_accessed=true")
+    break_even: dict[str, float | None] = {}
+    for field in BREAK_EVEN_FIELDS:
+        authoring_cost = data["authoring"][field] if data["authoring"] is not None else None
+        atlas_values = [atlas[field] for atlas, _ in records]
+        control_values = [control[field] for _, control in records]
+        if authoring_cost is None or any(value is None for value in (*atlas_values, *control_values)):
+            break_even[field] = None
+            continue
+        marginal_saving = (sum(control_values) - sum(atlas_values)) / len(records)
+        break_even[field] = authoring_cost / marginal_saving if marginal_saving > 0 else None
+    comparison = {
+        "atlas_accuracy": atlas_accuracy,
+        "control_accuracy": control_accuracy,
+        "accuracy_delta": atlas_accuracy - control_accuracy,
+        "atlas_hit_rate": _mean([record["atlas_hit"] for record in atlas_records]),
+        "fallback_disclosure": fallback_disclosure,
+        "read_cost_reduction": _read_reduction(records),
+        "conditions": conditions,
+        "protocol_violations": violations,
+        "arm_purity_pass": not violations,
+        "break_even": break_even,
+    }
+    atlas_questions = [
+        {
+            "id": item["id"],
+            "arm": "atlas",
+            "category": item["category"],
+            "grade": by_id[item["id"]]["atlas"]["grade"],
+        }
+        for item in paired
+    ]
+    read_credit = max(comparison["read_cost_reduction"] or 0.0, 0.0)
+    normalized = {
+        "metrics": {
+            "M1": data["metrics"]["M1"],
+            "M2": data["metrics"]["M2"],
+            "M4": data["metrics"]["M4"],
+            "M5": {
+                "questions": atlas_questions,
+                "citation_validity": _mean([
+                    by_id[item["id"]]["atlas"]["citation_validity"] for item in paired
+                ]),
+                "provenance_disclosure": _mean([
+                    by_id[item["id"]]["atlas"]["provenance_disclosure"] for item in paired
+                ]),
+            },
+            "M6": {
+                "atlas_hit_rate": comparison["atlas_hit_rate"],
+                "fallback_disclosure": comparison["fallback_disclosure"],
+                "read_cost_reduction": read_credit,
+                "accuracy_delta": comparison["accuracy_delta"],
+            },
+        },
+    }
+    return comparison, normalized
+
+
+def score_result(result: dict, rubric: dict, run_root: str | Path | None = None) -> dict:
+    if result.get("schema_version") == RESULT_SCHEMA:
+        _validate_v1_result(result, rubric)
+        return _score_validated_result(result, rubric, gates_pass=all(result["gates"].values()))
+    if result.get("schema_version") == RESULT_SCHEMA_V2:
+        data = _validate_v2_result(result, rubric, run_root)
+        comparison, normalized = _derive_v2(data, rubric)
+        return _score_validated_result(
+            normalized,
+            rubric,
+            gates_pass=all(value["passed"] for value in result["gates"].values()),
+            arm_purity_pass=comparison["arm_purity_pass"],
+            comparison=comparison,
+        )
+    raise EvaluationError(f"schema_version must be {RESULT_SCHEMA} or {RESULT_SCHEMA_V2}")
