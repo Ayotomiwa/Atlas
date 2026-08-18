@@ -11,13 +11,16 @@ sys.path.insert(0, str(ROOT))
 
 from scripts.lib.evaluation import (
     EvaluationError,
+    RUN_SCHEMA_V2,
     freeze_answers,
+    freeze_run,
     load_json,
     prepare_run,
     resolve_rubric_path,
     score_result,
     validate_result,
     verify_answer_freeze,
+    verify_run_freeze,
 )
 
 
@@ -54,15 +57,17 @@ def main(argv: list[str] | None = None) -> int:
             print(path)
             return 0
         if args.command == "freeze":
-            print(freeze_answers(args.run_root))
+            metadata = load_json(Path(args.run_root) / "run.json")
+            print(freeze_run(args.run_root) if metadata.get("schema_version") == RUN_SCHEMA_V2 else freeze_answers(args.run_root))
             return 0
         if args.command == "verify-freeze":
-            changes = verify_answer_freeze(args.run_root)
+            metadata = load_json(Path(args.run_root) / "run.json")
+            changes = verify_run_freeze(args.run_root) if metadata.get("schema_version") == RUN_SCHEMA_V2 else verify_answer_freeze(args.run_root)
             if changes:
                 for change in changes:
                     print(change, file=sys.stderr)
                 return 1
-            print("Evaluation answer freeze is valid.")
+            print("Evaluation run freeze is valid.")
             return 0
         rubric_path = resolve_rubric_path(args.result, args.rubric)
         rubric = load_json(rubric_path)

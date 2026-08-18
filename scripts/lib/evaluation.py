@@ -6,6 +6,9 @@ import json
 
 
 RESULT_SCHEMA = "atlas-evaluation-result/1.0"
+RUN_SCHEMA_V1 = "atlas-evaluation-run/1.0"
+RUN_SCHEMA_V2 = "atlas-evaluation-run/2.0"
+RUN_FREEZE_SCHEMA_V2 = "atlas-evaluation-run-freeze/2.0"
 CATEGORY_TO_WEIGHT = {
     "LOOKUP": "lookup",
     "SYNTHESIS": "synthesis",
@@ -14,6 +17,15 @@ CATEGORY_TO_WEIGHT = {
     "TRAP-UNKNOWABLE": "refusal",
     "TRAP-ABSENCE": "absence",
 }
+PROTECTED_RUN_ROOTS = (
+    "fixture", "questions", "personas", "ground-truth", "answers", "telemetry", "manifests",
+)
+REQUIRED_V2_MANIFESTS = (
+    "fixture.json", "tool-policy.json", "model-config.json", "atlas-snapshot.json",
+)
+IMMUTABLE_RUN_FIELDS = (
+    "schema_version", "run_id", "fixture", "fixture_head", "incremental_head", "rubric_sha256", "sealed",
+)
 
 
 class EvaluationError(ValueError):
@@ -55,6 +67,8 @@ def freeze_answers(run_root: str | Path) -> Path:
     run_root = Path(run_root).resolve()
     run_path = run_root / "run.json"
     metadata = load_json(run_path)
+    if metadata.get("schema_version") == RUN_SCHEMA_V2:
+        raise EvaluationError("v2 runs must use the master run freeze")
     if metadata.get("answer_sets_frozen"):
         raise EvaluationError("answer sets are already frozen")
     answers_root = run_root / "answers"
@@ -81,6 +95,8 @@ def freeze_answers(run_root: str | Path) -> Path:
 def verify_answer_freeze(run_root: str | Path) -> list[str]:
     run_root = Path(run_root).resolve()
     metadata = load_json(run_root / "run.json")
+    if metadata.get("schema_version") == RUN_SCHEMA_V2:
+        raise EvaluationError("v2 runs must use master run freeze verification")
     if metadata.get("answer_sets_frozen") is not True:
         raise EvaluationError("answer sets are not frozen")
     manifest_path = run_root / "answer-manifest.json"
@@ -131,7 +147,7 @@ def prepare_run(
     rubric_source = atlas_root / "evaluation" / "rubric.json"
     (run_root / "rubric.json").write_bytes(stable_json(load_json(rubric_source)))
     metadata = {
-        "schema_version": "atlas-evaluation-run/1.0",
+        "schema_version": RUN_SCHEMA_V2,
         "run_id": run_id,
         "fixture": str(Path(fixture).resolve()),
         "fixture_head": fixture_head,
@@ -139,11 +155,165 @@ def prepare_run(
         "rubric_sha256": digest_file(run_root / "rubric.json"),
         "sealed": True,
         "answer_sets_frozen": False,
+        "run_frozen": False,
     }
     (run_root / "run.json").write_bytes(stable_json(metadata))
-    for folder in ("fixture", "personas", "ground-truth", "answers", "results", "worktrees"):
+    for folder in (*PROTECTED_RUN_ROOTS, "results", "worktrees"):
         (run_root / folder).mkdir()
     return run_root
+
+
+def _immutable_run_metadata(metadata: dict) -> dict:
+    if metadata.get("schema_version") != RUN_SCHEMA_V2:
+        raise EvaluationError(f"run schema_version must be {RUN_SCHEMA_V2}")
+    projection = {field: metadata.get(field) for field in IMMUTABLE_RUN_FIELDS}
+    if not isinstance(projection["run_id"], str) or not projection["run_id"]:
+        raise EvaluationError("run metadata run_id must be a non-empty string")
+    if not isinstance(projection["fixture"], str) or not projection["fixture"]:
+        raise EvaluationError("run metadata fixture must be a non-empty string")
+    if not isinstance(projection["fixture_head"], str) or not projection["fixture_head"]:
+        raise EvaluationError("run metadata fixture_head must be a non-empty string")
+    if projection["incremental_head"] is not None and not isinstance(projection["incremental_head"], str):
+        raise EvaluationError("run metadata incremental_head must be a string or null")
+    if not isinstance(projection["rubric_sha256"], str) or len(projection["rubric_sha256"]) != 64:
+        raise EvaluationError("run metadata rubric_sha256 must be a SHA-256 digest")
+    if not isinstance(projection["sealed"], bool):
+        raise EvaluationError("run metadata sealed must be boolean")
+    return projection
+
+
+def _protected_files(run_root: Path) -> dict[str, str]:
+    files = {"rubric.json": digest_file(run_root / "rubric.json")}
+    for root in PROTECTED_RUN_ROOTS:
+        files.update({
+            path.relative_to(run_root).as_posix(): digest_file(path)
+            for path in sorted((run_root / root).rglob("*"))
+            if path.is_file()
+        })
+    return files
+
+
+def _validate_paired_questions(path: Path) -> None:
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except OSError as exc:
+        raise EvaluationError(f"cannot read paired question bank: {exc}") from exc
+    if not lines:
+        raise EvaluationError("paired question bank is empty")
+    ids: set[str] = set()
+    for number, line in enumerate(lines, start=1):
+        try:
+            question = json.loads(line)
+        except json.JSONDecodeError as exc:
+            raise EvaluationError(f"paired question line {number} is malformed JSON") from exc
+        if not isinstance(question, dict):
+            raise EvaluationError(f"paired question line {number} must be an object")
+        question_id = question.get("id")
+        if not isinstance(question_id, str) or not question_id.strip():
+            raise EvaluationError(f"paired question line {number} needs a non-empty id")
+        if question_id in ids:
+            raise EvaluationError(f"paired question line {number} duplicates id {question_id!r}")
+        ids.add(question_id)
+        if question.get("category") not in CATEGORY_TO_WEIGHT:
+            raise EvaluationError(f"paired question line {number} has an unsupported category")
+        if question.get("condition") not in {"cold", "warm", "fresh-session", "transversal", "incremental"}:
+            raise EvaluationError(f"paired question line {number} has an unsupported condition")
+        if question.get("revision") not in {"cold", "incremental"}:
+            raise EvaluationError(f"paired question line {number} has an unsupported revision")
+        if not isinstance(question.get("prompt"), str) or not question["prompt"].strip():
+            raise EvaluationError(f"paired question line {number} needs a non-empty prompt")
+
+
+def _validate_v2_freeze_inputs(run_root: Path, metadata: dict) -> dict:
+    projection = _immutable_run_metadata(metadata)
+    for root in PROTECTED_RUN_ROOTS:
+        root_path = run_root / root
+        if not root_path.is_dir() or not any(path.is_file() for path in root_path.rglob("*")):
+            raise EvaluationError(f"protected root must be non-empty: {root}")
+    paired_questions = run_root / "questions" / "paired.jsonl"
+    if not paired_questions.is_file():
+        raise EvaluationError("paired question bank is missing: questions/paired.jsonl")
+    _validate_paired_questions(paired_questions)
+    for name in REQUIRED_V2_MANIFESTS:
+        if not (run_root / "manifests" / name).is_file():
+            raise EvaluationError(f"required manifest input is missing: manifests/{name}")
+    if projection["rubric_sha256"] != digest_file(run_root / "rubric.json"):
+        raise EvaluationError("run metadata rubric_sha256 does not match rubric.json")
+    return projection
+
+
+def _validate_freeze_manifest(manifest: dict) -> tuple[dict[str, str], dict]:
+    if manifest.get("schema_version") != RUN_FREEZE_SCHEMA_V2:
+        raise EvaluationError("unsupported run freeze manifest schema")
+    files = manifest.get("files")
+    if not isinstance(files, dict) or not files:
+        raise EvaluationError("run freeze manifest has no files")
+    if not all(isinstance(path, str) and isinstance(digest, str) and len(digest) == 64 for path, digest in files.items()):
+        raise EvaluationError("run freeze manifest files must map paths to SHA-256 digests")
+    metadata = manifest.get("metadata")
+    if not isinstance(metadata, dict):
+        raise EvaluationError("run freeze manifest has invalid immutable metadata")
+    _immutable_run_metadata(metadata)
+    if set(metadata) != set(IMMUTABLE_RUN_FIELDS):
+        raise EvaluationError("run freeze manifest immutable metadata fields are invalid")
+    return files, metadata
+
+
+def freeze_run(run_root: str | Path) -> Path:
+    run_root = Path(run_root).resolve()
+    run_path = run_root / "run.json"
+    metadata = load_json(run_path)
+    if metadata.get("schema_version") != RUN_SCHEMA_V2:
+        raise EvaluationError("master run freeze is only supported for v2 runs")
+    if metadata.get("run_frozen") is True:
+        raise EvaluationError("evaluation run is already frozen")
+    manifest_path = run_root / "freeze-manifest.json"
+    if manifest_path.exists():
+        raise EvaluationError(f"run freeze manifest already exists: {manifest_path}")
+    projection = _validate_v2_freeze_inputs(run_root, metadata)
+    manifest = {
+        "schema_version": RUN_FREEZE_SCHEMA_V2,
+        "metadata": projection,
+        "files": _protected_files(run_root),
+    }
+    manifest_path.write_bytes(stable_json(manifest))
+    metadata["run_frozen"] = True
+    metadata["freeze_manifest_sha256"] = digest_file(manifest_path)
+    metadata["answer_sets_frozen"] = True
+    run_path.write_bytes(stable_json(metadata))
+    return manifest_path
+
+
+def verify_run_freeze(run_root: str | Path) -> list[str]:
+    run_root = Path(run_root).resolve()
+    metadata = load_json(run_root / "run.json")
+    current_projection = _immutable_run_metadata(metadata)
+    if metadata.get("run_frozen") is not True:
+        raise EvaluationError("evaluation run is not frozen")
+    manifest_path = run_root / "freeze-manifest.json"
+    manifest = load_json(manifest_path)
+    expected_files, expected_projection = _validate_freeze_manifest(manifest)
+    changes: list[str] = []
+    if metadata.get("freeze_manifest_sha256") != digest_file(manifest_path):
+        changes.append("freeze manifest changed")
+    for field in IMMUTABLE_RUN_FIELDS:
+        if current_projection[field] != expected_projection[field]:
+            changes.append(f"immutable run metadata changed: {field}")
+    actual_files = _protected_files(run_root)
+    changes.extend(
+        f"unexpected protected file: {path}"
+        for path in sorted(set(actual_files) - set(expected_files))
+    )
+    changes.extend(
+        f"missing protected file: {path}"
+        for path in sorted(set(expected_files) - set(actual_files))
+    )
+    changes.extend(
+        f"changed protected file: {path}"
+        for path in sorted(set(actual_files) & set(expected_files))
+        if actual_files[path] != expected_files[path]
+    )
+    return changes
 
 
 def _ratio(value: object, owner: str) -> float:
