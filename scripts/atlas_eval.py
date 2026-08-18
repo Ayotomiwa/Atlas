@@ -30,11 +30,14 @@ from scripts.lib.evaluation import (
 def _resolve_result_run_root(result: str | Path, explicit: str | Path | None) -> Path | None:
     result_path = Path(result).resolve()
     placement_root = result_path.parent.parent if result_path.parent.name == "results" else None
-    associated_root = (
-        placement_root
-        if placement_root is not None and (placement_root / "run.json").is_file()
-        else None
-    )
+    associated_root = None
+    if placement_root is not None and (placement_root / "run.json").is_file():
+        try:
+            placement_schema = load_json(placement_root / "run.json").get("schema_version")
+        except EvaluationError:
+            placement_schema = None
+        if placement_schema in {RUN_SCHEMA_V1, RUN_SCHEMA_V2}:
+            associated_root = placement_root
     if explicit is not None:
         override = Path(explicit).resolve()
         if associated_root is not None and associated_root != override:

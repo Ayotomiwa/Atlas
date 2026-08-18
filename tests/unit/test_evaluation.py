@@ -7,6 +7,7 @@ import subprocess
 
 import pytest
 
+import scripts.lib.evaluation as evaluation
 from scripts.lib.evaluation import (
     EvaluationError,
     RUN_SCHEMA_V2,
@@ -1004,6 +1005,111 @@ def test_v2_cli_rejects_run_root_override_for_another_run(
         capsys,
         "different evaluation run",
     )
+
+
+@pytest.mark.parametrize(
+    "sibling_run_json",
+    (
+        "not json\n",
+        '{"schema_version":"unrelated-run/1.0"}\n',
+    ),
+    ids=("malformed", "unsupported"),
+)
+def test_cli_ignores_unrelated_sibling_run_json_for_explicit_v2(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    sibling_run_json: str,
+):
+    run, _, v2_result = _v2_run_and_result(tmp_path, run_id="real-v2-run")
+    external_v2_root = tmp_path / "external-v2"
+    (external_v2_root / "results").mkdir(parents=True)
+    (external_v2_root / "run.json").write_text(sibling_run_json, encoding="utf-8")
+    v2_result_path = _write_result(external_v2_root / "results" / "result.json", v2_result)
+
+    assert atlas_eval_main([
+        "validate", str(v2_result_path),
+        "--run-root", str(run),
+        "--freeze-digest", v2_result["freeze_manifest_sha256"],
+    ]) == 0
+    assert capsys.readouterr().out == "Evaluation result is valid.\n"
+    assert atlas_eval_main([
+        "score", str(v2_result_path),
+        "--run-root", str(run),
+        "--freeze-digest", v2_result["freeze_manifest_sha256"],
+    ]) == 0
+    assert json.loads(capsys.readouterr().out)["comparison"] == _EXPECTED_V2_COMPARISON
+
+
+@pytest.mark.parametrize(
+    "sibling_run_json",
+    (
+        "not json\n",
+        '{"schema_version":"unrelated-run/1.0"}\n',
+    ),
+    ids=("malformed", "unsupported"),
+)
+def test_cli_ignores_unrelated_sibling_run_json_for_legacy_v1(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    sibling_run_json: str,
+):
+    rubric = load_json(ROOT / "evaluation" / "rubric.json")
+    external_v1_root = tmp_path / "external-v1"
+    (external_v1_root / "results").mkdir(parents=True)
+    (external_v1_root / "run.json").write_text(sibling_run_json, encoding="utf-8")
+    (external_v1_root / "rubric.json").write_bytes(stable_json(rubric))
+    v1_result_path = _write_result(external_v1_root / "results" / "result.json", _result(rubric))
+
+    assert atlas_eval_main(["validate", str(v1_result_path)]) == 0
+    assert capsys.readouterr().out == "Evaluation result is valid.\n"
+
+
+@pytest.mark.parametrize("sibling_run_json", ("not json\n", '{"schema_version":"unrelated-run/1.0"}\n'))
+def test_cli_explicit_override_to_invalid_sibling_run_still_fails_normal_loading(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    sibling_run_json: str,
+):
+    _, _, result = _v2_run_and_result(tmp_path, run_id="source-v2")
+    external_root = tmp_path / "external"
+    (external_root / "results").mkdir(parents=True)
+    (external_root / "run.json").write_text(sibling_run_json, encoding="utf-8")
+    result_path = _write_result(external_root / "results" / "result.json", result)
+
+    _assert_cli_failure(
+        [
+            "validate", str(result_path),
+            "--run-root", str(external_root),
+            "--freeze-digest", result["freeze_manifest_sha256"],
+        ],
+        capsys,
+        "run.json" if sibling_run_json.startswith("not") else "unsupported evaluation run schema",
+    )
+
+
+@pytest.mark.parametrize("command", ("validate", "score"))
+def test_v2_cli_validate_and_score_invoke_trusted_verifier_exactly_once(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+    command: str,
+):
+    run, _, result = _v2_run_and_result(tmp_path, run_id=f"one-verify-{command}")
+    result_path = _write_result(run / "results" / "result.json", result)
+    calls: list[tuple[Path, str | None]] = []
+    real_verifier = evaluation.verify_trusted_run_freeze
+
+    def counted_verifier(run_root: str | Path, expected_digest: str | None) -> dict:
+        calls.append((Path(run_root).resolve(), expected_digest))
+        return real_verifier(run_root, expected_digest)
+
+    monkeypatch.setattr(evaluation, "verify_trusted_run_freeze", counted_verifier)
+
+    assert atlas_eval_main([
+        command, str(result_path), "--freeze-digest", result["freeze_manifest_sha256"],
+    ]) == 0
+    capsys.readouterr()
+    assert calls == [(run.resolve(), result["freeze_manifest_sha256"])]
 
 
 @pytest.mark.parametrize("command", ("validate", "score"))

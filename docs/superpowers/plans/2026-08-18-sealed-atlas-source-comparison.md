@@ -69,6 +69,8 @@
 - Modify: `scripts/atlas_eval.py`
 - Modify: `scripts/lib/evaluation.py`
 - Modify: `tests/unit/test_evaluation.py`
+- Modify: `docs/superpowers/specs/2026-08-18-sealed-atlas-source-comparison-design.md`
+- Modify: `docs/superpowers/plans/2026-08-18-sealed-atlas-source-comparison.md`
 
 **Interfaces:**
 - Consumes Task 1 freeze verification and Task 2 result normalization.
