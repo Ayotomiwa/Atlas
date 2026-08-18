@@ -74,6 +74,7 @@ python scripts/atlas_query.py questions --scope package --format json
 python scripts/atlas_query.py staging
 python scripts/atlas_query.py staging --status deferred --target comp.example
 python scripts/atlas_query.py staging --include-terminal --format json
+python scripts/atlas_query.py staging --bucket changes --source-key datalens-monorepo --branch main --from-exclusive 1111111111111111111111111111111111111111 --through-inclusive 2222222222222222222222222222222222222222 --include-terminal
 python scripts/atlas_query.py neighbors comp.example
 python scripts/atlas_query.py impact comp.example --direction downstream
 python scripts/atlas_query.py --format json impact comp.example --max-depth 4

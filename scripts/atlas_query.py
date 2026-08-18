@@ -303,6 +303,10 @@ def main(argv: list[str] | None = None) -> int:
     staging_parser.add_argument("--date")
     staging_parser.add_argument("--target", dest="targets", action="append", default=[])
     staging_parser.add_argument("--include-terminal", action="store_true")
+    staging_parser.add_argument("--source-key")
+    staging_parser.add_argument("--branch")
+    staging_parser.add_argument("--from-exclusive")
+    staging_parser.add_argument("--through-inclusive")
     staging_parser.add_argument(
         "--format",
         dest="staging_format",
@@ -331,6 +335,10 @@ def main(argv: list[str] | None = None) -> int:
                     timestamp=args.date,
                     targets=args.targets,
                     include_terminal=args.include_terminal,
+                    source_key=args.source_key,
+                    branch=args.branch,
+                    from_exclusive=args.from_exclusive,
+                    through_inclusive=args.through_inclusive,
                 )
             )
         except (OSError, ValueError) as exc:

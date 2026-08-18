@@ -7,6 +7,7 @@ import re
 from typing import Iterable
 
 from scripts.lib.frontmatter import parse_frontmatter
+from scripts.lib.intake import COMMIT_RE, SOURCE_KEY_RE
 
 
 ACTIVE_STAGING_STATUSES = frozenset({"new", "curating"})
@@ -453,6 +454,34 @@ def _require_known_values(values: Iterable[str], allowed: frozenset[str], label:
     return selected
 
 
+def _normalise_change_provenance_filters(
+    *,
+    source_key: str | None,
+    branch: str | None,
+    from_exclusive: str | None,
+    through_inclusive: str | None,
+) -> tuple[str | None, str | None, str | None, str | None]:
+    """Validate exact optional change provenance selectors for staging routing."""
+
+    selected_source_key = source_key.strip() if source_key is not None else None
+    if selected_source_key is not None and SOURCE_KEY_RE.fullmatch(selected_source_key) is None:
+        raise ValueError("--source-key must be a lowercase slug")
+
+    selected_branch = branch.strip() if branch is not None else None
+    if selected_branch is not None and not selected_branch:
+        raise ValueError("--branch must be a non-empty string")
+
+    selected_from = from_exclusive.strip() if from_exclusive is not None else None
+    if selected_from is not None and selected_from != "start" and COMMIT_RE.fullmatch(selected_from) is None:
+        raise ValueError("--from-exclusive must be 'start' or a 40- or 64-character lowercase hexadecimal commit")
+
+    selected_through = through_inclusive.strip() if through_inclusive is not None else None
+    if selected_through is not None and COMMIT_RE.fullmatch(selected_through) is None:
+        raise ValueError("--through-inclusive must be a 40- or 64-character lowercase hexadecimal commit")
+
+    return selected_source_key, selected_branch, selected_from, selected_through
+
+
 def query_staging(
     root: str | Path,
     *,
@@ -462,6 +491,10 @@ def query_staging(
     timestamp: str | None = None,
     targets: Iterable[str] = (),
     include_terminal: bool = False,
+    source_key: str | None = None,
+    branch: str | None = None,
+    from_exclusive: str | None = None,
+    through_inclusive: str | None = None,
 ) -> dict:
     records, diagnostics = load_staging_records(root)
     selected_statuses = _require_known_values(statuses, STAGING_STATUSES, "status")
@@ -473,6 +506,17 @@ def query_staging(
     selected_targets = {
         _normalise_target(value) for value in targets if _normalise_target(value)
     }
+    (
+        selected_source_key,
+        selected_branch,
+        selected_from_exclusive,
+        selected_through_inclusive,
+    ) = _normalise_change_provenance_filters(
+        source_key=source_key,
+        branch=branch,
+        from_exclusive=from_exclusive,
+        through_inclusive=through_inclusive,
+    )
     id_to_page, page_to_ids = _curated_target_registry(root)
     if timestamp is not None:
         if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", timestamp):
@@ -499,6 +543,35 @@ def query_staging(
             page_to_ids,
         ):
             continue
+        if (
+            selected_source_key is not None
+            or selected_branch is not None
+            or selected_from_exclusive is not None
+            or selected_through_inclusive is not None
+        ):
+            change_source = record["change_source"]
+            if not isinstance(change_source, dict):
+                continue
+            commit_range = change_source.get("commit_range")
+            if not isinstance(commit_range, dict):
+                continue
+            if (
+                selected_source_key is not None
+                and change_source.get("source_key") != selected_source_key
+            ):
+                continue
+            if selected_branch is not None and change_source.get("branch") != selected_branch:
+                continue
+            if selected_from_exclusive is not None:
+                record_from = commit_range.get("from_exclusive")
+                expected_from = None if selected_from_exclusive == "start" else selected_from_exclusive
+                if record_from != expected_from:
+                    continue
+            if (
+                selected_through_inclusive is not None
+                and commit_range.get("through_inclusive") != selected_through_inclusive
+            ):
+                continue
         results.append(record)
 
     return {
@@ -511,5 +584,9 @@ def query_staging(
             "date": timestamp,
             "targets": sorted(selected_targets),
             "include_terminal": bool(include_terminal),
+            "source_key": selected_source_key,
+            "branch": selected_branch,
+            "from_exclusive": selected_from_exclusive,
+            "through_inclusive": selected_through_inclusive,
         },
     }

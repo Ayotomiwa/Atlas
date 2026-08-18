@@ -191,6 +191,124 @@ def test_staging_filters_are_and_across_kinds_and_or_within_kind(tmp_path: Path)
     ]
 
 
+def test_staging_filters_exact_change_provenance_and_composes_with_existing_filters(
+    tmp_path: Path,
+):
+    change_source = _fixture(tmp_path)
+    _write_staging(
+        tmp_path,
+        "_staging/changes/STG-20260812-same-range.md",
+        record_id="STG-20260812-same-range",
+        record_type="staging.change",
+        status="new",
+        timestamp="2026-08-12",
+        targets=["comp.payments-api"],
+        change_source=change_source,
+    )
+    _write_staging(
+        tmp_path,
+        "_staging/changes/STG-20260812-other-source.md",
+        record_id="STG-20260812-other-source",
+        record_type="staging.change",
+        status="new",
+        timestamp="2026-08-12",
+        targets=["comp.payments-api"],
+        change_source={
+            **change_source,
+            "source_key": "other-source",
+            "branch": "release",
+        },
+    )
+
+    selected = query_staging(
+        tmp_path,
+        source_key=" datalens-monorepo ",
+        branch=" main ",
+        from_exclusive="a" * 40,
+        through_inclusive="b" * 40,
+        buckets=["changes"],
+        targets=["comp.payments-api"],
+        include_terminal=True,
+    )
+
+    assert [record["id"] for record in selected["results"]] == [
+        "STG-20260811-merged-change",
+        "STG-20260812-same-range",
+    ]
+    assert selected["filters"] == {
+        "statuses": sorted({"new", "curating", "consumed", "no-change", "deferred", "rejected"}),
+        "buckets": ["changes"],
+        "domain": None,
+        "date": None,
+        "targets": ["comp.payments-api"],
+        "include_terminal": True,
+        "source_key": "datalens-monorepo",
+        "branch": "main",
+        "from_exclusive": "a" * 40,
+        "through_inclusive": "b" * 40,
+    }
+
+    source_only = query_staging(
+        tmp_path, source_key="datalens-monorepo", include_terminal=True
+    )
+    assert [record["id"] for record in source_only["results"]] == [
+        "STG-20260811-merged-change",
+        "STG-20260812-same-range",
+    ]
+
+
+def test_staging_change_provenance_start_matches_only_null_from_exclusive(tmp_path: Path):
+    _fixture(tmp_path)
+    _write_staging(
+        tmp_path,
+        "_staging/changes/STG-20260812-from-start.md",
+        record_id="STG-20260812-from-start",
+        record_type="staging.change",
+        status="new",
+        timestamp="2026-08-12",
+        change_source={
+            "source_key": "datalens-monorepo",
+            "branch": "main",
+            "commit_range": {
+                "from_exclusive": None,
+                "through_inclusive": "c" * 40,
+            },
+            "merge_requests": [],
+        },
+    )
+
+    selected = query_staging(
+        tmp_path,
+        source_key="datalens-monorepo",
+        from_exclusive="start",
+        through_inclusive="c" * 40,
+    )
+
+    assert [record["id"] for record in selected["results"]] == [
+        "STG-20260812-from-start"
+    ]
+    assert selected["filters"]["from_exclusive"] == "start"
+
+
+def test_staging_change_provenance_filter_validation(tmp_path: Path):
+    _fixture(tmp_path)
+
+    for kwargs, message in [
+        ({"source_key": "Bad_Source"}, "source-key"),
+        ({"branch": "   "}, "branch"),
+        ({"from_exclusive": "a" * 39}, "from-exclusive"),
+        ({"from_exclusive": "A" * 40}, "from-exclusive"),
+        ({"through_inclusive": "start"}, "through-inclusive"),
+        ({"through_inclusive": "not-a-sha"}, "through-inclusive"),
+    ]:
+        try:
+            query_staging(tmp_path, **kwargs)
+        except ValueError as exc:
+            assert message in str(exc)
+        else:
+            raise AssertionError(f"expected ValueError for {kwargs}")
+
+
 def test_target_filter_resolves_curated_id_and_page_both_ways(tmp_path: Path):
     curated_page = "_curated/components/payments/payments-api.md"
     _write_curated(tmp_path, curated_page, "comp.payments-api")
@@ -439,6 +557,39 @@ def test_staging_cli_json_and_empty_human_result(tmp_path: Path, capsys):
     assert output == "No matching staging records were found."
 
 
+def test_staging_cli_filters_exact_change_provenance(tmp_path: Path, capsys):
+    _fixture(tmp_path)
+
+    exit_code = main(
+        [
+            "--root",
+            str(tmp_path),
+            "staging",
+            "--source-key",
+            "datalens-monorepo",
+            "--branch",
+            "main",
+            "--from-exclusive",
+            "a" * 40,
+            "--through-inclusive",
+            "b" * 40,
+            "--include-terminal",
+            "--format",
+            "json",
+        ]
+    )
+    output = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert [record["id"] for record in output["results"]] == [
+        "STG-20260811-merged-change"
+    ]
+    assert output["filters"]["source_key"] == "datalens-monorepo"
+    assert output["filters"]["branch"] == "main"
+    assert output["filters"]["from_exclusive"] == "a" * 40
+    assert output["filters"]["through_inclusive"] == "b" * 40
+
+
 def test_staging_rejects_unknown_filters_and_invalid_date(tmp_path: Path, capsys):
     _fixture(tmp_path)
 
@@ -451,6 +602,17 @@ def test_staging_rejects_unknown_filters_and_invalid_date(tmp_path: Path, capsys
         ["--root", str(tmp_path), "staging", "--date", "2026-02-30"]
     ) == 1
     assert "valid ISO YYYY-MM-DD date" in capsys.readouterr().out
+
+    for flag, value, message in [
+        ("--source-key", "Bad_Source", "source-key"),
+        ("--branch", "   ", "branch"),
+        ("--from-exclusive", "a" * 39, "from-exclusive"),
+        ("--from-exclusive", "A" * 40, "from-exclusive"),
+        ("--through-inclusive", "start", "through-inclusive"),
+        ("--through-inclusive", "b" * 39, "through-inclusive"),
+    ]:
+        assert main(["--root", str(tmp_path), "staging", flag, value]) == 1
+        assert message in capsys.readouterr().out
 
 
 def test_staging_query_retrieves_component_and_flow_records_by_domain(tmp_path: Path):
