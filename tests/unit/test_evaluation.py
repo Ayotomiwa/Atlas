@@ -315,11 +315,29 @@ def _v2_run_and_result(
     fixture = tmp_path / f"{run_id}-fixture"
     fixture.mkdir()
     run = prepare_run(ROOT, tmp_path / "sealed", run_id=run_id, fixture=fixture, fixture_head="abc")
+    _populate_v2_run(
+        run,
+        telemetry_overrides=telemetry_overrides,
+        authoring_overrides=authoring_overrides,
+    )
+    freeze_run(run)
+    return run, rubric, _build_v2_result(run, rubric)
+
+
+def _populate_v2_run(
+    run: Path,
+    *,
+    telemetry_overrides: dict[tuple[str, str], dict] | None = None,
+    authoring_overrides: dict | None = None,
+) -> None:
     _write_v2_inputs(run, [json.dumps(question, sort_keys=True) for question in _PAIRED_QUESTIONS])
     (run / "telemetry" / "control").mkdir()
     telemetry_overrides = telemetry_overrides or {}
     for question in _PAIRED_QUESTIONS:
         for arm in ("atlas", "control"):
+            (run / "answers" / f"{arm}-{question['id']}.md").write_text(
+                f"{arm} answer for {question['id']}\n", encoding="utf-8"
+            )
             telemetry = _question_telemetry(question["id"], arm)
             telemetry.update(telemetry_overrides.get((question["id"], arm), {}))
             (run / "telemetry" / arm / f"{question['id']}.json").write_bytes(stable_json(telemetry))
@@ -335,7 +353,9 @@ def _v2_run_and_result(
     }
     authoring.update(authoring_overrides or {})
     (run / "telemetry" / "authoring.json").write_bytes(stable_json(authoring))
-    freeze_run(run)
+
+
+def _build_v2_result(run: Path, rubric: dict) -> dict:
     metadata = load_json(run / "run.json")
     grades = {
         "Q1": ("CORRECT", "PARTIAL"),
@@ -378,7 +398,7 @@ def _v2_run_and_result(
         "questions": questions,
         "authoring_telemetry": "telemetry/authoring.json",
     }
-    return run, rubric, result
+    return result
 
 
 def _validate_v2(result: dict, rubric: dict, run: Path, *, expected_digest: str | None = None) -> None:
@@ -403,12 +423,7 @@ def _score_v2(result: dict, rubric: dict, run: Path, *, expected_digest: str | N
     )
 
 
-def test_v2_derives_literal_paired_comparison_and_break_even(tmp_path: Path):
-    run, rubric, result = _v2_run_and_result(tmp_path)
-
-    score = _score_v2(result, rubric, run)
-
-    assert score["comparison"] == {
+_EXPECTED_V2_COMPARISON = {
         "atlas_accuracy": 0.8333333333333334,
         "control_accuracy": 0.5,
         "accuracy_delta": 0.33333333333333337,
@@ -439,6 +454,14 @@ def test_v2_derives_literal_paired_comparison_and_break_even(tmp_path: Path):
             "output_tokens": 2.5,
         },
     }
+
+
+def test_v2_derives_literal_paired_comparison_and_break_even(tmp_path: Path):
+    run, rubric, result = _v2_run_and_result(tmp_path)
+
+    score = _score_v2(result, rubric, run)
+
+    assert score["comparison"] == _EXPECTED_V2_COMPARISON
     assert score["family_scores"]["M5"] == 13.5
 
 
@@ -819,3 +842,241 @@ def test_v2_rejects_non_finite_derived_break_even(tmp_path: Path):
 
     with pytest.raises(EvaluationError, match="break_even.input_tokens"):
         _score_v2(result, rubric, run)
+
+
+def _write_result(path: Path, result: dict) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(stable_json(result))
+    return path
+
+
+def _assert_cli_failure(
+    argv: list[str], capsys: pytest.CaptureFixture[str], message: str,
+) -> None:
+    assert atlas_eval_main(argv) == 1
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err.startswith("Atlas evaluation failed: ")
+    assert message in captured.err
+
+
+def test_v2_cli_full_external_workflow_binds_run_and_derives_comparison(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str],
+):
+    fixture = tmp_path / "fixture-source"
+    fixture.mkdir()
+    destination = tmp_path / "sealed"
+    run = destination / "cli-workflow"
+
+    assert atlas_eval_main([
+        "prepare",
+        "--destination", str(destination),
+        "--run-id", "cli-workflow",
+        "--fixture", str(fixture),
+        "--fixture-head", "abc",
+    ]) == 0
+    assert Path(capsys.readouterr().out.strip()) == run
+    _populate_v2_run(run)
+    assert atlas_eval_main(["freeze", str(run)]) == 0
+    assert Path(capsys.readouterr().out.strip()) == run / "freeze-manifest.json"
+
+    trusted_digest = digest_file(run / "freeze-manifest.json")
+    result = _build_v2_result(run, load_json(run / "rubric.json"))
+    result_path = _write_result(run / "results" / "results.json", result)
+
+    for _ in range(2):
+        assert atlas_eval_main([
+            "verify-freeze", str(run), "--freeze-digest", trusted_digest,
+        ]) == 0
+        assert capsys.readouterr().out == "Evaluation run freeze is valid.\n"
+
+    assert atlas_eval_main([
+        "validate", str(result_path), "--freeze-digest", trusted_digest,
+    ]) == 0
+    assert capsys.readouterr().out == "Evaluation result is valid.\n"
+    assert atlas_eval_main([
+        "score", str(result_path), "--freeze-digest", trusted_digest,
+    ]) == 0
+    inferred_score = json.loads(capsys.readouterr().out)
+    assert inferred_score["comparison"] == _EXPECTED_V2_COMPARISON
+
+    external_result = _write_result(tmp_path / "judge-output" / "results" / "result.json", result)
+    assert atlas_eval_main([
+        "validate", str(external_result),
+        "--run-root", str(run),
+        "--freeze-digest", trusted_digest,
+    ]) == 0
+    assert capsys.readouterr().out == "Evaluation result is valid.\n"
+    assert atlas_eval_main([
+        "score", str(external_result),
+        "--run-root", str(run),
+        "--freeze-digest", trusted_digest,
+    ]) == 0
+    explicit_score = json.loads(capsys.readouterr().out)
+    assert explicit_score["comparison"] == _EXPECTED_V2_COMPARISON
+
+
+@pytest.mark.parametrize("command", ("validate", "score"))
+@pytest.mark.parametrize("mutation", ("protected", "manifest"))
+def test_v2_cli_validate_and_score_reject_changed_freeze(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    command: str,
+    mutation: str,
+):
+    run, _, result = _v2_run_and_result(tmp_path, run_id=f"{command}-{mutation}")
+    trusted_digest = result["freeze_manifest_sha256"]
+    result_path = _write_result(run / "results" / "results.json", result)
+    if mutation == "protected":
+        (run / "fixture" / "fixture.txt").write_text("changed\n", encoding="utf-8")
+    else:
+        manifest_path = run / "freeze-manifest.json"
+        manifest_path.write_bytes(manifest_path.read_bytes() + b"\n")
+
+    _assert_cli_failure(
+        [command, str(result_path), "--freeze-digest", trusted_digest],
+        capsys,
+        "run freeze is not clean",
+    )
+
+
+def test_v2_cli_rejects_coordinated_rebinding_against_original_digest(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str],
+):
+    run, _, result = _v2_run_and_result(tmp_path, run_id="coordinated-cli")
+    trusted_digest = result["freeze_manifest_sha256"]
+    telemetry_path = run / "telemetry" / "atlas" / "Q1.json"
+    telemetry = load_json(telemetry_path)
+    telemetry["bytes_read"] = 101
+    telemetry_path.write_bytes(stable_json(telemetry))
+    manifest_path = run / "freeze-manifest.json"
+    manifest = load_json(manifest_path)
+    manifest["files"]["telemetry/atlas/Q1.json"] = digest_file(telemetry_path)
+    manifest_path.write_bytes(stable_json(manifest))
+    rebound_digest = digest_file(manifest_path)
+    metadata = load_json(run / "run.json")
+    metadata["freeze_manifest_sha256"] = rebound_digest
+    (run / "run.json").write_bytes(stable_json(metadata))
+    result["freeze_manifest_sha256"] = rebound_digest
+    result_path = _write_result(run / "results" / "results.json", result)
+    assert verify_run_freeze(run) == []
+
+    commands = (
+        ["verify-freeze", str(run), "--freeze-digest", trusted_digest],
+        ["validate", str(result_path), "--freeze-digest", trusted_digest],
+        ["score", str(result_path), "--freeze-digest", trusted_digest],
+    )
+    for argv in commands:
+        _assert_cli_failure(argv, capsys, "caller-trusted freeze manifest digest")
+
+
+@pytest.mark.parametrize("command", ("verify-freeze", "validate", "score"))
+@pytest.mark.parametrize("digest", (None, "bad"))
+def test_v2_cli_requires_well_formed_trusted_freeze_digest(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    command: str,
+    digest: str | None,
+):
+    run, _, result = _v2_run_and_result(tmp_path, run_id=f"digest-{command}-{digest}")
+    result_path = _write_result(run / "results" / "results.json", result)
+    argv = ["verify-freeze", str(run)] if command == "verify-freeze" else [command, str(result_path)]
+    if digest is not None:
+        argv.extend(["--freeze-digest", digest])
+
+    _assert_cli_failure(argv, capsys, "freeze digest")
+
+
+@pytest.mark.parametrize("command", ("validate", "score"))
+def test_v2_cli_rejects_run_root_override_for_another_run(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], command: str,
+):
+    run, _, result = _v2_run_and_result(tmp_path, run_id="bound-run")
+    other_run, _, _ = _v2_run_and_result(tmp_path, run_id="other-run")
+    result_path = _write_result(run / "results" / "results.json", result)
+
+    _assert_cli_failure(
+        [
+            command, str(result_path),
+            "--run-root", str(other_run),
+            "--freeze-digest", result["freeze_manifest_sha256"],
+        ],
+        capsys,
+        "different evaluation run",
+    )
+
+
+@pytest.mark.parametrize("command", ("validate", "score"))
+def test_v2_cli_rejects_valid_modified_rubric_copy(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], command: str,
+):
+    run, rubric, result = _v2_run_and_result(tmp_path, run_id=f"rubric-{command}")
+    result_path = _write_result(run / "results" / "results.json", result)
+    rubric_copy = deepcopy(rubric)
+    rubric_copy["partial_value"] = 0.4
+    copied_path = _write_result(tmp_path / f"copied-{command}-rubric.json", rubric_copy)
+
+    _assert_cli_failure(
+        [
+            command, str(result_path),
+            "--rubric", str(copied_path),
+            "--freeze-digest", result["freeze_manifest_sha256"],
+        ],
+        capsys,
+        "frozen run rubric",
+    )
+
+
+@pytest.mark.parametrize("command", ("validate", "score"))
+def test_cli_rejects_v1_v2_result_run_schema_mismatches(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], command: str,
+):
+    v2_run, rubric, v2_result = _v2_run_and_result(tmp_path, run_id=f"schema-v2-{command}")
+    v1_result_path = _write_result(v2_run / "results" / "v1.json", _result(rubric))
+    _assert_cli_failure(
+        [
+            command, str(v1_result_path),
+            "--freeze-digest", v2_result["freeze_manifest_sha256"],
+        ],
+        capsys,
+        "schema",
+    )
+
+    v1_run = tmp_path / f"schema-v1-{command}"
+    (v1_run / "results").mkdir(parents=True)
+    (v1_run / "rubric.json").write_bytes(stable_json(rubric))
+    (v1_run / "run.json").write_bytes(stable_json({
+        "schema_version": "atlas-evaluation-run/1.0",
+        "run_id": "legacy",
+    }))
+    v2_result_path = _write_result(v1_run / "results" / "v2.json", v2_result)
+    _assert_cli_failure(
+        [
+            command, str(v2_result_path),
+            "--freeze-digest", v2_result["freeze_manifest_sha256"],
+        ],
+        capsys,
+        "schema",
+    )
+
+
+def test_v1_cli_validate_and_score_keep_legacy_output_without_freeze_digest(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str],
+):
+    rubric = load_json(ROOT / "evaluation" / "rubric.json")
+    result = _result(rubric)
+    (tmp_path / "rubric.json").write_bytes(stable_json(rubric))
+    result_path = _write_result(tmp_path / "result.json", result)
+
+    assert atlas_eval_main(["validate", str(result_path)]) == 0
+    assert capsys.readouterr().out == "Evaluation result is valid.\n"
+    assert atlas_eval_main(["score", str(result_path)]) == 0
+    assert json.loads(capsys.readouterr().out) == {
+        "schema_version": "atlas-evaluation-score/1.0",
+        "family_scores": {"M1": 20.0, "M2": 20.0, "M4": 15.0, "M5": 30.0, "M6": 14.4},
+        "total": 99.4,
+        "gates_pass": True,
+        "fabrication_gate": True,
+        "honest_refusal_gate": True,
+        "verdict": "Ship",
+    }

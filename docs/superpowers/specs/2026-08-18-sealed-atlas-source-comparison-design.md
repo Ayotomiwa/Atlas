@@ -38,7 +38,7 @@ Every per-question telemetry record identifies the question and arm, records obs
 
 The v2 freeze hashes the rubric and every file under fixture, questions, personas, ground truth, answers, telemetry, and manifests. It also records an immutable projection of run metadata. The required manifest files and paired question bank must exist and validate before freezing. Verification detects changed, missing, and unexpected protected files and rejects a changed immutable metadata projection.
 
-The manifest does not provide a cryptographic signature against a malicious actor who can rewrite the entire sealed destination. Role isolation and an out-of-band recorded manifest digest remain required. The harness must not claim otherwise.
+The manifest does not provide a cryptographic signature against a malicious actor who can rewrite the entire sealed destination. Role isolation and an out-of-band recorded manifest digest remain required. Immediately after freeze, the judge records the manifest SHA-256 outside mutable run state and supplies that caller-trusted digest to both freeze-verification checks, result validation, and scoring. Coordinated rewriting of protected files, the manifest, run metadata, and result digest must not be accepted against that original anchor. The harness must not claim signature or access-control guarantees.
 
 ## Gates
 
@@ -70,7 +70,7 @@ Missing telemetry remains `null` and earns no efficiency credit. Negative read s
 
 ## CLI and role behavior
 
-`prepare`, `freeze`, `verify-freeze`, `validate`, and `score` retain their names. For v2 result files, validate and score resolve the run root, verify the master freeze, bind to the frozen run rubric, validate paired questions and telemetry references, then derive comparison metrics. An explicit run-root override is allowed for non-standard result placement.
+`prepare`, `freeze`, `verify-freeze`, `validate`, and `score` retain their names. For v2 result files, validate and score infer the run root from the normal `<run-root>/results/<result>.json` placement or accept an explicit `--run-root` for non-standard placement. They establish v2 from `run.json`, require the result schema to agree, verify the master freeze against required `--freeze-digest`, bind to the resolved `<run-root>/rubric.json`, validate paired questions and telemetry references, then derive comparison metrics. A v2 explicit `--rubric` must resolve to that frozen rubric. `verify-freeze` also requires the caller-trusted digest for v2. Legacy v1 validation, scoring, verification, and success wording remain unchanged without the digest.
 
 Role profiles must instruct preparers to create the paired/manifests inputs, authoring roles not to inspect questions, strict interrogators to obey the frozen tool policy, controls to remain source-only, and judges to verify the master freeze before truth and again before returning.
 

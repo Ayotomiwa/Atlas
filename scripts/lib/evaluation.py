@@ -363,6 +363,36 @@ def verify_run_freeze(run_root: str | Path) -> list[str]:
     return changes
 
 
+def verify_trusted_run_freeze(
+    run_root: str | Path,
+    expected_freeze_manifest_sha256: str | None,
+) -> dict:
+    if not _is_sha256_digest(expected_freeze_manifest_sha256):
+        raise EvaluationError(
+            "v2 verification requires expected_freeze_manifest_sha256 "
+            "(caller-trusted freeze digest) as a SHA-256 digest"
+        )
+    root = Path(run_root).resolve()
+    run_path = _resolved_run_path(root, root / "run.json", "run.json")
+    metadata = load_json(run_path)
+    if metadata.get("schema_version") != RUN_SCHEMA_V2:
+        raise EvaluationError(f"trusted run freeze verification requires {RUN_SCHEMA_V2}")
+    changes = verify_run_freeze(root)
+    if changes:
+        raise EvaluationError(f"v2 run freeze is not clean: {'; '.join(changes)}")
+    manifest_path = _resolved_run_path(
+        root, root / "freeze-manifest.json", "freeze-manifest.json"
+    )
+    if (
+        digest_file(manifest_path) != expected_freeze_manifest_sha256
+        or metadata.get("freeze_manifest_sha256") != expected_freeze_manifest_sha256
+    ):
+        raise EvaluationError(
+            "actual and run digests must match the caller-trusted freeze manifest digest"
+        )
+    return metadata
+
+
 def _ratio(value: object, owner: str) -> float:
     if not isinstance(value, (int, float)) or isinstance(value, bool) or not 0 <= float(value) <= 1:
         raise EvaluationError(f"{owner} must be a number from 0 to 1")
@@ -551,29 +581,13 @@ def _v2_run_context(
 ) -> tuple[Path, set[str], list[dict]]:
     if run_root is None:
         raise EvaluationError("v2 results require run_root")
-    if not _is_sha256_digest(expected_freeze_manifest_sha256):
-        raise EvaluationError("v2 results require expected_freeze_manifest_sha256 as a SHA-256 digest")
     root = Path(run_root).resolve()
-    run_path = _resolved_run_path(root, root / "run.json", "run.json")
-    metadata = load_json(run_path)
-    if metadata.get("schema_version") != RUN_SCHEMA_V2:
-        raise EvaluationError(f"v2 result run_root must use {RUN_SCHEMA_V2}")
-    changes = verify_run_freeze(root)
-    if changes:
-        raise EvaluationError(f"v2 result run freeze is not clean: {changes[0]}")
+    metadata = verify_trusted_run_freeze(root, expected_freeze_manifest_sha256)
     rubric_digest = sha256(stable_json(rubric)).hexdigest()
     if metadata.get("rubric_sha256") != rubric_digest or result.get("rubric_sha256") != rubric_digest:
         raise EvaluationError("result, run and supplied rubric digests must match")
     manifest_path = _resolved_run_path(root, root / "freeze-manifest.json", "freeze-manifest.json")
-    actual_manifest_digest = digest_file(manifest_path)
-    if any(
-        value != expected_freeze_manifest_sha256
-        for value in (
-            actual_manifest_digest,
-            metadata.get("freeze_manifest_sha256"),
-            result.get("freeze_manifest_sha256"),
-        )
-    ):
+    if result.get("freeze_manifest_sha256") != expected_freeze_manifest_sha256:
         raise EvaluationError("actual, run and result digests must match the caller-trusted freeze manifest digest")
     manifest = load_json(manifest_path)
     frozen_files, _ = _validate_freeze_manifest(manifest)

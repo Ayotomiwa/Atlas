@@ -52,6 +52,7 @@
 **Interfaces:**
 - Consumes the frozen v2 paired question manifest and per-arm telemetry records from Task 1.
 - Produces v2 result validation, normalized paired grades, derived M5/M6 comparison metrics, condition summaries, and observable break-even values.
+- Requires the caller-supplied `expected_freeze_manifest_sha256` trust anchor for v2 validation and scoring; it is never inferred from mutable run state and remains ignored for v1.
 - Leaves `atlas-evaluation-result/1.0` validation/scoring unchanged.
 
 - [ ] Add tests for exact pair membership/category matching and rejection of missing, extra, or duplicate question results.
@@ -71,8 +72,9 @@
 
 **Interfaces:**
 - Consumes Task 1 freeze verification and Task 2 result normalization.
-- Adds optional `--run-root` for non-standard result placement.
-- For v2, resolves the run root, verifies freeze, rejects rubric substitution, and prints derived comparison metrics with the score.
+- Adds optional `--run-root` for non-standard result placement and required v2 `--freeze-digest` on verify, validate, and score.
+- For v2, infers the normal run root from `<run-root>/results/<result>.json`, rejects a conflicting override or run/result schema mismatch, verifies freeze against the caller-trusted digest, rejects any rubric not resolving to the frozen run rubric, and prints derived comparison metrics with the score.
+- The judge captures the manifest SHA-256 outside the mutable run immediately after freeze and supplies it to both verification checks, validation, and scoring; coordinated in-run rewriting cannot rebind that original anchor.
 
 - [ ] Add CLI tests showing v2 validate/score fail for a changed freeze, mismatched run-root, or substituted rubric.
 - [ ] Add a CLI success test covering prepare → freeze → validate → score using a complete synthetic external run.
