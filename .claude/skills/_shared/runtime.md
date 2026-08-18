@@ -2,6 +2,18 @@
 
 Use `human-intents.md` for the user-facing action and keep this file's search, trust and fallback mechanics behind that conversation. Users do not select specialist workflows or query commands.
 
+For automatic routing in a product repository, a valid managed Atlas block in its instructions is the binding signal. **Explicit Ask Atlas** always consults Atlas, whether the repository is bound or unbound. In an **unbound repository** without that explicit intent, do not invoke Atlas automatically. In a bound repository, one known local target may be read directly; an uncertain, broad, multi-hop, Git-history, or durable-context lookup routes through Atlas before broad source search. `ATLAS_ROOT` stored-knowledge and implementation modes remain governed by the classification below.
+
+Use this ordered retrieval ladder for a bound repository or Explicit Ask Atlas; direct Ask enters Atlas no later than step 3:
+
+1. **Retained context** that still answers the unchanged question.
+2. **One known targeted source read** for a clearly local question or local isolated edit.
+3. **Atlas before uncertain** or broad, multi-hop, Git-history, durable-context, impact, ownership, conflict, standards or recovery lookup.
+4. **Complete Atlas answer** when curated evidence fully supports the result.
+5. **Partial Atlas answer** plus the smallest source fallback where coverage ends.
+6. **Atlas-guided source route** when Atlas identifies the next evidence boundary but cannot answer.
+7. **Bounded source and unresolved gap** when neither Atlas nor the authorised source boundary closes the question.
+
 Resolve `ATLAS_ROOT` from `${CLAUDE_SKILL_DIR}`: the live package root is three directories above an Atlas skill directory. Canonicalise the absolute path and validate that `<ATLAS_ROOT>/atlas-package.json` exists, has `schema_version: atlas-package/1.0`, and identifies the expected package before using Atlas. If resolution or validation fails, state that Atlas was not consulted, tell the user to restart with `claude --add-dir <path-to-current-Atlas-checkout>`, explain that a moved checkout must be supplied again, and offer bounded product-source inspection.
 
 Keep these locations distinct:
@@ -39,7 +51,7 @@ python <ATLAS_ROOT>/scripts/atlas_query.py --root <ATLAS_ROOT> --format json fin
 
 Search returns candidates, not truth. Select using the question, match reasons, path specificity and curated evidence; preserve ambiguity. Consult the relevant collection/domain index when results are weak or ambiguous, then the curated root index. Open the selected page and follow its links. Use maps only after stable-ID selection for reverse or multi-hop traversal. Use `context` separately when repository/component path candidates need inspection.
 
-Allow `locator_match: not-verified` product candidates, but state in every substantive answer that uses one that path context was routing evidence rather than proof of repository identity. If an Atlas-relevant product repository outside `ATLAS_ROOT` lacks a valid managed instructions block, make one non-blocking `atlas-setup-repo` offer per repository/session; discovery remains read-only.
+Allow `locator_match: not-verified` product candidates, but include a visible routing-only advisory in every substantive answer that uses one: path context was routing evidence rather than proof of repository identity. If an Atlas-relevant product repository outside `ATLAS_ROOT` lacks a valid managed instructions block, make one non-blocking `atlas-setup-repo` offer per repository/session; discovery remains read-only.
 
 Route through curated Atlas before broad product-source exploration. If Atlas is insufficient, state where coverage ended and continue with a bounded source inspection inside the user's scope. Never use staging, generated maps, query output, generation or lint as semantic authority.
 

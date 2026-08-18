@@ -2,6 +2,18 @@
 
 Use `human-intents.md` for the user-facing action and keep specialist/query mechanics behind the conversation.
 
+For automatic routing in a product repository, a valid managed Atlas block in its instructions is the binding signal. **Explicit Ask Atlas** always consults Atlas, whether the repository is bound or unbound. In an **unbound repository** without that explicit intent, do not invoke Atlas automatically. In a bound repository, one known local target may be read directly; an uncertain, broad, multi-hop, Git-history, or durable-context lookup routes through Atlas before broad source search. `ATLAS_ROOT` stored-knowledge and implementation modes remain governed by the classification below.
+
+Use this ordered retrieval ladder for a bound repository or Explicit Ask Atlas; direct Ask enters Atlas no later than step 3:
+
+1. **Retained context** that still answers the unchanged question.
+2. **One known targeted source read** for a clearly local question or local isolated edit.
+3. **Atlas before uncertain** or broad, multi-hop, Git-history, durable-context, impact, ownership, conflict, standards or recovery lookup.
+4. **Complete Atlas answer** when curated evidence fully supports the result.
+5. **Partial Atlas answer** plus the smallest source fallback where coverage ends.
+6. **Atlas-guided source route** when Atlas identifies the next evidence boundary but cannot answer.
+7. **Bounded source and unresolved gap** when neither Atlas nor the authorised source boundary closes the question.
+
 Resolve the live `ATLAS_ROOT` from the current skill location (three directories above an Atlas skill directory) and validate `atlas-package.json` with `schema_version: atlas-package/1.0`. If unavailable, state that Atlas was not consulted, ask the user to make the current checkout available, and offer bounded repository inspection. Keep Atlas root, product Git root and current path distinct even when paths overlap. Use absolute internal paths but repository-relative paths in user-facing references.
 
 When the current path is inside `ATLAS_ROOT`, choose one mode. A question about an explicit stable ID resolves that ID directly. Other questions about stored engineering repositories/components/flows/infra/schemas/standards/operations/concepts/ownership use typed `find` without `--path`, then relevant curated indexes; do not run product context or offer setup for Atlas. A question about Atlas scripts/skills/contracts/templates/generation/lint/tests uses ordinary local source inspection. Stored-knowledge source fallback requires an explicitly available separate product checkout or resolved repository locator; never inspect Atlas implementation as product evidence.

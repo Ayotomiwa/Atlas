@@ -5,6 +5,8 @@ Home Atlas package: `{{PACKAGE}}`
 Repository seed: `{{REPOSITORY_SEED}}`
 Repository seed verification: `{{SEED_VERIFICATION}}`
 
+Presence of this managed block binds this repository to Atlas for automatic routing. **Explicit Ask Atlas** consults Atlas even from an unbound repository; an unbound repository does not invoke it automatically. Here, use one known targeted source read for a clearly local question, but route an uncertain, broad, multi-hop, Git-history, or durable-context lookup through Atlas before broad source search. Run semantic-risk change readiness regardless of diff size; a genuinely local isolated edit may remain source-only.
+
 Use Atlas through ordinary language: **Ask Atlas** for engineering context/impact, **Teach Atlas** to save a fact or answer a gap, **Sync Atlas** to onboard or update the repository, and **Curate Atlas** to reconcile pending evidence. Codex selects the specialist workflow. A write reuses and states a current non-default branch with shared default-branch history. On the default branch, detached HEAD, or unrelated history, it asks the user to confirm a suggested branch, choose an existing branch, or enter a custom branch. It then gets one concrete scope preview and one approval and may create only the shown local commits. Internal handoffs do not repeat approval; local commits never imply push or merge.
 
 Atlas relevance triggers:

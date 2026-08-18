@@ -13,4 +13,6 @@ Read `.claude/skills/_shared/runtime.md`, `answer-provenance.md`, and `agent-han
 3. When Atlas coverage is insufficient, state the endpoint and inspect bounded product source only when a separate checkout is supplied or resolved. Never treat Atlas implementation as source evidence for an unrelated product. Treat active curated Atlas as authoritative, report non-clean checkout state once, and separately label repository-derived, user-confirmed, inferred, conflicting and unknown facts.
 4. Choose concise prose, table, route list or Mermaid based on the relationships being explained. Do not expose internal mechanics at the expense of the engineering answer.
 
+For Direct Ask Atlas, consult relevant curated types and answer-bearing links before synthesis. For a flow, synthesize trigger and outcome, ordered participants and handoffs, data and infrastructure transitions, branches, retries, and failures, standards, incidents, and runbooks, and coverage limits from the existing model.
+
 Return the answer draft with inline claim references, `How this was traced` for material hops, and the complete shared claim ledger, consulted paths, checked-but-not-found scope, ambiguity and coverage limits. Never cite scripts as factual sources or turn an absent Atlas edge into proof.

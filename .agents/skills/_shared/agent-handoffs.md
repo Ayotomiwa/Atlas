@@ -2,6 +2,8 @@
 
 Supply objective/output, absolute roots/current path, typed find/path-context candidates or exact IDs including `not-verified` state, and reusable session state: selected IDs, opened curated pages, inspected product-source paths, coverage endpoint and checkout-advisory disclosure. Also supply scan boundary/exclusions, fallback limits, user-confirmed facts, unresolved ambiguity and validation deferrals.
 
+Carry the **ephemeral Atlas session** across a handoff. **Reuse** still-valid retained context and **Re-enter** routing only for the changed repository, record, question type, suspected source state or crossed coverage endpoint; never restart the whole route by default.
+
 Require findings plus a claim ledger containing claim, source classification, references, confidence/lifecycle, direct/inferred state and inference premises. Also require material route hops, consulted paths, relevant checked-but-not-found paths, coverage/conflicts/questions and useful next routes.
 
 The parent skill verifies exact support, preserves the analyst's presentation, adds no unsupported synthesis and exposes file hops at the adaptive depth required. Keep the complete ledger internal unless requested or required for an audit artifact.

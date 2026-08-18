@@ -10,6 +10,8 @@ Give an analyst:
 - known user-confirmed facts and unresolved ambiguity;
 - validation deferrals and write prohibition where applicable.
 
+Carry the **ephemeral Atlas session** across a handoff. **Reuse** still-valid retained context and **Re-enter** routing only for the changed repository, record, question type, suspected source state or crossed coverage endpoint; never restart the whole route by default.
+
 Every analyst returns:
 
 1. findings in the clearest presentation for the question;

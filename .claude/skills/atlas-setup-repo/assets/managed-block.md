@@ -5,6 +5,8 @@ Home Atlas package: `{{PACKAGE}}`
 Repository seed: `{{REPOSITORY_SEED}}`
 Repository seed verification: `{{SEED_VERIFICATION}}`
 
+Presence of this managed block binds this repository to Atlas for automatic routing. **Explicit Ask Atlas** consults Atlas even from an unbound repository; an unbound repository does not invoke it automatically. Here, use one known targeted source read for a clearly local question, but route an uncertain, broad, multi-hop, Git-history, or durable-context lookup through Atlas before broad source search. Run semantic-risk change readiness regardless of diff size; a genuinely local isolated edit may remain source-only.
+
 This repository uses Datalens Atlas for reviewed architecture, ownership, dependencies, flows, infrastructure, schemas, operations and standards.
 
 Use Atlas through ordinary language:
