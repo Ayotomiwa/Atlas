@@ -137,6 +137,43 @@ def test_prepare_rejects_case_insensitive_windows_reserved_device_stems(tmp_path
         prepare_run(ROOT, tmp_path / "approved", run_id=run_id, fixture=fixture, fixture_head="abc")
 
 
+@pytest.mark.parametrize("run_id", ("CON .txt", "NUL .md", "COM1 .log", "lpt9 .data"))
+def test_prepare_rejects_space_normalized_windows_device_stems(tmp_path: Path, run_id: str):
+    fixture = tmp_path / "fixture"
+    fixture.mkdir()
+
+    with pytest.raises(EvaluationError, match="one safe non-empty path component"):
+        prepare_run(ROOT, tmp_path / "approved", run_id=run_id, fixture=fixture, fixture_head="abc")
+
+
+@pytest.mark.parametrize(
+    "run_id",
+    (
+        "CONIN$", "conin$.txt", "CONOUT$", "conout$.log",
+        "COM¹", "com².txt", "COM³ .log", "LPT¹", "lpt².txt", "LPT³ .log",
+    ),
+)
+def test_prepare_rejects_windows_console_aliases_and_superscript_ports(tmp_path: Path, run_id: str):
+    fixture = tmp_path / "fixture"
+    fixture.mkdir()
+
+    with pytest.raises(EvaluationError, match="one safe non-empty path component"):
+        prepare_run(ROOT, tmp_path / "approved", run_id=run_id, fixture=fixture, fixture_head="abc")
+
+
+@pytest.mark.parametrize(
+    "run_id",
+    ('bad"quote', "bad*star", "bad?question", "bad:colon", "bad<less", "bad>greater", "bad|pipe"),
+    ids=("quote", "asterisk", "question", "colon", "less-than", "greater-than", "pipe"),
+)
+def test_prepare_normalizes_windows_reserved_punctuation_to_evaluation_error(tmp_path: Path, run_id: str):
+    fixture = tmp_path / "fixture"
+    fixture.mkdir()
+
+    with pytest.raises(EvaluationError, match="one safe non-empty path component"):
+        prepare_run(ROOT, tmp_path / "approved", run_id=run_id, fixture=fixture, fixture_head="abc")
+
+
 @pytest.mark.parametrize("run_id", ("name.", "name ", "...", "trailing..", "trailing. "))
 def test_prepare_rejects_run_ids_with_trailing_windows_spaces_or_dots(tmp_path: Path, run_id: str):
     fixture = tmp_path / "fixture"
@@ -163,6 +200,16 @@ def test_prepare_normalizes_ascii_control_run_ids_to_evaluation_error(tmp_path: 
     "run_id", ("conduit", "COM0", "COM10", "LPT0", "LPT10", "auxiliary", "run.v2", ".hidden", "name with space")
 )
 def test_prepare_preserves_portable_run_ids_near_windows_reserved_names(tmp_path: Path, run_id: str):
+    fixture = tmp_path / "fixture"
+    fixture.mkdir()
+
+    run = prepare_run(ROOT, tmp_path / "approved", run_id=run_id, fixture=fixture, fixture_head="abc")
+
+    assert run.name == run_id
+
+
+@pytest.mark.parametrize("run_id", ("CONIN", "CONOUT", "COM⁴", "LPT⁴", "COM1x", "LPT9x"))
+def test_prepare_preserves_names_near_extended_windows_reservations(tmp_path: Path, run_id: str):
     fixture = tmp_path / "fixture"
     fixture.mkdir()
 

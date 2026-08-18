@@ -37,9 +37,10 @@ BREAK_EVEN_FIELDS = (
     "bytes_read", "tool_calls", "latency_ms", "input_tokens", "output_tokens",
 )
 _WINDOWS_RESERVED_DEVICE_STEMS = {
-    "CON", "PRN", "AUX", "NUL",
+    "CON", "PRN", "AUX", "NUL", "CONIN$", "CONOUT$",
     *(f"COM{number}" for number in range(1, 10)),
     *(f"LPT{number}" for number in range(1, 10)),
+    "COM¹", "COM²", "COM³", "LPT¹", "LPT²", "LPT³",
 }
 _MISSING = object()
 
@@ -149,8 +150,11 @@ def _safe_run_id(value: object, owner: str = "run_id") -> str:
         raise EvaluationError(f"{owner} must be one safe non-empty path component")
     if (
         value.endswith((" ", "."))
-        or any(ord(character) < 32 or ord(character) == 127 for character in value)
-        or value.partition(".")[0].upper() in _WINDOWS_RESERVED_DEVICE_STEMS
+        or any(
+            ord(character) < 32 or ord(character) == 127 or character in '"*?:<>|'
+            for character in value
+        )
+        or value.partition(".")[0].rstrip(" ").upper() in _WINDOWS_RESERVED_DEVICE_STEMS
     ):
         raise EvaluationError(f"{owner} must be one safe non-empty path component")
     posix = PurePosixPath(value)
