@@ -276,6 +276,20 @@ def test_staging_change_provenance_start_matches_only_null_from_exclusive(tmp_pa
             "merge_requests": [],
         },
     )
+    _write_staging(
+        tmp_path,
+        "_staging/changes/STG-20260812-missing-from.md",
+        record_id="STG-20260812-missing-from",
+        record_type="staging.change",
+        status="new",
+        timestamp="2026-08-12",
+        change_source={
+            "source_key": "datalens-monorepo",
+            "branch": "main",
+            "commit_range": {"through_inclusive": "c" * 40},
+            "merge_requests": [],
+        },
+    )
 
     selected = query_staging(
         tmp_path,

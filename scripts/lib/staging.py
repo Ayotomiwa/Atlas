@@ -563,6 +563,8 @@ def query_staging(
             if selected_branch is not None and change_source.get("branch") != selected_branch:
                 continue
             if selected_from_exclusive is not None:
+                if "from_exclusive" not in commit_range:
+                    continue
                 record_from = commit_range.get("from_exclusive")
                 expected_from = None if selected_from_exclusive == "start" else selected_from_exclusive
                 if record_from != expected_from:
