@@ -4,11 +4,11 @@ All fixture content, personas, questions, ground truth, answers, telemetry, resu
 
 The v2 evaluation compares the complete fixed cost of creating a governed, curated Atlas snapshot with the marginal retrieval performance of that snapshot against raw-source-only retrieval with no persistent preprocessing. Its primary experimental unit is one paired question: one canonical frozen prompt answered once by the strict Atlas-only arm and once by the raw-source-only control, then graded against the same frozen truth and rubric.
 
-Authoring is a separate pre-retrieval phase. Repository selection and cold/incremental snapshot preparation, onboarding, staging, curation, validation, independent review, and Atlas snapshot export happen before interrogation. Their observable cost belongs only in authoring telemetry and is never mixed into per-question marginal telemetry. Authors may see source and an authoring persona, but never paired questions, ground truth, answers, scores, or category quotas.
+Authoring is a separate pre-retrieval phase. Repository selection and cold/incremental snapshot preparation, onboarding, staging, curation, validation, independent review, and Atlas snapshot export happen before interrogation. Their observable cost belongs only in authoring telemetry and is never mixed into per-question marginal telemetry. Authors may see disposable Atlas and fixture/source worktrees plus an authoring persona, but never paired questions, ground truth, answers, scores, or category quotas.
 
 ## Versioned contracts
 
-New runs use `atlas-evaluation-run/2.0`, a master run freeze, and `atlas-evaluation-result/2.0`. The master freeze covers the frozen rubric plus fixture, questions, personas, ground truth, answers, telemetry, and manifests. The Atlas interrogator receives only one frozen question and the frozen Atlas snapshot; product source is unavailable. The control receives the same question and frozen raw fixture, including hidden files and relevant Git history, but no Atlas package or snapshot, Atlas-managed instructions, network, or persistent scratch index.
+New runs use `atlas-evaluation-run/2.0`, a master run freeze, and `atlas-evaluation-result/2.0`. The master freeze covers the frozen rubric plus fixture, questions, personas, ground truth, answers, telemetry, and manifests. The coordinator owns the complete paired bank and supplies exactly one frozen question at a time to both retrieval attempts. The Atlas interrogator receives that question and the frozen Atlas snapshot only; product source is unavailable. The control receives the same single question and frozen raw fixture, including hidden files and relevant Git history, but no Atlas package or snapshot, Atlas-managed instructions, network, or persistent scratch index. Neither retrieval role receives `questions/paired.jsonl`, another question, or bank-level category/condition information.
 
 Legacy `atlas-evaluation-run/1.0` runs retain their `atlas-evaluation-answer-freeze/1.0` and `atlas-evaluation-result/1.0` path. Those artifacts remain readable, verifiable, and scoreable as answer-only evaluations. They do not gain v2 master-freeze, paired-arm, telemetry, or caller-trusted-digest guarantees.
 
@@ -41,7 +41,7 @@ Legacy `atlas-evaluation-run/1.0` runs retain their `atlas-evaluation-answer-fre
 `-- freeze-manifest.json               # created by freeze
 ```
 
-Every protected root (`fixture`, `questions`, `personas`, `ground-truth`, `answers`, `telemetry`, and `manifests`) must be non-empty before `freeze`. The four named manifests are required. The fixture manifest records immutable cold and incremental identities; the tool policy fixes the allowed inputs, exact tools, budgets/timeboxes, answer paths/formats, and citation representation for each role; the model configuration records the evaluated model/setup; and the Atlas snapshot manifest identifies the independently reviewed frozen Atlas export. Roles follow those frozen answer and citation conventions rather than inventing another machine schema.
+Every protected root (`fixture`, `questions`, `personas`, `ground-truth`, `answers`, `telemetry`, and `manifests`) must be non-empty before `freeze`. The four named manifests are required. The fixture manifest records immutable cold and incremental identities; the tool policy fixes each role's assigned corpus, exact tools, budgets/timeboxes, answer paths/formats, and citation representation; the model configuration records the evaluated model/setup; and the Atlas snapshot manifest identifies the independently reviewed frozen Atlas export. Retrieval-role policy inputs name only the coordinator-supplied single question for that attempt and the assigned corpus, never `questions/paired.jsonl`. Roles follow those frozen answer and citation conventions rather than inventing another machine schema. Before freezing, `answers/` must contain exactly one Atlas and one control answer per paired question (`2 * question count`) and no extra answer files.
 
 Each line of `questions/paired.jsonl` is one JSON object with these required fields:
 
@@ -55,7 +55,7 @@ Each line of `questions/paired.jsonl` is one JSON object with these required fie
 
 Each arm writes a separate answer and a separate `atlas-evaluation-telemetry/1.0` record for every paired question. A question telemetry record contains `question_id`, `arm`, the observable fields `bytes_read`, `unique_evidence_sources`, `tool_calls`, `latency_ms`, `input_tokens`, and `output_tokens`, plus `atlas_hit`, `fallback_used`, `fallback_disclosed`, `source_accessed`, and `atlas_accessed`.
 
-Every observable is a measured non-negative finite number or `null`; never estimate it. The strict Atlas record has `source_accessed: false`, `atlas_accessed: true`, `fallback_used: false`, and `fallback_disclosed: null`; `atlas_hit` is the observed boolean. It answers only from the frozen Atlas snapshot and does not execute fixture, source, or snapshot code unless the frozen tool policy explicitly permits that tool action. The control has `source_accessed: true`, `atlas_accessed: false`, and `atlas_hit`, `fallback_used`, and `fallback_disclosed` set to `null`. Its working notes are transient and question-local; only the answer and telemetry persist. Recorded Atlas source access or control Atlas access is a protocol violation, fails arm purity, and forces `Not ready`.
+Every observable is a measured non-negative finite number or `null`; never estimate it. The strict Atlas record has `source_accessed: false`, `atlas_accessed: true`, `fallback_used: false`, and `fallback_disclosed: null`; `atlas_hit` is the observed boolean. It answers only from the frozen Atlas snapshot and does not execute fixture, source, or snapshot code unless the frozen tool policy explicitly permits that tool action. The control has `source_accessed: true`, `atlas_accessed: false`, and `atlas_hit`, `fallback_used`, and `fallback_disclosed` set to `null`. Its working notes are transient and question-local; only the answer and telemetry persist. Atlas `source_accessed: true` or `atlas_accessed: false`, and control `atlas_accessed: true` or `source_accessed: false`, are protocol violations: forbidden cross-access and failure to use the assigned corpus both fail arm purity and force `Not ready`.
 
 Optional authoring telemetry uses `atlas-evaluation-phase-telemetry/1.0`, `phase: "authoring"`, and the same six observable fields. It records the fixed cost of the entire pre-retrieval authoring phase. Missing per-question or authoring observables remain `null` and earn no efficiency or break-even credit.
 
@@ -64,6 +64,84 @@ The judge assigns only the rubric's allowed question judgments (`CORRECT`, `PART
 The harness derives M5/M6 summaries; the judge never enters them. It reports Atlas/control accuracy, accuracy delta, Atlas hit rate, fallback disclosure, observable read-cost reduction, and condition-specific accuracy/read summaries. Negative read reduction remains visible and receives no positive efficiency credit. A missing value or zero control denominator yields `null`.
 
 Break-even is derived separately for `bytes_read`, `tool_calls`, `latency_ms`, `input_tokens`, and `output_tokens`: fixed authoring cost divided by the positive per-question marginal saving in that dimension. A dimension is `null` when authoring or paired retrieval observations are missing, or when the marginal saving is zero or negative. There is no universal break-even claim.
+
+## Authoring a v2 result
+
+`atlas-evaluation-result/2.0` objects use exact field sets; unrecognized or missing fields are rejected.
+
+- Top level: `schema_version`, `rubric_sha256`, `freeze_manifest_sha256`, `gates`, `metrics`, and `questions`, with optional `authoring_telemetry`. Both digest fields are 64-character SHA-256 strings: the rubric digest matches frozen `rubric.json`, and the freeze digest matches the actual manifest, run metadata, result, and separately retained caller value.
+- `gates`: exactly `G1` through `G8`. Each value is exactly `{ "passed": <boolean>, "evidence": [<paths>] }`; evidence is a non-empty, duplicate-free list of safe run-relative paths to protected frozen files. The digest-bound `freeze-manifest.json` is also allowed.
+- `metrics`: exactly `M1`, `M2`, and `M4`. `M1` is exactly `core_recall`, `bonus_recall`, `locator_accuracy` (ratios from 0 to 1), and non-negative integer `fabrication_count`. `M2` is exactly ratio fields `conflict_recall` and `multi_file_recall` plus boolean `tool_defaults_resisted`, `external_unknown`, `identity_ambiguity`, and `dead_path_resistance`. `M4` is exactly boolean `lint`, `freshness`, `tests`, and `granularity`. Do not enter M5 or M6; the harness derives them.
+- `questions`: one exact result for every canonical pair and no others. Each item is exactly `id`, `category`, `atlas`, and `control`; `id` and `category` must match `questions/paired.jsonl`.
+- Each `atlas`/`control` object is exactly `grade`, `citation_validity`, `provenance_disclosure`, `citations`, `rationale`, `answer`, and `telemetry`. `grade` is an allowed rubric judgment; the two quality values are ratios from 0 to 1; `citations` is a non-empty list of non-empty strings in the frozen tool-policy representation; and `rationale` is non-empty. `answer` and `telemetry` are safe run-relative paths to that arm's frozen files under exact `answers/<arm>/` and `telemetry/<arm>/`. Every `answer` reference is unique across all attempts, and the referenced set must equal the complete frozen `answers/**` file set—no missing, reused, or unreferenced answers.
+- `authoring_telemetry`: omit this field when there is no authoring record. When present it is a safe run-relative path beneath `telemetry/` to a frozen `atlas-evaluation-phase-telemetry/1.0` record. The record has `phase: "authoring"` and the six exact observable fields; each observable may be `null` when unavailable.
+
+This compact skeleton is valid JSON and shows every result field. Replace the example IDs, paths, judgments, evidence, and digests with values bound to the frozen run; the complete question list must match its canonical bank.
+
+```json
+{
+  "schema_version": "atlas-evaluation-result/2.0",
+  "rubric_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "freeze_manifest_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+  "gates": {
+    "G1": {"passed": true, "evidence": ["manifests/fixture.json"]},
+    "G2": {"passed": true, "evidence": ["manifests/atlas-snapshot.json"]},
+    "G3": {"passed": true, "evidence": ["questions/paired.jsonl"]},
+    "G4": {"passed": true, "evidence": ["manifests/atlas-snapshot.json"]},
+    "G5": {"passed": true, "evidence": ["manifests/atlas-snapshot.json"]},
+    "G6": {"passed": true, "evidence": ["manifests/tool-policy.json"]},
+    "G7": {"passed": true, "evidence": ["answers/atlas/Q1.md"]},
+    "G8": {"passed": true, "evidence": ["freeze-manifest.json"]}
+  },
+  "metrics": {
+    "M1": {
+      "core_recall": 1.0,
+      "bonus_recall": 1.0,
+      "locator_accuracy": 1.0,
+      "fabrication_count": 0
+    },
+    "M2": {
+      "conflict_recall": 1.0,
+      "multi_file_recall": 1.0,
+      "tool_defaults_resisted": true,
+      "external_unknown": true,
+      "identity_ambiguity": true,
+      "dead_path_resistance": true
+    },
+    "M4": {
+      "lint": true,
+      "freshness": true,
+      "tests": true,
+      "granularity": true
+    }
+  },
+  "questions": [
+    {
+      "id": "Q1",
+      "category": "IMPACT",
+      "atlas": {
+        "grade": "CORRECT",
+        "citation_validity": 1.0,
+        "provenance_disclosure": 1.0,
+        "citations": ["concepts/example.md#impact"],
+        "rationale": "The answer matches the frozen truth.",
+        "answer": "answers/atlas/Q1.md",
+        "telemetry": "telemetry/atlas/Q1.json"
+      },
+      "control": {
+        "grade": "CORRECT",
+        "citation_validity": 1.0,
+        "provenance_disclosure": 1.0,
+        "citations": ["fixture/repository/example.py:10"],
+        "rationale": "The answer matches the frozen truth.",
+        "answer": "answers/control/Q1.md",
+        "telemetry": "telemetry/control/Q1.json"
+      }
+    }
+  ],
+  "authoring_telemetry": "telemetry/authoring.json"
+}
+```
 
 ## Complete v2 workflow
 
