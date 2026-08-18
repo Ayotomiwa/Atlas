@@ -62,12 +62,13 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         if args.command == "verify-freeze":
             metadata = load_json(Path(args.run_root) / "run.json")
-            changes = verify_run_freeze(args.run_root) if metadata.get("schema_version") == RUN_SCHEMA_V2 else verify_answer_freeze(args.run_root)
+            is_v2 = metadata.get("schema_version") == RUN_SCHEMA_V2
+            changes = verify_run_freeze(args.run_root) if is_v2 else verify_answer_freeze(args.run_root)
             if changes:
                 for change in changes:
                     print(change, file=sys.stderr)
                 return 1
-            print("Evaluation run freeze is valid.")
+            print("Evaluation run freeze is valid." if is_v2 else "Evaluation answer freeze is valid.")
             return 0
         rubric_path = resolve_rubric_path(args.result, args.rubric)
         rubric = load_json(rubric_path)

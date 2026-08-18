@@ -26,6 +26,7 @@ REQUIRED_V2_MANIFESTS = (
 IMMUTABLE_RUN_FIELDS = (
     "schema_version", "run_id", "fixture", "fixture_head", "incremental_head", "rubric_sha256", "sealed",
 )
+_MISSING = object()
 
 
 class EvaluationError(ValueError):
@@ -163,19 +164,26 @@ def prepare_run(
     return run_root
 
 
-def _immutable_run_metadata(metadata: dict) -> dict:
+def _is_sha256_digest(value: object) -> bool:
+    return isinstance(value, str) and len(value) == 64 and all(character in "0123456789abcdefABCDEF" for character in value)
+
+
+def _immutable_run_metadata(metadata: dict, *, allow_missing_incremental_head: bool = False) -> dict:
     if metadata.get("schema_version") != RUN_SCHEMA_V2:
         raise EvaluationError(f"run schema_version must be {RUN_SCHEMA_V2}")
-    projection = {field: metadata.get(field) for field in IMMUTABLE_RUN_FIELDS}
+    projection = {field: metadata.get(field, _MISSING) for field in IMMUTABLE_RUN_FIELDS}
+    for field, value in projection.items():
+        if value is _MISSING and not (field == "incremental_head" and allow_missing_incremental_head):
+            raise EvaluationError(f"run metadata {field} is required")
     if not isinstance(projection["run_id"], str) or not projection["run_id"]:
         raise EvaluationError("run metadata run_id must be a non-empty string")
     if not isinstance(projection["fixture"], str) or not projection["fixture"]:
         raise EvaluationError("run metadata fixture must be a non-empty string")
     if not isinstance(projection["fixture_head"], str) or not projection["fixture_head"]:
         raise EvaluationError("run metadata fixture_head must be a non-empty string")
-    if projection["incremental_head"] is not None and not isinstance(projection["incremental_head"], str):
+    if projection["incremental_head"] is not _MISSING and projection["incremental_head"] is not None and not isinstance(projection["incremental_head"], str):
         raise EvaluationError("run metadata incremental_head must be a string or null")
-    if not isinstance(projection["rubric_sha256"], str) or len(projection["rubric_sha256"]) != 64:
+    if not _is_sha256_digest(projection["rubric_sha256"]):
         raise EvaluationError("run metadata rubric_sha256 must be a SHA-256 digest")
     if not isinstance(projection["sealed"], bool):
         raise EvaluationError("run metadata sealed must be boolean")
@@ -248,7 +256,7 @@ def _validate_freeze_manifest(manifest: dict) -> tuple[dict[str, str], dict]:
     files = manifest.get("files")
     if not isinstance(files, dict) or not files:
         raise EvaluationError("run freeze manifest has no files")
-    if not all(isinstance(path, str) and isinstance(digest, str) and len(digest) == 64 for path, digest in files.items()):
+    if not all(isinstance(path, str) and _is_sha256_digest(digest) for path, digest in files.items()):
         raise EvaluationError("run freeze manifest files must map paths to SHA-256 digests")
     metadata = manifest.get("metadata")
     if not isinstance(metadata, dict):
@@ -287,14 +295,17 @@ def freeze_run(run_root: str | Path) -> Path:
 def verify_run_freeze(run_root: str | Path) -> list[str]:
     run_root = Path(run_root).resolve()
     metadata = load_json(run_root / "run.json")
-    current_projection = _immutable_run_metadata(metadata)
+    current_projection = _immutable_run_metadata(metadata, allow_missing_incremental_head=True)
     if metadata.get("run_frozen") is not True:
         raise EvaluationError("evaluation run is not frozen")
+    manifest_digest = metadata.get("freeze_manifest_sha256")
+    if not _is_sha256_digest(manifest_digest):
+        raise EvaluationError("run metadata freeze_manifest_sha256 must be a SHA-256 digest")
     manifest_path = run_root / "freeze-manifest.json"
     manifest = load_json(manifest_path)
     expected_files, expected_projection = _validate_freeze_manifest(manifest)
     changes: list[str] = []
-    if metadata.get("freeze_manifest_sha256") != digest_file(manifest_path):
+    if manifest_digest != digest_file(manifest_path):
         changes.append("freeze manifest changed")
     for field in IMMUTABLE_RUN_FIELDS:
         if current_projection[field] != expected_projection[field]:

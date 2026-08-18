@@ -17,6 +17,7 @@ from scripts.lib.evaluation import (
     verify_answer_freeze,
     verify_run_freeze,
 )
+from scripts.atlas_eval import main as atlas_eval_main
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -196,3 +197,68 @@ def test_v2_master_freeze_detects_immutable_metadata_drift_and_rejects_second_fr
     metadata["fixture_head"] = "changed"
     (run / "run.json").write_bytes(stable_json(metadata))
     assert "immutable run metadata changed: fixture_head" in verify_run_freeze(run)
+
+
+def test_v2_master_freeze_detects_deleted_nullable_incremental_head_as_drift(tmp_path: Path):
+    fixture = tmp_path / "fixture"
+    fixture.mkdir()
+    run = prepare_run(ROOT, tmp_path / "sealed", run_id="incremental", fixture=fixture, fixture_head="abc")
+    _write_v2_inputs(run)
+    freeze_run(run)
+
+    metadata = load_json(run / "run.json")
+    del metadata["incremental_head"]
+    (run / "run.json").write_bytes(stable_json(metadata))
+
+    assert "immutable run metadata changed: incremental_head" in verify_run_freeze(run)
+
+
+@pytest.mark.parametrize("digest_action", ("missing", "non-string", "short", "non-hex"))
+def test_v2_verify_rejects_malformed_freeze_manifest_digest(tmp_path: Path, digest_action: str):
+    fixture = tmp_path / "fixture"
+    fixture.mkdir()
+    run = prepare_run(ROOT, tmp_path / "sealed", run_id=f"digest-{digest_action}", fixture=fixture, fixture_head="abc")
+    _write_v2_inputs(run)
+    freeze_run(run)
+    metadata = load_json(run / "run.json")
+    if digest_action == "missing":
+        del metadata["freeze_manifest_sha256"]
+    elif digest_action == "non-string":
+        metadata["freeze_manifest_sha256"] = 1
+    elif digest_action == "short":
+        metadata["freeze_manifest_sha256"] = "abc"
+    else:
+        metadata["freeze_manifest_sha256"] = "g" * 64
+    (run / "run.json").write_bytes(stable_json(metadata))
+
+    with pytest.raises(EvaluationError, match="freeze_manifest_sha256"):
+        verify_run_freeze(run)
+
+
+def test_v2_verify_rejects_nonhex_digest_in_frozen_manifest(tmp_path: Path):
+    fixture = tmp_path / "fixture"
+    fixture.mkdir()
+    run = prepare_run(ROOT, tmp_path / "sealed", run_id="bad-manifest", fixture=fixture, fixture_head="abc")
+    _write_v2_inputs(run)
+    freeze_run(run)
+    manifest = load_json(run / "freeze-manifest.json")
+    manifest["files"]["fixture/fixture.txt"] = "g" * 64
+    (run / "freeze-manifest.json").write_bytes(stable_json(manifest))
+
+    with pytest.raises(EvaluationError, match="SHA-256"):
+        verify_run_freeze(run)
+
+
+def test_verify_freeze_keeps_legacy_success_output(tmp_path: Path, capsys: pytest.CaptureFixture[str]):
+    run = tmp_path / "legacy-run"
+    (run / "answers").mkdir(parents=True)
+    (run / "answers" / "answer.md").write_text("answer\n", encoding="utf-8")
+    (run / "run.json").write_bytes(stable_json({
+        "schema_version": "atlas-evaluation-run/1.0",
+        "run_id": "legacy-run",
+        "answer_sets_frozen": False,
+    }))
+    freeze_answers(run)
+
+    assert atlas_eval_main(["verify-freeze", str(run)]) == 0
+    assert capsys.readouterr().out == "Evaluation answer freeze is valid.\n"
