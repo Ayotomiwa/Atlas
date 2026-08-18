@@ -153,13 +153,19 @@ def test_discovery_entrypoints_and_outside_root_routes_require_eligibility() -> 
     for relative in SURFACE_PAIRS["discovery_agent"]:
         description = _metadata_description(relative)
         assert "direct Ask Atlas" in description, relative
-        assert "verified bound-repository handoff" in description, relative
+        assert "valid managed-block handoff" in description, relative
 
-    eligibility = (
-        "Proceed only after direct Ask Atlas or a verified bound-repository "
-        "handoff; otherwise do not query Atlas"
-    )
-    _assert_all("discovery_agent", eligibility)
+    for relative, text in zip(
+        SURFACE_PAIRS["discovery_agent"],
+        _texts("discovery_agent"),
+        strict=True,
+    ):
+        eligibility = _paragraph_containing(text, "Proceed only after direct Ask Atlas")
+        assert "valid managed Atlas block" in eligibility, relative
+        assert "matched" in eligibility, relative
+        assert "path-derived" in eligibility, relative
+        assert "not-verified" in eligibility, relative
+        assert "otherwise do not query Atlas" in eligibility, relative
 
     outside_markers = (
         "For ordinary product questions outside `ATLAS_ROOT`",
@@ -170,7 +176,10 @@ def test_discovery_entrypoints_and_outside_root_routes_require_eligibility() -> 
     ):
         outside_route = _paragraph_containing(text, marker)
         assert "direct Ask Atlas" in outside_route, relative
-        assert "verified bound-repository handoff" in outside_route, relative
+        assert "valid managed Atlas block" in outside_route, relative
+        assert "matched" in outside_route, relative
+        assert "path-derived" in outside_route, relative
+        assert "not-verified" in outside_route, relative
         assert "unbound repository" in outside_route, relative
         assert "do not query Atlas" in outside_route, relative
 

@@ -43,7 +43,7 @@ A new conversation starts cold; never persist this state. Reuse it only while th
 
 Re-enter the applicable Atlas routing mode when the repository or selected record changes, source or checkout state may have changed, the question crosses the recorded coverage endpoint, or the work concerns impact, ownership, conflicts, standards, recovery or another boundary. Re-entry opens only the routes needed for the new scope and carries still-valid session state into any specialist handoff.
 
-For ordinary product questions outside `ATLAS_ROOT`, the typed hybrid entrance is eligible only after direct Ask Atlas or a verified bound-repository handoff. In an unbound repository without explicit intent, do not query Atlas. When eligible, resolve an explicit stable ID directly. Otherwise infer likely curated types and run:
+For ordinary product questions outside `ATLAS_ROOT`, the typed hybrid entrance is eligible after direct Ask Atlas or when the current product repository contains a valid managed Atlas block. `matched`, `path-derived`, and `not-verified` managed bindings are eligible; only `not-verified` requires the routing-only advisory below. In an unbound repository without explicit intent, do not query Atlas. When eligible, resolve an explicit stable ID directly. Otherwise infer likely curated types and run:
 
 ```text
 python <ATLAS_ROOT>/scripts/atlas_query.py --root <ATLAS_ROOT> --format json find <query> --type <type> --path <current-path>
