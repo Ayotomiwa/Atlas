@@ -149,6 +149,32 @@ def test_impact_entrypoints_require_explicit_ask_or_bound_routing() -> None:
             assert "bound repository" in description, relative
 
 
+def test_discovery_entrypoints_and_outside_root_routes_require_eligibility() -> None:
+    for relative in SURFACE_PAIRS["discovery_agent"]:
+        description = _metadata_description(relative)
+        assert "direct Ask Atlas" in description, relative
+        assert "verified bound-repository handoff" in description, relative
+
+    eligibility = (
+        "Proceed only after direct Ask Atlas or a verified bound-repository "
+        "handoff; otherwise do not query Atlas"
+    )
+    _assert_all("discovery_agent", eligibility)
+
+    outside_markers = (
+        "For ordinary product questions outside `ATLAS_ROOT`",
+        "Outside `ATLAS_ROOT`",
+    )
+    for relative, text, marker in zip(
+        SURFACE_PAIRS["runtime"], _texts("runtime"), outside_markers, strict=True
+    ):
+        outside_route = _paragraph_containing(text, marker)
+        assert "direct Ask Atlas" in outside_route, relative
+        assert "verified bound-repository handoff" in outside_route, relative
+        assert "unbound repository" in outside_route, relative
+        assert "do not query Atlas" in outside_route, relative
+
+
 def test_answer_label_membership_is_exact_and_excludes_evidence_kinds() -> None:
     expected = {"Atlas", "Repository (located via Atlas)", "Inference", "Unresolved"}
     for relative, text in zip(
@@ -169,17 +195,55 @@ def test_answer_label_membership_is_exact_and_excludes_evidence_kinds() -> None:
         assert "`User-confirmed:" not in text, relative
 
 
-def test_flow_synthesis_session_reuse_and_bounded_reentry_are_paired() -> None:
-    for surface in ("discover", "discovery_agent"):
-        _assert_all(
-            surface,
-            "trigger and outcome",
-            "ordered participants and handoffs",
-            "data and infrastructure transitions",
-            "branches, retries, and failures",
-            "standards, incidents, and runbooks",
-            "coverage limits",
+def test_discovery_agent_classifications_use_only_the_four_answer_labels() -> None:
+    expected = {"Atlas", "Repository (located via Atlas)", "Inference", "Unresolved"}
+    evidence_rule = (
+        "User confirmation, conflict, and external artifacts remain evidence "
+        "or state beneath those labels"
+    )
+    for relative, text in zip(
+        SURFACE_PAIRS["discovery_agent"], _texts("discovery_agent"), strict=True
+    ):
+        declaration = re.search(
+            r"Classify every material claim as (?P<labels>.+?)\.", text
         )
+        assert declaration, relative
+        labels = set(re.findall(r"\*\*([^*]+)\*\*", declaration["labels"]))
+        assert labels == expected, relative
+        assert evidence_rule in text, relative
+        assert "separately label repository-derived" not in text, relative
+
+
+def test_direct_ask_and_flow_synthesis_are_complete_on_parent_and_delegate() -> None:
+    direct_ask_terms = (
+        "relevant curated types",
+        "answer-bearing links",
+        "all supported material",
+        "answer",
+        "smallest next evidence location",
+        "unresolved boundary",
+    )
+    flow_terms = (
+        "trigger and outcome",
+        "start and end boundaries",
+        "system boundaries",
+        "ordered participants and handoffs",
+        "data and infrastructure transitions",
+        "conditional, retry, and failure paths",
+        "standards, incidents, and runbooks",
+        "coverage limits",
+    )
+    for surface in ("discover", "discovery_agent"):
+        for relative, text in zip(SURFACE_PAIRS[surface], _texts(surface), strict=True):
+            direct_ask = _paragraph_containing(text, "Direct Ask Atlas")
+            for term in direct_ask_terms:
+                assert term in direct_ask, f"{relative}: missing {term!r}"
+            flow = _paragraph_containing(text, "For a flow")
+            for term in flow_terms:
+                assert term in flow, f"{relative}: missing {term!r}"
+
+
+def test_session_reuse_and_bounded_reentry_are_paired() -> None:
     for surface in ("runtime", "handoffs"):
         _assert_all(
             surface,
@@ -228,6 +292,23 @@ def test_exact_change_staging_is_non_authoritative_in_the_guard_itself() -> None
             assert guard in exact_change, relative
 
     _assert_all("runtime", guard)
+
+
+def test_exact_change_guard_checks_immutable_history_and_net_zero_ranges() -> None:
+    rollback_terms = (
+        "referenced immutable evidence",
+        "exact-range Git diff and history",
+        "per-commit inspection",
+        "endpoint state is empty",
+        "empty endpoint diff or current file does not prove no change",
+        "add-then-revert",
+        "net-zero",
+    )
+    for surface in ("impact", "impact_agent"):
+        for relative, text in zip(SURFACE_PAIRS[surface], _texts(surface), strict=True):
+            exact_change = _paragraph_containing(text, "For an exact-change prompt")
+            for term in rollback_terms:
+                assert term in exact_change, f"{relative}: missing {term!r}"
 
 
 def test_managed_block_is_binding_signal_and_exposes_risk_triggers() -> None:

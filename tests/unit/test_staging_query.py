@@ -205,20 +205,35 @@ def test_staging_filters_exact_change_provenance_and_composes_with_existing_filt
         targets=["comp.payments-api"],
         change_source=change_source,
     )
-    _write_staging(
-        tmp_path,
-        "_staging/changes/STG-20260812-other-source.md",
-        record_id="STG-20260812-other-source",
-        record_type="staging.change",
-        status="new",
-        timestamp="2026-08-12",
-        targets=["comp.payments-api"],
-        change_source={
+    differing_sources = {
+        "different-source": {**change_source, "source_key": "other-source"},
+        "different-branch": {**change_source, "branch": "release"},
+        "different-from": {
             **change_source,
-            "source_key": "other-source",
-            "branch": "release",
+            "commit_range": {
+                **change_source["commit_range"],
+                "from_exclusive": "c" * 40,
+            },
         },
-    )
+        "different-through": {
+            **change_source,
+            "commit_range": {
+                **change_source["commit_range"],
+                "through_inclusive": "d" * 40,
+            },
+        },
+    }
+    for suffix, record_source in differing_sources.items():
+        _write_staging(
+            tmp_path,
+            f"_staging/changes/STG-20260812-{suffix}.md",
+            record_id=f"STG-20260812-{suffix}",
+            record_type="staging.change",
+            status="new",
+            timestamp="2026-08-12",
+            targets=["comp.payments-api"],
+            change_source=record_source,
+        )
 
     selected = query_staging(
         tmp_path,
@@ -248,11 +263,54 @@ def test_staging_filters_exact_change_provenance_and_composes_with_existing_filt
         "through_inclusive": "b" * 40,
     }
 
+    selectors = {
+        "source_key": "datalens-monorepo",
+        "branch": "main",
+        "from_exclusive": "a" * 40,
+        "through_inclusive": "b" * 40,
+        "include_terminal": True,
+    }
+    independently_selected = {
+        key: [
+            record["id"]
+            for record in query_staging(
+                tmp_path,
+                **{name: value for name, value in selectors.items() if name != key},
+            )["results"]
+        ]
+        for key in ("source_key", "branch", "from_exclusive", "through_inclusive")
+    }
+    assert independently_selected == {
+        "source_key": [
+            "STG-20260811-merged-change",
+            "STG-20260812-different-source",
+            "STG-20260812-same-range",
+        ],
+        "branch": [
+            "STG-20260811-merged-change",
+            "STG-20260812-different-branch",
+            "STG-20260812-same-range",
+        ],
+        "from_exclusive": [
+            "STG-20260811-merged-change",
+            "STG-20260812-different-from",
+            "STG-20260812-same-range",
+        ],
+        "through_inclusive": [
+            "STG-20260811-merged-change",
+            "STG-20260812-different-through",
+            "STG-20260812-same-range",
+        ],
+    }
+
     source_only = query_staging(
         tmp_path, source_key="datalens-monorepo", include_terminal=True
     )
     assert [record["id"] for record in source_only["results"]] == [
         "STG-20260811-merged-change",
+        "STG-20260812-different-branch",
+        "STG-20260812-different-from",
+        "STG-20260812-different-through",
         "STG-20260812-same-range",
     ]
 
@@ -304,6 +362,40 @@ def test_staging_change_provenance_start_matches_only_null_from_exclusive(tmp_pa
     assert selected["filters"]["from_exclusive"] == "start"
 
 
+def test_staging_change_provenance_accepts_exact_64_character_hashes(tmp_path: Path):
+    from_sha = "c" * 64
+    through_sha = "d" * 64
+    _write_staging(
+        tmp_path,
+        "_staging/changes/STG-20260812-sha256-range.md",
+        record_id="STG-20260812-sha256-range",
+        record_type="staging.change",
+        status="new",
+        timestamp="2026-08-12",
+        change_source={
+            "source_key": "datalens-monorepo",
+            "branch": "main",
+            "commit_range": {
+                "from_exclusive": from_sha,
+                "through_inclusive": through_sha,
+            },
+            "merge_requests": [],
+        },
+    )
+
+    selected = query_staging(
+        tmp_path,
+        source_key="datalens-monorepo",
+        branch="main",
+        from_exclusive=from_sha,
+        through_inclusive=through_sha,
+    )
+
+    assert [record["id"] for record in selected["results"]] == [
+        "STG-20260812-sha256-range"
+    ]
+
+
 def test_staging_change_provenance_filter_validation(tmp_path: Path):
     _fixture(tmp_path)
 
@@ -312,8 +404,10 @@ def test_staging_change_provenance_filter_validation(tmp_path: Path):
         ({"branch": "   "}, "branch"),
         ({"from_exclusive": "a" * 39}, "from-exclusive"),
         ({"from_exclusive": "A" * 40}, "from-exclusive"),
+        ({"from_exclusive": "g" * 64}, "from-exclusive"),
         ({"through_inclusive": "start"}, "through-inclusive"),
         ({"through_inclusive": "not-a-sha"}, "through-inclusive"),
+        ({"through_inclusive": "g" * 64}, "through-inclusive"),
     ]:
         try:
             query_staging(tmp_path, **kwargs)
@@ -580,13 +674,13 @@ def test_staging_cli_filters_exact_change_provenance(tmp_path: Path, capsys):
             str(tmp_path),
             "staging",
             "--source-key",
-            "datalens-monorepo",
+            "  datalens-monorepo  ",
             "--branch",
-            "main",
+            "  main  ",
             "--from-exclusive",
-            "a" * 40,
+            f"  {'a' * 40}  ",
             "--through-inclusive",
-            "b" * 40,
+            f"  {'b' * 40}  ",
             "--include-terminal",
             "--format",
             "json",
@@ -602,6 +696,56 @@ def test_staging_cli_filters_exact_change_provenance(tmp_path: Path, capsys):
     assert output["filters"]["branch"] == "main"
     assert output["filters"]["from_exclusive"] == "a" * 40
     assert output["filters"]["through_inclusive"] == "b" * 40
+
+
+def test_staging_cli_accepts_padded_64_character_hashes(tmp_path: Path, capsys):
+    from_sha = "c" * 64
+    through_sha = "d" * 64
+    _write_staging(
+        tmp_path,
+        "_staging/changes/STG-20260812-cli-sha256.md",
+        record_id="STG-20260812-cli-sha256",
+        record_type="staging.change",
+        status="new",
+        timestamp="2026-08-12",
+        change_source={
+            "source_key": "datalens-monorepo",
+            "branch": "main",
+            "commit_range": {
+                "from_exclusive": from_sha,
+                "through_inclusive": through_sha,
+            },
+            "merge_requests": [],
+        },
+    )
+
+    exit_code = main(
+        [
+            "--root",
+            str(tmp_path),
+            "staging",
+            "--source-key",
+            " datalens-monorepo ",
+            "--branch",
+            " main ",
+            "--from-exclusive",
+            f" {from_sha} ",
+            "--through-inclusive",
+            f" {through_sha} ",
+            "--format",
+            "json",
+        ]
+    )
+    output = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert [record["id"] for record in output["results"]] == [
+        "STG-20260812-cli-sha256"
+    ]
+    assert output["filters"]["source_key"] == "datalens-monorepo"
+    assert output["filters"]["branch"] == "main"
+    assert output["filters"]["from_exclusive"] == from_sha
+    assert output["filters"]["through_inclusive"] == through_sha
 
 
 def test_staging_rejects_unknown_filters_and_invalid_date(tmp_path: Path, capsys):
@@ -622,8 +766,10 @@ def test_staging_rejects_unknown_filters_and_invalid_date(tmp_path: Path, capsys
         ("--branch", "   ", "branch"),
         ("--from-exclusive", "a" * 39, "from-exclusive"),
         ("--from-exclusive", "A" * 40, "from-exclusive"),
+        ("--from-exclusive", "g" * 64, "from-exclusive"),
         ("--through-inclusive", "start", "through-inclusive"),
         ("--through-inclusive", "b" * 39, "through-inclusive"),
+        ("--through-inclusive", "g" * 64, "through-inclusive"),
     ]:
         assert main(["--root", str(tmp_path), "staging", flag, value]) == 1
         assert message in capsys.readouterr().out
