@@ -99,6 +99,28 @@ def test_prepare_keeps_sealed_run_outside_atlas(tmp_path: Path):
         prepare_run(ROOT, ROOT / "evaluation" / "sealed", run_id="bad", fixture=fixture, fixture_head="abc")
 
 
+@pytest.mark.parametrize("run_id", ("", " ", ".", "..", "../escape", "nested/run", r"nested\run"))
+def test_prepare_rejects_run_ids_that_are_not_one_safe_path_component(tmp_path: Path, run_id: str):
+    fixture = tmp_path / "fixture"
+    fixture.mkdir()
+    destination = tmp_path / "approved"
+
+    with pytest.raises(EvaluationError, match="one safe non-empty path component"):
+        prepare_run(ROOT, destination, run_id=run_id, fixture=fixture, fixture_head="abc")
+
+
+def test_prepare_rejects_absolute_run_id_before_creating_outside_destination(tmp_path: Path):
+    fixture = tmp_path / "fixture"
+    fixture.mkdir()
+    destination = tmp_path / "approved"
+    outside = tmp_path / "absolute-run"
+
+    with pytest.raises(EvaluationError, match="one safe non-empty path component"):
+        prepare_run(ROOT, destination, run_id=str(outside), fixture=fixture, fixture_head="abc")
+
+    assert not outside.exists()
+
+
 def test_answer_freeze_detects_mutation_and_new_files(tmp_path: Path):
     run = tmp_path / "sealed" / "legacy-run"
     (run / "answers").mkdir(parents=True)
@@ -123,6 +145,48 @@ def test_answer_freeze_detects_mutation_and_new_files(tmp_path: Path):
     assert "unexpected answer file: answers/late.md" in changes
 
 
+def _write_unfrozen_legacy_run(run: Path, schema_version: str) -> None:
+    (run / "answers").mkdir(parents=True)
+    (run / "answers" / "answer.md").write_text("answer\n", encoding="utf-8")
+    (run / "run.json").write_bytes(stable_json({
+        "schema_version": schema_version,
+        "run_id": "legacy-run",
+        "answer_sets_frozen": False,
+    }))
+
+
+def test_library_and_cli_freeze_reject_unknown_run_schema(tmp_path: Path, capsys: pytest.CaptureFixture[str]):
+    library_run = tmp_path / "library-unknown"
+    _write_unfrozen_legacy_run(library_run, "atlas-evaluation-run/9.0")
+    with pytest.raises(EvaluationError, match="unsupported evaluation run schema"):
+        freeze_answers(library_run)
+
+    cli_run = tmp_path / "cli-unknown"
+    _write_unfrozen_legacy_run(cli_run, "atlas-evaluation-run/9.0")
+    assert atlas_eval_main(["freeze", str(cli_run)]) == 1
+    assert "unsupported evaluation run schema" in capsys.readouterr().err
+
+
+def test_library_and_cli_verify_reject_unknown_run_schema(tmp_path: Path, capsys: pytest.CaptureFixture[str]):
+    library_run = tmp_path / "library-unknown"
+    _write_unfrozen_legacy_run(library_run, "atlas-evaluation-run/1.0")
+    freeze_answers(library_run)
+    metadata = load_json(library_run / "run.json")
+    metadata["schema_version"] = "atlas-evaluation-run/9.0"
+    (library_run / "run.json").write_bytes(stable_json(metadata))
+    with pytest.raises(EvaluationError, match="unsupported evaluation run schema"):
+        verify_answer_freeze(library_run)
+
+    cli_run = tmp_path / "cli-unknown"
+    _write_unfrozen_legacy_run(cli_run, "atlas-evaluation-run/1.0")
+    freeze_answers(cli_run)
+    metadata = load_json(cli_run / "run.json")
+    metadata["schema_version"] = "atlas-evaluation-run/9.0"
+    (cli_run / "run.json").write_bytes(stable_json(metadata))
+    assert atlas_eval_main(["verify-freeze", str(cli_run)]) == 1
+    assert "unsupported evaluation run schema" in capsys.readouterr().err
+
+
 def _write_v2_inputs(run: Path, paired_lines: list[str] | None = None) -> None:
     (run / "fixture" / "fixture.txt").write_text("fixture\n", encoding="utf-8")
     (run / "questions" / "paired.jsonl").write_text(
@@ -133,7 +197,9 @@ def _write_v2_inputs(run: Path, paired_lines: list[str] | None = None) -> None:
     )
     (run / "personas" / "author.md").write_text("authoring prompt\n", encoding="utf-8")
     (run / "ground-truth" / "truth.md").write_text("judge only\n", encoding="utf-8")
-    (run / "answers" / "atlas-Q1.md").write_text("answer\n", encoding="utf-8")
+    for arm in ("atlas", "control"):
+        (run / "answers" / arm).mkdir()
+        (run / "answers" / arm / "Q1.md").write_text("answer\n", encoding="utf-8")
     (run / "telemetry" / "atlas").mkdir()
     (run / "telemetry" / "atlas" / "Q1.json").write_text("{}\n", encoding="utf-8")
     for name in ("fixture.json", "tool-policy.json", "model-config.json", "atlas-snapshot.json"):
@@ -162,6 +228,17 @@ def test_v2_freeze_rejects_invalid_paired_question_banks_and_missing_manifests(t
     _write_v2_inputs(run)
     (run / "manifests" / "model-config.json").unlink()
     with pytest.raises(EvaluationError, match="model-config.json"):
+        freeze_run(run)
+
+
+def test_v2_freeze_requires_exactly_two_answers_per_paired_question(tmp_path: Path):
+    fixture = tmp_path / "fixture"
+    fixture.mkdir()
+    run = prepare_run(ROOT, tmp_path / "sealed", run_id="missing-answer", fixture=fixture, fixture_head="abc")
+    _write_v2_inputs(run)
+    (run / "answers" / "control" / "Q1.md").unlink()
+
+    with pytest.raises(EvaluationError, match="exactly 2 answer files for 1 paired questions"):
         freeze_run(run)
 
 
@@ -332,11 +409,15 @@ def _populate_v2_run(
     authoring_overrides: dict | None = None,
 ) -> None:
     _write_v2_inputs(run, [json.dumps(question, sort_keys=True) for question in _PAIRED_QUESTIONS])
-    (run / "telemetry" / "control").mkdir()
+    for arm in ("atlas", "control"):
+        (run / "answers" / arm).mkdir(exist_ok=True)
+        (run / "telemetry" / arm).mkdir(exist_ok=True)
+    for path in (run / "answers").glob("*/*"):
+        path.unlink()
     telemetry_overrides = telemetry_overrides or {}
     for question in _PAIRED_QUESTIONS:
         for arm in ("atlas", "control"):
-            (run / "answers" / f"{arm}-{question['id']}.md").write_text(
+            (run / "answers" / arm / f"{question['id']}.md").write_text(
                 f"{arm} answer for {question['id']}\n", encoding="utf-8"
             )
             telemetry = _question_telemetry(question["id"], arm)
@@ -373,6 +454,7 @@ def _build_v2_result(run: Path, rubric: dict) -> dict:
                 "provenance_disclosure": 1.0,
                 "citations": ["_curated/example.md" if arm == "atlas" else "src/example.py"],
                 "rationale": "Supported by the frozen key.",
+                "answer": f"answers/{arm}/{question['id']}.md",
                 "telemetry": f"telemetry/{arm}/{question['id']}.json",
             }
         questions.append({"id": question["id"], "category": question["category"], **arms})
@@ -483,6 +565,55 @@ def test_v2_requires_exact_paired_membership_and_categories(tmp_path: Path, muta
         _validate_v2(result, rubric, run)
 
 
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    (
+        (lambda result: result["questions"][0]["atlas"].pop("answer"), "must contain exactly"),
+        (
+            lambda result: result["questions"][0]["atlas"].update(answer="answers/control/Q1.md"),
+            "answer must be arm-specific",
+        ),
+        (
+            lambda result: result["questions"][1]["atlas"].update(answer="answers/atlas/Q1.md"),
+            "duplicate answer",
+        ),
+        (
+            lambda result: result["questions"][0]["atlas"].update(answer="../outside.md"),
+            "safe run-relative",
+        ),
+        (
+            lambda result: result["questions"][0]["atlas"].update(answer="answers/atlas/not-frozen.md"),
+            "frozen file",
+        ),
+    ),
+)
+def test_v2_requires_safe_frozen_unique_arm_specific_answer_references(
+    tmp_path: Path, mutation, message: str,
+):
+    run, rubric, result = _v2_run_and_result(tmp_path)
+    mutation(result)
+
+    with pytest.raises(EvaluationError, match=message):
+        _validate_v2(result, rubric, run)
+
+
+def test_v2_result_answer_references_must_cover_exactly_the_frozen_answer_set(tmp_path: Path):
+    run, rubric, result = _v2_run_and_result(tmp_path)
+    extra = run / "answers" / "atlas" / "unreferenced.md"
+    extra.write_text("unreferenced frozen answer\n", encoding="utf-8")
+    manifest = load_json(run / "freeze-manifest.json")
+    manifest["files"]["answers/atlas/unreferenced.md"] = digest_file(extra)
+    (run / "freeze-manifest.json").write_bytes(stable_json(manifest))
+    trusted_digest = digest_file(run / "freeze-manifest.json")
+    metadata = load_json(run / "run.json")
+    metadata["freeze_manifest_sha256"] = trusted_digest
+    (run / "run.json").write_bytes(stable_json(metadata))
+    result["freeze_manifest_sha256"] = trusted_digest
+
+    with pytest.raises(EvaluationError, match="unreferenced frozen answer files"):
+        _validate_v2(result, rubric, run, expected_digest=trusted_digest)
+
+
 def test_v2_requires_run_root_and_rejects_judge_entered_m5_m6(tmp_path: Path):
     run, rubric, result = _v2_run_and_result(tmp_path)
     with pytest.raises(EvaluationError, match="run_root"):
@@ -577,6 +708,33 @@ def test_v2_records_stable_arm_purity_violations_and_forces_not_ready(tmp_path: 
     assert score["verdict"] == "Not ready"
 
 
+@pytest.mark.parametrize(
+    ("overrides", "violation"),
+    (
+        (
+            {("Q1", "atlas"): {"atlas_accessed": False, "atlas_hit": True}},
+            "Q1/atlas: atlas_accessed=false",
+        ),
+        (
+            {("Q1", "control"): {"source_accessed": False}},
+            "Q1/control: source_accessed=false",
+        ),
+    ),
+)
+def test_v2_missing_assigned_corpus_access_is_a_stable_purity_violation(
+    tmp_path: Path, overrides: dict[tuple[str, str], dict], violation: str,
+):
+    run, rubric, result = _v2_run_and_result(
+        tmp_path, run_id=violation.split(":", 1)[0].replace("/", "-"), telemetry_overrides=overrides
+    )
+
+    score = _score_v2(result, rubric, run)
+
+    assert score["comparison"]["protocol_violations"] == [violation]
+    assert score["comparison"]["arm_purity_pass"] is False
+    assert score["verdict"] == "Not ready"
+
+
 def test_v2_rejects_bad_telemetry_reference_and_schema(tmp_path: Path):
     run, rubric, result = _v2_run_and_result(tmp_path, run_id="references")
     result["questions"][0]["atlas"]["telemetry"] = "telemetry/control/Q1.json"
@@ -630,6 +788,15 @@ def test_v1_scoring_and_validation_ignore_optional_run_root(tmp_path: Path):
         result, rubric, run_root=tmp_path, expected_freeze_manifest_sha256="not-a-digest"
     ) == expected
     assert "comparison" not in expected
+
+
+def test_ratio_rejects_huge_integer_as_evaluation_error():
+    rubric = load_json(ROOT / "evaluation" / "rubric.json")
+    result = _result(rubric)
+    result["metrics"]["M1"]["core_recall"] = 10 ** 400
+
+    with pytest.raises(EvaluationError, match="M1.core_recall must be a number from 0 to 1"):
+        validate_result(result, rubric)
 
 
 def test_v2_requires_caller_trusted_freeze_digest(tmp_path: Path):
@@ -859,6 +1026,20 @@ def _assert_cli_failure(
     assert captured.out == ""
     assert captured.err.startswith("Atlas evaluation failed: ")
     assert message in captured.err
+
+
+def test_cli_normalizes_huge_ratio_failure_to_evaluation_error(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str],
+):
+    rubric = load_json(ROOT / "evaluation" / "rubric.json")
+    (tmp_path / "rubric.json").write_bytes(stable_json(rubric))
+    result = _result(rubric)
+    result["metrics"]["M1"]["core_recall"] = 10 ** 400
+    result_path = _write_result(tmp_path / "result.json", result)
+
+    _assert_cli_failure(
+        ["validate", str(result_path)], capsys, "M1.core_recall must be a number from 0 to 1"
+    )
 
 
 def test_v2_cli_full_external_workflow_binds_run_and_derives_comparison(

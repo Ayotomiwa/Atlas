@@ -109,16 +109,27 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         if args.command == "freeze":
             metadata = load_json(Path(args.run_root) / "run.json")
-            print(freeze_run(args.run_root) if metadata.get("schema_version") == RUN_SCHEMA_V2 else freeze_answers(args.run_root))
+            run_schema = metadata.get("schema_version")
+            if run_schema == RUN_SCHEMA_V2:
+                path = freeze_run(args.run_root)
+            elif run_schema == RUN_SCHEMA_V1:
+                path = freeze_answers(args.run_root)
+            else:
+                raise EvaluationError(f"unsupported evaluation run schema: {run_schema!r}")
+            print(path)
             return 0
         if args.command == "verify-freeze":
             metadata = load_json(Path(args.run_root) / "run.json")
-            is_v2 = metadata.get("schema_version") == RUN_SCHEMA_V2
-            if is_v2:
+            run_schema = metadata.get("schema_version")
+            if run_schema == RUN_SCHEMA_V2:
+                is_v2 = True
                 verify_trusted_run_freeze(args.run_root, args.freeze_digest)
                 changes = []
-            else:
+            elif run_schema == RUN_SCHEMA_V1:
+                is_v2 = False
                 changes = verify_answer_freeze(args.run_root)
+            else:
+                raise EvaluationError(f"unsupported evaluation run schema: {run_schema!r}")
             if changes:
                 for change in changes:
                     print(change, file=sys.stderr)

@@ -78,8 +78,11 @@ def freeze_answers(run_root: str | Path) -> Path:
     run_root = Path(run_root).resolve()
     run_path = run_root / "run.json"
     metadata = load_json(run_path)
-    if metadata.get("schema_version") == RUN_SCHEMA_V2:
+    schema_version = metadata.get("schema_version")
+    if schema_version == RUN_SCHEMA_V2:
         raise EvaluationError("v2 runs must use the master run freeze")
+    if schema_version != RUN_SCHEMA_V1:
+        raise EvaluationError(f"unsupported evaluation run schema: {schema_version!r}")
     if metadata.get("answer_sets_frozen"):
         raise EvaluationError("answer sets are already frozen")
     answers_root = run_root / "answers"
@@ -106,8 +109,11 @@ def freeze_answers(run_root: str | Path) -> Path:
 def verify_answer_freeze(run_root: str | Path) -> list[str]:
     run_root = Path(run_root).resolve()
     metadata = load_json(run_root / "run.json")
-    if metadata.get("schema_version") == RUN_SCHEMA_V2:
+    schema_version = metadata.get("schema_version")
+    if schema_version == RUN_SCHEMA_V2:
         raise EvaluationError("v2 runs must use master run freeze verification")
+    if schema_version != RUN_SCHEMA_V1:
+        raise EvaluationError(f"unsupported evaluation run schema: {schema_version!r}")
     if metadata.get("answer_sets_frozen") is not True:
         raise EvaluationError("answer sets are not frozen")
     manifest_path = run_root / "answer-manifest.json"
@@ -133,6 +139,23 @@ def verify_answer_freeze(run_root: str | Path) -> list[str]:
     return changes
 
 
+def _safe_run_id(value: object, owner: str = "run_id") -> str:
+    if not isinstance(value, str) or not value.strip() or "/" in value or "\\" in value:
+        raise EvaluationError(f"{owner} must be one safe non-empty path component")
+    posix = PurePosixPath(value)
+    windows = PureWindowsPath(value)
+    if (
+        posix.is_absolute()
+        or windows.is_absolute()
+        or windows.drive
+        or len(posix.parts) != 1
+        or len(windows.parts) != 1
+        or value in {".", ".."}
+    ):
+        raise EvaluationError(f"{owner} must be one safe non-empty path component")
+    return value
+
+
 def prepare_run(
     atlas_root: str | Path,
     destination: str | Path,
@@ -144,6 +167,7 @@ def prepare_run(
 ) -> Path:
     atlas_root = Path(atlas_root).resolve()
     destination = Path(destination).resolve()
+    run_id = _safe_run_id(run_id)
     try:
         destination.relative_to(atlas_root)
         inside_atlas = True
@@ -151,7 +175,9 @@ def prepare_run(
         inside_atlas = False
     if inside_atlas:
         raise EvaluationError("sealed evaluation destination must be outside the Atlas checkout")
-    run_root = destination / run_id
+    run_root = (destination / run_id).resolve()
+    if run_root.parent != destination:
+        raise EvaluationError("run_id must resolve to one child of the approved destination")
     if run_root.exists():
         raise EvaluationError(f"evaluation run already exists: {run_root}")
     run_root.mkdir(parents=True)
@@ -185,8 +211,7 @@ def _immutable_run_metadata(metadata: dict, *, allow_missing_incremental_head: b
     for field, value in projection.items():
         if value is _MISSING and not (field == "incremental_head" and allow_missing_incremental_head):
             raise EvaluationError(f"run metadata {field} is required")
-    if not isinstance(projection["run_id"], str) or not projection["run_id"]:
-        raise EvaluationError("run metadata run_id must be a non-empty string")
+    _safe_run_id(projection["run_id"], "run metadata run_id")
     if not isinstance(projection["fixture"], str) or not projection["fixture"]:
         raise EvaluationError("run metadata fixture must be a non-empty string")
     if not isinstance(projection["fixture_head"], str) or not projection["fixture_head"]:
@@ -272,9 +297,16 @@ def _validate_v2_freeze_inputs(run_root: Path, metadata: dict) -> dict:
     paired_questions = run_root / "questions" / "paired.jsonl"
     if not paired_questions.is_file():
         raise EvaluationError("paired question bank is missing: questions/paired.jsonl")
-    _validate_paired_questions(
+    paired = _load_paired_questions(
         _resolved_run_path(run_root, paired_questions, "questions/paired.jsonl")
     )
+    answer_files = [path for path in (run_root / "answers").rglob("*") if path.is_file()]
+    expected_answers = 2 * len(paired)
+    if len(answer_files) != expected_answers:
+        raise EvaluationError(
+            f"answers must contain exactly {expected_answers} answer files "
+            f"for {len(paired)} paired questions"
+        )
     for name in REQUIRED_V2_MANIFESTS:
         if not (run_root / "manifests" / name).is_file():
             raise EvaluationError(f"required manifest input is missing: manifests/{name}")
@@ -394,9 +426,17 @@ def verify_trusted_run_freeze(
 
 
 def _ratio(value: object, owner: str) -> float:
-    if not isinstance(value, (int, float)) or isinstance(value, bool) or not 0 <= float(value) <= 1:
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
         raise EvaluationError(f"{owner} must be a number from 0 to 1")
-    return float(value)
+    try:
+        normalized = float(value)
+        valid = isfinite(normalized) and 0 <= normalized <= 1
+    except (OverflowError, ValueError):
+        valid = False
+        normalized = 0.0
+    if not valid:
+        raise EvaluationError(f"{owner} must be a number from 0 to 1")
+    return normalized
 
 
 def _bool(value: object, owner: str) -> bool:
@@ -649,8 +689,9 @@ def _validate_v2_result(
     if extra:
         raise EvaluationError(f"extra question results: {', '.join(extra)}")
     arm_fields = {
-        "grade", "citation_validity", "provenance_disclosure", "citations", "rationale", "telemetry",
+        "grade", "citation_validity", "provenance_disclosure", "citations", "rationale", "answer", "telemetry",
     }
+    answer_paths: set[str] = set()
     for question in paired:
         question_id = question["id"]
         item = by_id[question_id]
@@ -671,6 +712,17 @@ def _validate_v2_result(
                 raise EvaluationError(f"questions.{question_id}.{arm}.citations must be non-empty strings")
             if not isinstance(arm_result["rationale"], str) or not arm_result["rationale"].strip():
                 raise EvaluationError(f"questions.{question_id}.{arm}.rationale must be non-empty")
+            answer_path = _safe_run_path(
+                arm_result["answer"], f"questions.{question_id}.{arm}.answer"
+            )
+            if not answer_path.startswith(f"answers/{arm}/"):
+                raise EvaluationError(f"questions.{question_id}.{arm}.answer must be arm-specific")
+            if answer_path not in frozen_files:
+                raise EvaluationError(f"questions.{question_id}.{arm}.answer must name a frozen file")
+            if answer_path in answer_paths:
+                raise EvaluationError(f"questions.{question_id}.{arm}.answer is a duplicate answer reference")
+            _resolved_run_path(root, root / answer_path, f"questions.{question_id}.{arm}.answer")
+            answer_paths.add(answer_path)
             telemetry_path = _safe_run_path(
                 arm_result["telemetry"], f"questions.{question_id}.{arm}.telemetry"
             )
@@ -684,6 +736,12 @@ def _validate_v2_result(
             telemetry[(question_id, arm)] = _validate_question_telemetry(
                 load_json(resolved_telemetry), question_id, arm, f"questions.{question_id}.{arm}"
             )
+    frozen_answer_paths = {path for path in frozen_files if path.startswith("answers/")}
+    if answer_paths != frozen_answer_paths:
+        unreferenced = sorted(frozen_answer_paths - answer_paths)
+        if unreferenced:
+            raise EvaluationError(f"unreferenced frozen answer files: {', '.join(unreferenced)}")
+        raise EvaluationError("answer references must equal the frozen answer file set")
     authoring = None
     if "authoring_telemetry" in result:
         authoring_path = _safe_run_path(result["authoring_telemetry"], "authoring_telemetry")
@@ -873,6 +931,10 @@ def _derive_v2(data: dict, rubric: dict) -> tuple[dict, dict]:
         question_id = item["id"]
         if telemetry[(question_id, "atlas")]["source_accessed"]:
             violations.append(f"{question_id}/atlas: source_accessed=true")
+        if not telemetry[(question_id, "atlas")]["atlas_accessed"]:
+            violations.append(f"{question_id}/atlas: atlas_accessed=false")
+        if not telemetry[(question_id, "control")]["source_accessed"]:
+            violations.append(f"{question_id}/control: source_accessed=false")
         if telemetry[(question_id, "control")]["atlas_accessed"]:
             violations.append(f"{question_id}/control: atlas_accessed=true")
     break_even: dict[str, float | None] = {}
