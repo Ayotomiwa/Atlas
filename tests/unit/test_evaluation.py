@@ -1,11 +1,19 @@
+from copy import deepcopy
 from hashlib import sha256
 from pathlib import Path
+import json
+import os
+import subprocess
 
 import pytest
 
+import scripts.lib.evaluation as evaluation
 from scripts.lib.evaluation import (
     EvaluationError,
+    RUN_SCHEMA_V2,
+    digest_file,
     freeze_answers,
+    freeze_run,
     load_json,
     prepare_run,
     resolve_rubric_path,
@@ -13,7 +21,9 @@ from scripts.lib.evaluation import (
     stable_json,
     validate_result,
     verify_answer_freeze,
+    verify_run_freeze,
 )
+from scripts.atlas_eval import main as atlas_eval_main
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -82,15 +92,140 @@ def test_prepare_keeps_sealed_run_outside_atlas(tmp_path: Path):
     run = prepare_run(ROOT, destination, run_id="run-1", fixture=fixture, fixture_head="abc")
     assert (run / "rubric.json").exists()
     assert (run / "ground-truth").is_dir()
+    assert load_json(run / "run.json")["schema_version"] == RUN_SCHEMA_V2
+    assert {"questions", "telemetry", "manifests"} <= {path.name for path in run.iterdir() if path.is_dir()}
     assert resolve_rubric_path(run / "results" / "results.json") == run / "rubric.json"
     with pytest.raises(EvaluationError, match="outside"):
         prepare_run(ROOT, ROOT / "evaluation" / "sealed", run_id="bad", fixture=fixture, fixture_head="abc")
 
 
-def test_answer_freeze_detects_mutation_and_new_files(tmp_path: Path):
+@pytest.mark.parametrize("run_id", ("", " ", ".", "..", "../escape", "nested/run", r"nested\run"))
+def test_prepare_rejects_run_ids_that_are_not_one_safe_path_component(tmp_path: Path, run_id: str):
     fixture = tmp_path / "fixture"
     fixture.mkdir()
-    run = prepare_run(ROOT, tmp_path / "sealed", run_id="run-1", fixture=fixture, fixture_head="abc")
+    destination = tmp_path / "approved"
+
+    with pytest.raises(EvaluationError, match="one safe non-empty path component"):
+        prepare_run(ROOT, destination, run_id=run_id, fixture=fixture, fixture_head="abc")
+
+
+def test_prepare_rejects_absolute_run_id_before_creating_outside_destination(tmp_path: Path):
+    fixture = tmp_path / "fixture"
+    fixture.mkdir()
+    destination = tmp_path / "approved"
+    outside = tmp_path / "absolute-run"
+
+    with pytest.raises(EvaluationError, match="one safe non-empty path component"):
+        prepare_run(ROOT, destination, run_id=str(outside), fixture=fixture, fixture_head="abc")
+
+    assert not outside.exists()
+
+
+@pytest.mark.parametrize(
+    "run_id",
+    (
+        "CON", "con.txt", "PrN.log", "AUX", "aux.json", "NUL", "nul.md",
+        "COM1", "com2.txt", "Com3.log", "COM4", "com5.txt", "COM6.log", "com7", "COM8.md", "cOm9.data",
+        "LPT1", "lpt2.txt", "Lpt3.log", "LPT4", "lpt5.txt", "LPT6.log", "lpt7", "LPT8.md", "lPt9.data",
+    ),
+)
+def test_prepare_rejects_case_insensitive_windows_reserved_device_stems(tmp_path: Path, run_id: str):
+    fixture = tmp_path / "fixture"
+    fixture.mkdir()
+
+    with pytest.raises(EvaluationError, match="one safe non-empty path component"):
+        prepare_run(ROOT, tmp_path / "approved", run_id=run_id, fixture=fixture, fixture_head="abc")
+
+
+@pytest.mark.parametrize("run_id", ("CON .txt", "NUL .md", "COM1 .log", "lpt9 .data"))
+def test_prepare_rejects_space_normalized_windows_device_stems(tmp_path: Path, run_id: str):
+    fixture = tmp_path / "fixture"
+    fixture.mkdir()
+
+    with pytest.raises(EvaluationError, match="one safe non-empty path component"):
+        prepare_run(ROOT, tmp_path / "approved", run_id=run_id, fixture=fixture, fixture_head="abc")
+
+
+@pytest.mark.parametrize(
+    "run_id",
+    (
+        "CONIN$", "conin$.txt", "CONOUT$", "conout$.log",
+        "COM¹", "com².txt", "COM³ .log", "LPT¹", "lpt².txt", "LPT³ .log",
+    ),
+)
+def test_prepare_rejects_windows_console_aliases_and_superscript_ports(tmp_path: Path, run_id: str):
+    fixture = tmp_path / "fixture"
+    fixture.mkdir()
+
+    with pytest.raises(EvaluationError, match="one safe non-empty path component"):
+        prepare_run(ROOT, tmp_path / "approved", run_id=run_id, fixture=fixture, fixture_head="abc")
+
+
+@pytest.mark.parametrize(
+    "run_id",
+    ('bad"quote', "bad*star", "bad?question", "bad:colon", "bad<less", "bad>greater", "bad|pipe"),
+    ids=("quote", "asterisk", "question", "colon", "less-than", "greater-than", "pipe"),
+)
+def test_prepare_normalizes_windows_reserved_punctuation_to_evaluation_error(tmp_path: Path, run_id: str):
+    fixture = tmp_path / "fixture"
+    fixture.mkdir()
+
+    with pytest.raises(EvaluationError, match="one safe non-empty path component"):
+        prepare_run(ROOT, tmp_path / "approved", run_id=run_id, fixture=fixture, fixture_head="abc")
+
+
+@pytest.mark.parametrize("run_id", ("name.", "name ", "...", "trailing..", "trailing. "))
+def test_prepare_rejects_run_ids_with_trailing_windows_spaces_or_dots(tmp_path: Path, run_id: str):
+    fixture = tmp_path / "fixture"
+    fixture.mkdir()
+
+    with pytest.raises(EvaluationError, match="one safe non-empty path component"):
+        prepare_run(ROOT, tmp_path / "approved", run_id=run_id, fixture=fixture, fixture_head="abc")
+
+
+@pytest.mark.parametrize(
+    "run_id",
+    ("bad\x00id", "bad\x01id", "bad\x1fid", "bad\x7fid"),
+    ids=("nul", "start-of-heading", "unit-separator", "delete"),
+)
+def test_prepare_normalizes_ascii_control_run_ids_to_evaluation_error(tmp_path: Path, run_id: str):
+    fixture = tmp_path / "fixture"
+    fixture.mkdir()
+
+    with pytest.raises(EvaluationError, match="one safe non-empty path component"):
+        prepare_run(ROOT, tmp_path / "approved", run_id=run_id, fixture=fixture, fixture_head="abc")
+
+
+@pytest.mark.parametrize(
+    "run_id", ("conduit", "COM0", "COM10", "LPT0", "LPT10", "auxiliary", "run.v2", ".hidden", "name with space")
+)
+def test_prepare_preserves_portable_run_ids_near_windows_reserved_names(tmp_path: Path, run_id: str):
+    fixture = tmp_path / "fixture"
+    fixture.mkdir()
+
+    run = prepare_run(ROOT, tmp_path / "approved", run_id=run_id, fixture=fixture, fixture_head="abc")
+
+    assert run.name == run_id
+
+
+@pytest.mark.parametrize("run_id", ("CONIN", "CONOUT", "COM⁴", "LPT⁴", "COM1x", "LPT9x"))
+def test_prepare_preserves_names_near_extended_windows_reservations(tmp_path: Path, run_id: str):
+    fixture = tmp_path / "fixture"
+    fixture.mkdir()
+
+    run = prepare_run(ROOT, tmp_path / "approved", run_id=run_id, fixture=fixture, fixture_head="abc")
+
+    assert run.name == run_id
+
+
+def test_answer_freeze_detects_mutation_and_new_files(tmp_path: Path):
+    run = tmp_path / "sealed" / "legacy-run"
+    (run / "answers").mkdir(parents=True)
+    (run / "run.json").write_bytes(stable_json({
+        "schema_version": "atlas-evaluation-run/1.0",
+        "run_id": "legacy-run",
+        "answer_sets_frozen": False,
+    }))
     answer = run / "answers" / "atlas.md"
     answer.write_text("frozen answer\n", encoding="utf-8")
 
@@ -105,3 +240,1227 @@ def test_answer_freeze_detects_mutation_and_new_files(tmp_path: Path):
     changes = verify_answer_freeze(run)
     assert "answer file changed: answers/atlas.md" in changes
     assert "unexpected answer file: answers/late.md" in changes
+
+
+def _write_unfrozen_legacy_run(run: Path, schema_version: str) -> None:
+    (run / "answers").mkdir(parents=True)
+    (run / "answers" / "answer.md").write_text("answer\n", encoding="utf-8")
+    (run / "run.json").write_bytes(stable_json({
+        "schema_version": schema_version,
+        "run_id": "legacy-run",
+        "answer_sets_frozen": False,
+    }))
+
+
+def test_library_and_cli_freeze_reject_unknown_run_schema(tmp_path: Path, capsys: pytest.CaptureFixture[str]):
+    library_run = tmp_path / "library-unknown"
+    _write_unfrozen_legacy_run(library_run, "atlas-evaluation-run/9.0")
+    with pytest.raises(EvaluationError, match="unsupported evaluation run schema"):
+        freeze_answers(library_run)
+
+    cli_run = tmp_path / "cli-unknown"
+    _write_unfrozen_legacy_run(cli_run, "atlas-evaluation-run/9.0")
+    assert atlas_eval_main(["freeze", str(cli_run)]) == 1
+    assert "unsupported evaluation run schema" in capsys.readouterr().err
+
+
+def test_library_and_cli_verify_reject_unknown_run_schema(tmp_path: Path, capsys: pytest.CaptureFixture[str]):
+    library_run = tmp_path / "library-unknown"
+    _write_unfrozen_legacy_run(library_run, "atlas-evaluation-run/1.0")
+    freeze_answers(library_run)
+    metadata = load_json(library_run / "run.json")
+    metadata["schema_version"] = "atlas-evaluation-run/9.0"
+    (library_run / "run.json").write_bytes(stable_json(metadata))
+    with pytest.raises(EvaluationError, match="unsupported evaluation run schema"):
+        verify_answer_freeze(library_run)
+
+    cli_run = tmp_path / "cli-unknown"
+    _write_unfrozen_legacy_run(cli_run, "atlas-evaluation-run/1.0")
+    freeze_answers(cli_run)
+    metadata = load_json(cli_run / "run.json")
+    metadata["schema_version"] = "atlas-evaluation-run/9.0"
+    (cli_run / "run.json").write_bytes(stable_json(metadata))
+    assert atlas_eval_main(["verify-freeze", str(cli_run)]) == 1
+    assert "unsupported evaluation run schema" in capsys.readouterr().err
+
+
+def _write_v2_inputs(run: Path, paired_lines: list[str] | None = None) -> None:
+    (run / "fixture" / "fixture.txt").write_text("fixture\n", encoding="utf-8")
+    (run / "questions" / "paired.jsonl").write_text(
+        "\n".join(paired_lines or [
+            '{"id":"Q1","category":"LOOKUP","condition":"cold","revision":"cold","prompt":"What is the owner?"}'
+        ]) + "\n",
+        encoding="utf-8",
+    )
+    (run / "personas" / "author.md").write_text("authoring prompt\n", encoding="utf-8")
+    (run / "ground-truth" / "truth.md").write_text("judge only\n", encoding="utf-8")
+    for arm in ("atlas", "control"):
+        (run / "answers" / arm).mkdir()
+        (run / "answers" / arm / "Q1.md").write_text("answer\n", encoding="utf-8")
+    (run / "telemetry" / "atlas").mkdir()
+    (run / "telemetry" / "atlas" / "Q1.json").write_text("{}\n", encoding="utf-8")
+    for name in ("fixture.json", "tool-policy.json", "model-config.json", "atlas-snapshot.json"):
+        (run / "manifests" / name).write_text("{}\n", encoding="utf-8")
+
+
+def test_v2_freeze_rejects_invalid_paired_question_banks_and_missing_manifests(tmp_path: Path):
+    fixture = tmp_path / "fixture"
+    fixture.mkdir()
+    invalid_banks = [
+        ["not json"],
+        ["[]"],
+        ['{"id":"Q1","category":"LOOKUP","condition":"bad","revision":"cold","prompt":"x"}'],
+        [
+            '{"id":"Q1","category":"LOOKUP","condition":"cold","revision":"cold","prompt":"x"}',
+            '{"id":"Q1","category":"LOOKUP","condition":"cold","revision":"cold","prompt":"y"}',
+        ],
+    ]
+    for index, bank in enumerate(invalid_banks):
+        run = prepare_run(ROOT, tmp_path / "sealed", run_id=f"invalid-{index}", fixture=fixture, fixture_head="abc")
+        _write_v2_inputs(run, bank)
+        with pytest.raises(EvaluationError, match="paired question"):
+            freeze_run(run)
+
+    run = prepare_run(ROOT, tmp_path / "sealed", run_id="missing-manifest", fixture=fixture, fixture_head="abc")
+    _write_v2_inputs(run)
+    (run / "manifests" / "model-config.json").unlink()
+    with pytest.raises(EvaluationError, match="model-config.json"):
+        freeze_run(run)
+
+
+def test_v2_freeze_requires_exactly_two_answers_per_paired_question(tmp_path: Path):
+    fixture = tmp_path / "fixture"
+    fixture.mkdir()
+    run = prepare_run(ROOT, tmp_path / "sealed", run_id="missing-answer", fixture=fixture, fixture_head="abc")
+    _write_v2_inputs(run)
+    (run / "answers" / "control" / "Q1.md").unlink()
+
+    with pytest.raises(EvaluationError, match="exactly 2 answer files for 1 paired questions"):
+        freeze_run(run)
+
+
+@pytest.mark.parametrize("protected_root", (
+    "fixture", "questions", "personas", "ground-truth", "answers", "telemetry", "manifests",
+))
+def test_v2_master_freeze_detects_mutation_addition_and_removal_in_each_protected_root(
+    tmp_path: Path, protected_root: str,
+):
+    fixture = tmp_path / "fixture"
+    fixture.mkdir()
+    for action in ("changed", "unexpected", "missing"):
+        run = prepare_run(ROOT, tmp_path / "sealed", run_id=f"{protected_root}-{action}", fixture=fixture, fixture_head="abc")
+        _write_v2_inputs(run)
+        freeze_run(run)
+        files = sorted(path for path in (run / protected_root).rglob("*") if path.is_file())
+        if action == "changed":
+            files[0].write_text("changed\n", encoding="utf-8")
+        elif action == "unexpected":
+            (run / protected_root / "late.txt").write_text("late\n", encoding="utf-8")
+        else:
+            files[0].unlink()
+        changes = verify_run_freeze(run)
+        assert any(change.startswith(f"{action} protected file: {protected_root}/") for change in changes)
+
+
+def test_v2_master_freeze_detects_immutable_metadata_drift_and_rejects_second_freeze(tmp_path: Path):
+    fixture = tmp_path / "fixture"
+    fixture.mkdir()
+    run = prepare_run(ROOT, tmp_path / "sealed", run_id="metadata", fixture=fixture, fixture_head="abc")
+    _write_v2_inputs(run)
+    manifest = freeze_run(run)
+    assert manifest == run / "freeze-manifest.json"
+    assert verify_run_freeze(run) == []
+    with pytest.raises(EvaluationError, match="already frozen"):
+        freeze_run(run)
+
+    metadata = load_json(run / "run.json")
+    metadata["fixture_head"] = "changed"
+    (run / "run.json").write_bytes(stable_json(metadata))
+    assert "immutable run metadata changed: fixture_head" in verify_run_freeze(run)
+
+
+def test_v2_master_freeze_detects_deleted_nullable_incremental_head_as_drift(tmp_path: Path):
+    fixture = tmp_path / "fixture"
+    fixture.mkdir()
+    run = prepare_run(ROOT, tmp_path / "sealed", run_id="incremental", fixture=fixture, fixture_head="abc")
+    _write_v2_inputs(run)
+    freeze_run(run)
+
+    metadata = load_json(run / "run.json")
+    del metadata["incremental_head"]
+    (run / "run.json").write_bytes(stable_json(metadata))
+
+    assert "immutable run metadata changed: incremental_head" in verify_run_freeze(run)
+
+
+@pytest.mark.parametrize("digest_action", ("missing", "non-string", "short", "non-hex"))
+def test_v2_verify_rejects_malformed_freeze_manifest_digest(tmp_path: Path, digest_action: str):
+    fixture = tmp_path / "fixture"
+    fixture.mkdir()
+    run = prepare_run(ROOT, tmp_path / "sealed", run_id=f"digest-{digest_action}", fixture=fixture, fixture_head="abc")
+    _write_v2_inputs(run)
+    freeze_run(run)
+    metadata = load_json(run / "run.json")
+    if digest_action == "missing":
+        del metadata["freeze_manifest_sha256"]
+    elif digest_action == "non-string":
+        metadata["freeze_manifest_sha256"] = 1
+    elif digest_action == "short":
+        metadata["freeze_manifest_sha256"] = "abc"
+    else:
+        metadata["freeze_manifest_sha256"] = "g" * 64
+    (run / "run.json").write_bytes(stable_json(metadata))
+
+    with pytest.raises(EvaluationError, match="freeze_manifest_sha256"):
+        verify_run_freeze(run)
+
+
+def test_v2_verify_rejects_nonhex_digest_in_frozen_manifest(tmp_path: Path):
+    fixture = tmp_path / "fixture"
+    fixture.mkdir()
+    run = prepare_run(ROOT, tmp_path / "sealed", run_id="bad-manifest", fixture=fixture, fixture_head="abc")
+    _write_v2_inputs(run)
+    freeze_run(run)
+    manifest = load_json(run / "freeze-manifest.json")
+    manifest["files"]["fixture/fixture.txt"] = "g" * 64
+    (run / "freeze-manifest.json").write_bytes(stable_json(manifest))
+
+    with pytest.raises(EvaluationError, match="SHA-256"):
+        verify_run_freeze(run)
+
+
+def test_verify_freeze_keeps_legacy_success_output(tmp_path: Path, capsys: pytest.CaptureFixture[str]):
+    run = tmp_path / "legacy-run"
+    (run / "answers").mkdir(parents=True)
+    (run / "answers" / "answer.md").write_text("answer\n", encoding="utf-8")
+    (run / "run.json").write_bytes(stable_json({
+        "schema_version": "atlas-evaluation-run/1.0",
+        "run_id": "legacy-run",
+        "answer_sets_frozen": False,
+    }))
+    freeze_answers(run)
+
+    assert atlas_eval_main(["verify-freeze", str(run)]) == 0
+    assert capsys.readouterr().out == "Evaluation answer freeze is valid.\n"
+
+
+_PAIRED_QUESTIONS = [
+    {"id": "Q1", "category": "LOOKUP", "condition": "cold", "revision": "cold", "prompt": "Who owns it?"},
+    {"id": "Q2", "category": "IMPACT", "condition": "warm", "revision": "cold", "prompt": "What breaks?"},
+    {
+        "id": "Q3",
+        "category": "TRAP-UNKNOWABLE",
+        "condition": "cold",
+        "revision": "cold",
+        "prompt": "What cannot be known?",
+    },
+]
+
+
+def _question_telemetry(question_id: str, arm: str, **overrides: object) -> dict:
+    index = int(question_id[1:])
+    value = {
+        "schema_version": "atlas-evaluation-telemetry/1.0",
+        "question_id": question_id,
+        "arm": arm,
+        "bytes_read": (100 if arm == "atlas" else (400 - index * 100)),
+        "unique_evidence_sources": 1,
+        "tool_calls": (index if arm == "atlas" else index + 2),
+        "latency_ms": (1000 if arm == "atlas" else 2000),
+        "input_tokens": (None if arm == "atlas" and question_id == "Q1" else index * 10),
+        "output_tokens": (10 if arm == "atlas" else 30),
+        "atlas_hit": (question_id != "Q2" if arm == "atlas" else None),
+        "fallback_used": (question_id == "Q2" if arm == "atlas" else None),
+        "fallback_disclosed": (False if arm == "atlas" and question_id == "Q2" else None),
+        "source_accessed": arm == "control",
+        "atlas_accessed": arm == "atlas",
+    }
+    value.update(overrides)
+    return value
+
+
+def _v2_run_and_result(
+    tmp_path: Path,
+    *,
+    run_id: str = "comparison",
+    telemetry_overrides: dict[tuple[str, str], dict] | None = None,
+    authoring_overrides: dict | None = None,
+) -> tuple[Path, dict, dict]:
+    rubric = load_json(ROOT / "evaluation" / "rubric.json")
+    fixture = tmp_path / f"{run_id}-fixture"
+    fixture.mkdir()
+    run = prepare_run(ROOT, tmp_path / "sealed", run_id=run_id, fixture=fixture, fixture_head="abc")
+    _populate_v2_run(
+        run,
+        telemetry_overrides=telemetry_overrides,
+        authoring_overrides=authoring_overrides,
+    )
+    freeze_run(run)
+    return run, rubric, _build_v2_result(run, rubric)
+
+
+def _populate_v2_run(
+    run: Path,
+    *,
+    telemetry_overrides: dict[tuple[str, str], dict] | None = None,
+    authoring_overrides: dict | None = None,
+) -> None:
+    _write_v2_inputs(run, [json.dumps(question, sort_keys=True) for question in _PAIRED_QUESTIONS])
+    for arm in ("atlas", "control"):
+        (run / "answers" / arm).mkdir(exist_ok=True)
+        (run / "telemetry" / arm).mkdir(exist_ok=True)
+    for path in (run / "answers").glob("*/*"):
+        path.unlink()
+    telemetry_overrides = telemetry_overrides or {}
+    for question in _PAIRED_QUESTIONS:
+        for arm in ("atlas", "control"):
+            (run / "answers" / arm / f"{question['id']}.md").write_text(
+                f"{arm} answer for {question['id']}\n", encoding="utf-8"
+            )
+            telemetry = _question_telemetry(question["id"], arm)
+            telemetry.update(telemetry_overrides.get((question["id"], arm), {}))
+            (run / "telemetry" / arm / f"{question['id']}.json").write_bytes(stable_json(telemetry))
+    authoring = {
+        "schema_version": "atlas-evaluation-phase-telemetry/1.0",
+        "phase": "authoring",
+        "bytes_read": 600,
+        "unique_evidence_sources": 5,
+        "tool_calls": 9,
+        "latency_ms": 9000,
+        "input_tokens": 100,
+        "output_tokens": 50,
+    }
+    authoring.update(authoring_overrides or {})
+    (run / "telemetry" / "authoring.json").write_bytes(stable_json(authoring))
+
+
+def _build_v2_result(run: Path, rubric: dict) -> dict:
+    metadata = load_json(run / "run.json")
+    grades = {
+        "Q1": ("CORRECT", "PARTIAL"),
+        "Q2": ("PARTIAL", "CORRECT"),
+        "Q3": ("REFUSED-CORRECTLY", "WRONG"),
+    }
+    questions = []
+    for question in _PAIRED_QUESTIONS:
+        arms = {}
+        for arm, grade in zip(("atlas", "control"), grades[question["id"]]):
+            arms[arm] = {
+                "grade": grade,
+                "citation_validity": 1.0,
+                "provenance_disclosure": 1.0,
+                "citations": ["_curated/example.md" if arm == "atlas" else "src/example.py"],
+                "rationale": "Supported by the frozen key.",
+                "answer": f"answers/{arm}/{question['id']}.md",
+                "telemetry": f"telemetry/{arm}/{question['id']}.json",
+            }
+        questions.append({"id": question["id"], "category": question["category"], **arms})
+    result = {
+        "schema_version": "atlas-evaluation-result/2.0",
+        "rubric_sha256": metadata["rubric_sha256"],
+        "freeze_manifest_sha256": metadata["freeze_manifest_sha256"],
+        "gates": {
+            gate: {"passed": True, "evidence": ["manifests/fixture.json"]}
+            for gate in rubric["gates"]
+        },
+        "metrics": {
+            "M1": {"core_recall": 0.9, "bonus_recall": 0.6, "locator_accuracy": 1.0, "fabrication_count": 0},
+            "M2": {
+                "conflict_recall": 1.0,
+                "multi_file_recall": 1.0,
+                "tool_defaults_resisted": True,
+                "external_unknown": True,
+                "identity_ambiguity": True,
+                "dead_path_resistance": True,
+            },
+            "M4": {"lint": True, "freshness": True, "tests": True, "granularity": True},
+        },
+        "questions": questions,
+        "authoring_telemetry": "telemetry/authoring.json",
+    }
+    return result
+
+
+def _validate_v2(result: dict, rubric: dict, run: Path, *, expected_digest: str | None = None) -> None:
+    validate_result(
+        result,
+        rubric,
+        run_root=run,
+        expected_freeze_manifest_sha256=(
+            result["freeze_manifest_sha256"] if expected_digest is None else expected_digest
+        ),
+    )
+
+
+def _score_v2(result: dict, rubric: dict, run: Path, *, expected_digest: str | None = None) -> dict:
+    return score_result(
+        result,
+        rubric,
+        run_root=run,
+        expected_freeze_manifest_sha256=(
+            result["freeze_manifest_sha256"] if expected_digest is None else expected_digest
+        ),
+    )
+
+
+_EXPECTED_V2_COMPARISON = {
+        "atlas_accuracy": 0.8333333333333334,
+        "control_accuracy": 0.5,
+        "accuracy_delta": 0.33333333333333337,
+        "atlas_hit_rate": 0.6666666666666666,
+        "fallback_disclosure": 0.0,
+        "read_cost_reduction": 0.5,
+        "conditions": {
+            "cold": {
+                "atlas_accuracy": 1.0,
+                "control_accuracy": 0.25,
+                "accuracy_delta": 0.75,
+                "read_cost_reduction": 0.5,
+            },
+            "warm": {
+                "atlas_accuracy": 0.5,
+                "control_accuracy": 1.0,
+                "accuracy_delta": -0.5,
+                "read_cost_reduction": 0.5,
+            },
+        },
+        "protocol_violations": [],
+        "arm_purity_pass": True,
+        "break_even": {
+            "bytes_read": 6.0,
+            "tool_calls": 4.5,
+            "latency_ms": 9.0,
+            "input_tokens": None,
+            "output_tokens": 2.5,
+        },
+    }
+
+
+def test_v2_derives_literal_paired_comparison_and_break_even(tmp_path: Path):
+    run, rubric, result = _v2_run_and_result(tmp_path)
+
+    score = _score_v2(result, rubric, run)
+
+    assert score["comparison"] == _EXPECTED_V2_COMPARISON
+    assert score["family_scores"]["M5"] == 13.5
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    (
+        (lambda result: result["questions"].pop(), "missing question results"),
+        (lambda result: result["questions"].append(deepcopy(result["questions"][0])), "duplicates id"),
+        (lambda result: result["questions"].append({**deepcopy(result["questions"][0]), "id": "Q9"}), "extra question results"),
+        (lambda result: result["questions"][0].update(category="IMPACT"), "category does not match"),
+    ),
+)
+def test_v2_requires_exact_paired_membership_and_categories(tmp_path: Path, mutation, message: str):
+    run, rubric, result = _v2_run_and_result(tmp_path)
+    mutation(result)
+
+    with pytest.raises(EvaluationError, match=message):
+        _validate_v2(result, rubric, run)
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    (
+        (lambda result: result["questions"][0]["atlas"].pop("answer"), "must contain exactly"),
+        (
+            lambda result: result["questions"][0]["atlas"].update(answer="answers/control/Q1.md"),
+            "answer must be arm-specific",
+        ),
+        (
+            lambda result: result["questions"][1]["atlas"].update(answer="answers/atlas/Q1.md"),
+            "duplicate answer",
+        ),
+        (
+            lambda result: result["questions"][0]["atlas"].update(answer="../outside.md"),
+            "safe run-relative",
+        ),
+        (
+            lambda result: result["questions"][0]["atlas"].update(answer="answers/atlas/not-frozen.md"),
+            "frozen file",
+        ),
+    ),
+)
+def test_v2_requires_safe_frozen_unique_arm_specific_answer_references(
+    tmp_path: Path, mutation, message: str,
+):
+    run, rubric, result = _v2_run_and_result(tmp_path)
+    mutation(result)
+
+    with pytest.raises(EvaluationError, match=message):
+        _validate_v2(result, rubric, run)
+
+
+def test_v2_result_answer_references_must_cover_exactly_the_frozen_answer_set(tmp_path: Path):
+    run, rubric, result = _v2_run_and_result(tmp_path)
+    extra = run / "answers" / "atlas" / "unreferenced.md"
+    extra.write_text("unreferenced frozen answer\n", encoding="utf-8")
+    manifest = load_json(run / "freeze-manifest.json")
+    manifest["files"]["answers/atlas/unreferenced.md"] = digest_file(extra)
+    (run / "freeze-manifest.json").write_bytes(stable_json(manifest))
+    trusted_digest = digest_file(run / "freeze-manifest.json")
+    metadata = load_json(run / "run.json")
+    metadata["freeze_manifest_sha256"] = trusted_digest
+    (run / "run.json").write_bytes(stable_json(metadata))
+    result["freeze_manifest_sha256"] = trusted_digest
+
+    with pytest.raises(EvaluationError, match="unreferenced frozen answer files"):
+        _validate_v2(result, rubric, run, expected_digest=trusted_digest)
+
+
+def test_v2_requires_run_root_and_rejects_judge_entered_m5_m6(tmp_path: Path):
+    run, rubric, result = _v2_run_and_result(tmp_path)
+    with pytest.raises(EvaluationError, match="run_root"):
+        validate_result(result, rubric)
+
+    for metric in ("M5", "M6"):
+        invalid = deepcopy(result)
+        invalid["metrics"][metric] = {}
+        with pytest.raises(EvaluationError, match="exactly M1, M2 and M4"):
+            _validate_v2(invalid, rubric, run)
+
+
+@pytest.mark.parametrize(
+    ("evidence", "message"),
+    (
+        ([], "non-empty evidence"),
+        (["manifests/fixture.json", "manifests/fixture.json"], "duplicate evidence"),
+        (["../run.json"], "safe run-relative"),
+        (["C:/run.json"], "safe run-relative"),
+        ([{"path": "manifests/fixture.json"}], "safe run-relative"),
+        (["manifests/not-frozen.json"], "frozen file"),
+    ),
+)
+def test_v2_gates_require_safe_frozen_evidence(tmp_path: Path, evidence: list[object], message: str):
+    run, rubric, result = _v2_run_and_result(tmp_path)
+    result["gates"]["G1"]["evidence"] = evidence
+
+    with pytest.raises(EvaluationError, match=message):
+        _validate_v2(result, rubric, run)
+
+
+def test_v2_allows_bound_freeze_manifest_as_gate_evidence_and_rejects_gate_extras(tmp_path: Path):
+    run, rubric, result = _v2_run_and_result(tmp_path)
+    result["gates"]["G8"]["evidence"] = ["freeze-manifest.json"]
+    _validate_v2(result, rubric, run)
+
+    result["gates"]["G8"]["note"] = "judge prose"
+    with pytest.raises(EvaluationError, match="exactly passed and evidence"):
+        _validate_v2(result, rubric, run)
+
+
+def test_v2_preserves_negative_and_null_read_reduction_with_zero_positive_credit(tmp_path: Path):
+    negative_run, rubric, negative_result = _v2_run_and_result(
+        tmp_path, run_id="negative", telemetry_overrides={("Q1", "atlas"): {"bytes_read": 700}}
+    )
+    negative = _score_v2(negative_result, rubric, negative_run)
+    assert negative["comparison"]["read_cost_reduction"] == -0.5
+    assert negative["family_scores"]["M6"] == 7.0
+
+    null_run, rubric, null_result = _v2_run_and_result(
+        tmp_path, run_id="null", telemetry_overrides={("Q1", "atlas"): {"bytes_read": None}}
+    )
+    null_score = _score_v2(null_result, rubric, null_run)
+    assert null_score["comparison"]["read_cost_reduction"] is None
+    assert null_score["comparison"]["conditions"]["cold"]["read_cost_reduction"] is None
+    assert null_score["family_scores"]["M6"] == 7.0
+
+
+def test_v2_fallback_disclosure_handles_proportion_and_no_fallback(tmp_path: Path):
+    proportion_run, rubric, proportion_result = _v2_run_and_result(
+        tmp_path,
+        run_id="proportion",
+        telemetry_overrides={
+            ("Q1", "atlas"): {"fallback_used": True, "fallback_disclosed": True},
+        },
+    )
+    assert _score_v2(proportion_result, rubric, proportion_run)["comparison"]["fallback_disclosure"] == 0.5
+
+    no_fallback_run, rubric, no_fallback_result = _v2_run_and_result(
+        tmp_path,
+        run_id="no-fallback",
+        telemetry_overrides={("Q2", "atlas"): {"fallback_used": False, "fallback_disclosed": None}},
+    )
+    assert _score_v2(no_fallback_result, rubric, no_fallback_run)["comparison"]["fallback_disclosure"] == 1.0
+
+
+def test_v2_records_stable_arm_purity_violations_and_forces_not_ready(tmp_path: Path):
+    run, rubric, result = _v2_run_and_result(
+        tmp_path,
+        telemetry_overrides={
+            ("Q1", "atlas"): {"source_accessed": True},
+            ("Q2", "control"): {"atlas_accessed": True},
+        },
+    )
+
+    score = _score_v2(result, rubric, run)
+    assert score["comparison"]["protocol_violations"] == [
+        "Q1/atlas: source_accessed=true",
+        "Q2/control: atlas_accessed=true",
+    ]
+    assert score["comparison"]["arm_purity_pass"] is False
+    assert score["verdict"] == "Not ready"
+
+
+@pytest.mark.parametrize(
+    ("overrides", "violation"),
+    (
+        (
+            {("Q1", "atlas"): {"atlas_accessed": False, "atlas_hit": True}},
+            "Q1/atlas: atlas_accessed=false",
+        ),
+        (
+            {("Q1", "control"): {"source_accessed": False}},
+            "Q1/control: source_accessed=false",
+        ),
+    ),
+)
+def test_v2_missing_assigned_corpus_access_is_a_stable_purity_violation(
+    tmp_path: Path, overrides: dict[tuple[str, str], dict], violation: str,
+):
+    run, rubric, result = _v2_run_and_result(
+        tmp_path, run_id=violation.split(":", 1)[0].replace("/", "-"), telemetry_overrides=overrides
+    )
+
+    score = _score_v2(result, rubric, run)
+
+    assert score["comparison"]["protocol_violations"] == [violation]
+    assert score["comparison"]["arm_purity_pass"] is False
+    assert score["verdict"] == "Not ready"
+
+
+def test_v2_rejects_bad_telemetry_reference_and_schema(tmp_path: Path):
+    run, rubric, result = _v2_run_and_result(tmp_path, run_id="references")
+    result["questions"][0]["atlas"]["telemetry"] = "telemetry/control/Q1.json"
+    with pytest.raises(EvaluationError, match="arm-specific"):
+        _validate_v2(result, rubric, run)
+
+    bad_run, rubric, bad_result = _v2_run_and_result(
+        tmp_path,
+        run_id="bad-schema",
+        telemetry_overrides={("Q1", "atlas"): {"schema_version": "bad"}},
+    )
+    with pytest.raises(EvaluationError, match="telemetry schema_version"):
+        _validate_v2(bad_result, rubric, bad_run)
+
+
+def test_v2_rejects_invalid_optional_authoring_telemetry(tmp_path: Path):
+    run, rubric, result = _v2_run_and_result(
+        tmp_path, authoring_overrides={"phase": "judging"}
+    )
+    with pytest.raises(EvaluationError, match="authoring telemetry phase"):
+        _validate_v2(result, rubric, run)
+
+
+def test_v2_failed_gate_fabrication_and_refusal_force_not_ready(tmp_path: Path):
+    run, rubric, result = _v2_run_and_result(tmp_path)
+    for mutation in (
+        lambda value: value["gates"]["G1"].update(passed=False),
+        lambda value: value["metrics"]["M1"].update(fabrication_count=1),
+        lambda value: value["questions"][2]["atlas"].update(grade="REFUSED-WRONGLY"),
+    ):
+        invalid = deepcopy(result)
+        mutation(invalid)
+        assert _score_v2(invalid, rubric, run)["verdict"] == "Not ready"
+
+
+def test_v1_scoring_and_validation_ignore_optional_run_root(tmp_path: Path):
+    rubric = load_json(ROOT / "evaluation" / "rubric.json")
+    result = _result(rubric)
+    expected = {
+        "schema_version": "atlas-evaluation-score/1.0",
+        "family_scores": {"M1": 20.0, "M2": 20.0, "M4": 15.0, "M5": 30.0, "M6": 14.4},
+        "total": 99.4,
+        "gates_pass": True,
+        "fabrication_gate": True,
+        "honest_refusal_gate": True,
+        "verdict": "Ship",
+    }
+
+    validate_result(result, rubric, run_root=tmp_path, expected_freeze_manifest_sha256="not-a-digest")
+    assert score_result(
+        result, rubric, run_root=tmp_path, expected_freeze_manifest_sha256="not-a-digest"
+    ) == expected
+    assert "comparison" not in expected
+
+
+def test_ratio_rejects_huge_integer_as_evaluation_error():
+    rubric = load_json(ROOT / "evaluation" / "rubric.json")
+    result = _result(rubric)
+    result["metrics"]["M1"]["core_recall"] = 10 ** 400
+
+    with pytest.raises(EvaluationError, match="M1.core_recall must be a number from 0 to 1"):
+        validate_result(result, rubric)
+
+
+def test_v2_requires_caller_trusted_freeze_digest(tmp_path: Path):
+    run, rubric, result = _v2_run_and_result(tmp_path)
+
+    with pytest.raises(EvaluationError, match="expected_freeze_manifest_sha256"):
+        validate_result(result, rubric, run_root=run)
+    with pytest.raises(EvaluationError, match="expected_freeze_manifest_sha256"):
+        score_result(result, rubric, run_root=run, expected_freeze_manifest_sha256="bad")
+
+
+def test_v2_rejects_coordinated_frozen_state_rewrite_against_trusted_digest(tmp_path: Path):
+    run, rubric, result = _v2_run_and_result(tmp_path)
+    trusted_digest = result["freeze_manifest_sha256"]
+    telemetry_path = run / "telemetry" / "atlas" / "Q1.json"
+    telemetry = load_json(telemetry_path)
+    telemetry["bytes_read"] = 101
+    telemetry_path.write_bytes(stable_json(telemetry))
+    manifest_path = run / "freeze-manifest.json"
+    manifest = load_json(manifest_path)
+    manifest["files"]["telemetry/atlas/Q1.json"] = digest_file(telemetry_path)
+    manifest_path.write_bytes(stable_json(manifest))
+    rewritten_digest = digest_file(manifest_path)
+    metadata = load_json(run / "run.json")
+    metadata["freeze_manifest_sha256"] = rewritten_digest
+    (run / "run.json").write_bytes(stable_json(metadata))
+    result["freeze_manifest_sha256"] = rewritten_digest
+    assert verify_run_freeze(run) == []
+
+    with pytest.raises(EvaluationError, match="caller-trusted freeze manifest digest"):
+        _validate_v2(result, rubric, run, expected_digest=trusted_digest)
+    with pytest.raises(EvaluationError, match="caller-trusted freeze manifest digest"):
+        _score_v2(result, rubric, run, expected_digest=trusted_digest)
+
+
+def test_v2_freeze_rejects_protected_file_symlink_resolving_outside_run(tmp_path: Path):
+    fixture = tmp_path / "fixture"
+    fixture.mkdir()
+    run = prepare_run(ROOT, tmp_path / "sealed", run_id="external-file-link", fixture=fixture, fixture_head="abc")
+    _write_v2_inputs(run)
+    outside = tmp_path / "outside.txt"
+    outside.write_text("outside\n", encoding="utf-8")
+    protected = run / "fixture" / "external.txt"
+    try:
+        protected.symlink_to(outside)
+    except (NotImplementedError, OSError) as exc:
+        pytest.skip(f"file symlinks are unavailable on this platform: {exc}")
+
+    with pytest.raises(EvaluationError, match="resolves outside the evaluation run"):
+        freeze_run(run)
+
+
+def test_v2_freeze_rejects_protected_directory_link_resolving_outside_run(tmp_path: Path):
+    fixture = tmp_path / "fixture"
+    fixture.mkdir()
+    run = prepare_run(ROOT, tmp_path / "sealed", run_id="external-link", fixture=fixture, fixture_head="abc")
+    _write_v2_inputs(run)
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "outside.txt").write_text("outside\n", encoding="utf-8")
+    protected = run / "fixture" / "external"
+    try:
+        protected.symlink_to(outside, target_is_directory=True)
+    except (NotImplementedError, OSError) as exc:
+        if os.name != "nt":
+            pytest.skip(f"directory symlinks are unavailable on this platform: {exc}")
+        junction = subprocess.run(
+            ["cmd", "/c", "mklink", "/J", str(protected), str(outside)],
+            capture_output=True,
+            text=True,
+        )
+        if junction.returncode != 0:
+            pytest.skip(f"directory links are unavailable on this platform: {junction.stderr.strip()}")
+
+    with pytest.raises(EvaluationError, match="resolves outside the evaluation run"):
+        freeze_run(run)
+
+
+@pytest.mark.parametrize(
+    ("overrides", "message"),
+    (
+        ({"unexpected": 0}, "must contain exactly"),
+        ({"bytes_read": True}, "bytes_read"),
+        ({"bytes_read": -1}, "bytes_read"),
+        ({"bytes_read": float("inf")}, "bytes_read"),
+        ({"question_id": "Q2"}, "question_id"),
+        ({"arm": "control"}, "telemetry arm"),
+    ),
+)
+def test_v2_rejects_telemetry_shape_numeric_and_routing_errors(
+    tmp_path: Path, overrides: dict, message: str,
+):
+    run, rubric, result = _v2_run_and_result(
+        tmp_path, telemetry_overrides={("Q1", "atlas"): overrides}
+    )
+
+    with pytest.raises(EvaluationError, match=message):
+        _validate_v2(result, rubric, run)
+
+
+@pytest.mark.parametrize(
+    ("arm", "overrides", "message"),
+    (
+        ("atlas", {"atlas_hit": None}, "atlas_hit"),
+        ("atlas", {"fallback_used": None}, "fallback_used"),
+        ("atlas", {"fallback_disclosed": None, "fallback_used": True}, "fallback_disclosed"),
+        ("atlas", {"source_accessed": None}, "source_accessed"),
+        ("atlas", {"atlas_accessed": None}, "atlas_accessed"),
+        ("control", {"atlas_hit": False}, "atlas_hit"),
+        ("control", {"fallback_used": False}, "fallback_used"),
+        ("control", {"fallback_disclosed": False}, "fallback_disclosed"),
+        ("control", {"source_accessed": None}, "source_accessed"),
+        ("control", {"atlas_accessed": None}, "atlas_accessed"),
+    ),
+)
+def test_v2_enforces_arm_specific_boolean_null_matrix(
+    tmp_path: Path, arm: str, overrides: dict, message: str,
+):
+    run, rubric, result = _v2_run_and_result(
+        tmp_path, telemetry_overrides={("Q1", arm): overrides}
+    )
+
+    with pytest.raises(EvaluationError, match=message):
+        _validate_v2(result, rubric, run)
+
+
+def test_v2_nulls_zero_control_read_and_unobservable_authoring_break_even(tmp_path: Path):
+    overrides = {
+        (question["id"], "control"): {"bytes_read": 0}
+        for question in _PAIRED_QUESTIONS
+    }
+    run, rubric, result = _v2_run_and_result(tmp_path, telemetry_overrides=overrides)
+    result.pop("authoring_telemetry")
+
+    comparison = _score_v2(result, rubric, run)["comparison"]
+    assert comparison["read_cost_reduction"] is None
+    assert comparison["break_even"] == {
+        "bytes_read": None,
+        "tool_calls": None,
+        "latency_ms": None,
+        "input_tokens": None,
+        "output_tokens": None,
+    }
+
+
+@pytest.mark.parametrize("atlas_q1_bytes", (400, 700))
+def test_v2_nulls_break_even_for_zero_or_negative_marginal_saving(
+    tmp_path: Path, atlas_q1_bytes: int,
+):
+    run, rubric, result = _v2_run_and_result(
+        tmp_path, telemetry_overrides={("Q1", "atlas"): {"bytes_read": atlas_q1_bytes}}
+    )
+
+    assert _score_v2(result, rubric, run)["comparison"]["break_even"]["bytes_read"] is None
+
+
+def test_v2_negative_accuracy_receives_no_positive_m6_credit(tmp_path: Path):
+    run, rubric, result = _v2_run_and_result(tmp_path)
+    result["questions"][0]["atlas"]["grade"] = "WRONG"
+    result["questions"][0]["control"]["grade"] = "CORRECT"
+
+    score = _score_v2(result, rubric, run)
+    assert score["comparison"]["accuracy_delta"] == -0.16666666666666663
+    assert score["family_scores"]["M6"] == 6.0
+
+
+def test_v2_atlas_fabricated_grade_forces_not_ready(tmp_path: Path):
+    run, rubric, result = _v2_run_and_result(tmp_path)
+    result["questions"][0]["atlas"]["grade"] = "FABRICATED"
+
+    score = _score_v2(result, rubric, run)
+    assert score["fabrication_gate"] is False
+    assert score["verdict"] == "Not ready"
+
+
+def test_v2_rejects_very_large_observable_integer_as_evaluation_error(tmp_path: Path):
+    run, rubric, result = _v2_run_and_result(
+        tmp_path, telemetry_overrides={("Q1", "atlas"): {"bytes_read": 10 ** 400}}
+    )
+
+    with pytest.raises(EvaluationError, match="bytes_read"):
+        _validate_v2(result, rubric, run)
+
+
+def test_v2_rejects_non_finite_aggregate_totals(tmp_path: Path):
+    overrides = {
+        (question["id"], arm): {"bytes_read": 1e308}
+        for question in _PAIRED_QUESTIONS
+        for arm in ("atlas", "control")
+    }
+    run, rubric, result = _v2_run_and_result(tmp_path, telemetry_overrides=overrides)
+
+    with pytest.raises(EvaluationError, match="aggregate bytes_read"):
+        _score_v2(result, rubric, run)
+
+
+def test_v2_rejects_non_finite_derived_break_even(tmp_path: Path):
+    overrides = {
+        (question["id"], "atlas"): {"input_tokens": 0.0}
+        for question in _PAIRED_QUESTIONS
+    }
+    overrides.update({
+        (question["id"], "control"): {"input_tokens": 1e-308}
+        for question in _PAIRED_QUESTIONS
+    })
+    run, rubric, result = _v2_run_and_result(
+        tmp_path,
+        telemetry_overrides=overrides,
+        authoring_overrides={"input_tokens": 1e308},
+    )
+
+    with pytest.raises(EvaluationError, match="break_even.input_tokens"):
+        _score_v2(result, rubric, run)
+
+
+def _write_result(path: Path, result: dict) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(stable_json(result))
+    return path
+
+
+def _assert_cli_failure(
+    argv: list[str], capsys: pytest.CaptureFixture[str], message: str,
+) -> None:
+    assert atlas_eval_main(argv) == 1
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err.startswith("Atlas evaluation failed: ")
+    assert message in captured.err
+
+
+def test_cli_normalizes_huge_ratio_failure_to_evaluation_error(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str],
+):
+    rubric = load_json(ROOT / "evaluation" / "rubric.json")
+    (tmp_path / "rubric.json").write_bytes(stable_json(rubric))
+    result = _result(rubric)
+    result["metrics"]["M1"]["core_recall"] = 10 ** 400
+    result_path = _write_result(tmp_path / "result.json", result)
+
+    _assert_cli_failure(
+        ["validate", str(result_path)], capsys, "M1.core_recall must be a number from 0 to 1"
+    )
+
+
+def test_v2_cli_full_external_workflow_binds_run_and_derives_comparison(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str],
+):
+    fixture = tmp_path / "fixture-source"
+    fixture.mkdir()
+    destination = tmp_path / "sealed"
+    run = destination / "cli-workflow"
+
+    assert atlas_eval_main([
+        "prepare",
+        "--destination", str(destination),
+        "--run-id", "cli-workflow",
+        "--fixture", str(fixture),
+        "--fixture-head", "abc",
+    ]) == 0
+    assert Path(capsys.readouterr().out.strip()) == run
+    _populate_v2_run(run)
+    assert atlas_eval_main(["freeze", str(run)]) == 0
+    assert Path(capsys.readouterr().out.strip()) == run / "freeze-manifest.json"
+
+    trusted_digest = digest_file(run / "freeze-manifest.json")
+    result = _build_v2_result(run, load_json(run / "rubric.json"))
+    result_path = _write_result(run / "results" / "results.json", result)
+
+    for _ in range(2):
+        assert atlas_eval_main([
+            "verify-freeze", str(run), "--freeze-digest", trusted_digest,
+        ]) == 0
+        assert capsys.readouterr().out == "Evaluation run freeze is valid.\n"
+
+    assert atlas_eval_main([
+        "validate", str(result_path), "--freeze-digest", trusted_digest,
+    ]) == 0
+    assert capsys.readouterr().out == "Evaluation result is valid.\n"
+    assert atlas_eval_main([
+        "score", str(result_path), "--freeze-digest", trusted_digest,
+    ]) == 0
+    inferred_score = json.loads(capsys.readouterr().out)
+    assert inferred_score["comparison"] == _EXPECTED_V2_COMPARISON
+
+    external_result = _write_result(tmp_path / "judge-output" / "results" / "result.json", result)
+    assert atlas_eval_main([
+        "validate", str(external_result),
+        "--run-root", str(run),
+        "--freeze-digest", trusted_digest,
+    ]) == 0
+    assert capsys.readouterr().out == "Evaluation result is valid.\n"
+    assert atlas_eval_main([
+        "score", str(external_result),
+        "--run-root", str(run),
+        "--freeze-digest", trusted_digest,
+    ]) == 0
+    explicit_score = json.loads(capsys.readouterr().out)
+    assert explicit_score["comparison"] == _EXPECTED_V2_COMPARISON
+
+
+@pytest.mark.parametrize("command", ("validate", "score"))
+@pytest.mark.parametrize("mutation", ("protected", "manifest"))
+def test_v2_cli_validate_and_score_reject_changed_freeze(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    command: str,
+    mutation: str,
+):
+    run, _, result = _v2_run_and_result(tmp_path, run_id=f"{command}-{mutation}")
+    trusted_digest = result["freeze_manifest_sha256"]
+    result_path = _write_result(run / "results" / "results.json", result)
+    if mutation == "protected":
+        (run / "fixture" / "fixture.txt").write_text("changed\n", encoding="utf-8")
+    else:
+        manifest_path = run / "freeze-manifest.json"
+        manifest_path.write_bytes(manifest_path.read_bytes() + b"\n")
+
+    _assert_cli_failure(
+        [command, str(result_path), "--freeze-digest", trusted_digest],
+        capsys,
+        "run freeze is not clean",
+    )
+
+
+def test_v2_cli_rejects_coordinated_rebinding_against_original_digest(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str],
+):
+    run, _, result = _v2_run_and_result(tmp_path, run_id="coordinated-cli")
+    trusted_digest = result["freeze_manifest_sha256"]
+    telemetry_path = run / "telemetry" / "atlas" / "Q1.json"
+    telemetry = load_json(telemetry_path)
+    telemetry["bytes_read"] = 101
+    telemetry_path.write_bytes(stable_json(telemetry))
+    manifest_path = run / "freeze-manifest.json"
+    manifest = load_json(manifest_path)
+    manifest["files"]["telemetry/atlas/Q1.json"] = digest_file(telemetry_path)
+    manifest_path.write_bytes(stable_json(manifest))
+    rebound_digest = digest_file(manifest_path)
+    metadata = load_json(run / "run.json")
+    metadata["freeze_manifest_sha256"] = rebound_digest
+    (run / "run.json").write_bytes(stable_json(metadata))
+    result["freeze_manifest_sha256"] = rebound_digest
+    result_path = _write_result(run / "results" / "results.json", result)
+    assert verify_run_freeze(run) == []
+
+    commands = (
+        ["verify-freeze", str(run), "--freeze-digest", trusted_digest],
+        ["validate", str(result_path), "--freeze-digest", trusted_digest],
+        ["score", str(result_path), "--freeze-digest", trusted_digest],
+    )
+    for argv in commands:
+        _assert_cli_failure(argv, capsys, "caller-trusted freeze manifest digest")
+
+
+@pytest.mark.parametrize("command", ("verify-freeze", "validate", "score"))
+@pytest.mark.parametrize("digest", (None, "bad"))
+def test_v2_cli_requires_well_formed_trusted_freeze_digest(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    command: str,
+    digest: str | None,
+):
+    run, _, result = _v2_run_and_result(tmp_path, run_id=f"digest-{command}-{digest}")
+    result_path = _write_result(run / "results" / "results.json", result)
+    argv = ["verify-freeze", str(run)] if command == "verify-freeze" else [command, str(result_path)]
+    if digest is not None:
+        argv.extend(["--freeze-digest", digest])
+
+    _assert_cli_failure(argv, capsys, "freeze digest")
+
+
+@pytest.mark.parametrize("command", ("validate", "score"))
+def test_v2_cli_rejects_run_root_override_for_another_run(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], command: str,
+):
+    run, _, result = _v2_run_and_result(tmp_path, run_id="bound-run")
+    other_run, _, _ = _v2_run_and_result(tmp_path, run_id="other-run")
+    result_path = _write_result(run / "results" / "results.json", result)
+
+    _assert_cli_failure(
+        [
+            command, str(result_path),
+            "--run-root", str(other_run),
+            "--freeze-digest", result["freeze_manifest_sha256"],
+        ],
+        capsys,
+        "different evaluation run",
+    )
+
+
+@pytest.mark.parametrize(
+    "sibling_run_json",
+    (
+        "not json\n",
+        '{"schema_version":"unrelated-run/1.0"}\n',
+    ),
+    ids=("malformed", "unsupported"),
+)
+def test_cli_ignores_unrelated_sibling_run_json_for_explicit_v2(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    sibling_run_json: str,
+):
+    run, _, v2_result = _v2_run_and_result(tmp_path, run_id="real-v2-run")
+    external_v2_root = tmp_path / "external-v2"
+    (external_v2_root / "results").mkdir(parents=True)
+    (external_v2_root / "run.json").write_text(sibling_run_json, encoding="utf-8")
+    v2_result_path = _write_result(external_v2_root / "results" / "result.json", v2_result)
+
+    assert atlas_eval_main([
+        "validate", str(v2_result_path),
+        "--run-root", str(run),
+        "--freeze-digest", v2_result["freeze_manifest_sha256"],
+    ]) == 0
+    assert capsys.readouterr().out == "Evaluation result is valid.\n"
+    assert atlas_eval_main([
+        "score", str(v2_result_path),
+        "--run-root", str(run),
+        "--freeze-digest", v2_result["freeze_manifest_sha256"],
+    ]) == 0
+    assert json.loads(capsys.readouterr().out)["comparison"] == _EXPECTED_V2_COMPARISON
+
+
+@pytest.mark.parametrize(
+    "sibling_run_json",
+    (
+        "not json\n",
+        '{"schema_version":"unrelated-run/1.0"}\n',
+    ),
+    ids=("malformed", "unsupported"),
+)
+def test_cli_ignores_unrelated_sibling_run_json_for_legacy_v1(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    sibling_run_json: str,
+):
+    rubric = load_json(ROOT / "evaluation" / "rubric.json")
+    external_v1_root = tmp_path / "external-v1"
+    (external_v1_root / "results").mkdir(parents=True)
+    (external_v1_root / "run.json").write_text(sibling_run_json, encoding="utf-8")
+    (external_v1_root / "rubric.json").write_bytes(stable_json(rubric))
+    v1_result_path = _write_result(external_v1_root / "results" / "result.json", _result(rubric))
+
+    assert atlas_eval_main(["validate", str(v1_result_path)]) == 0
+    assert capsys.readouterr().out == "Evaluation result is valid.\n"
+
+
+@pytest.mark.parametrize("sibling_run_json", ("not json\n", '{"schema_version":"unrelated-run/1.0"}\n'))
+def test_cli_explicit_override_to_invalid_sibling_run_still_fails_normal_loading(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    sibling_run_json: str,
+):
+    _, _, result = _v2_run_and_result(tmp_path, run_id="source-v2")
+    external_root = tmp_path / "external"
+    (external_root / "results").mkdir(parents=True)
+    (external_root / "run.json").write_text(sibling_run_json, encoding="utf-8")
+    result_path = _write_result(external_root / "results" / "result.json", result)
+
+    _assert_cli_failure(
+        [
+            "validate", str(result_path),
+            "--run-root", str(external_root),
+            "--freeze-digest", result["freeze_manifest_sha256"],
+        ],
+        capsys,
+        "run.json" if sibling_run_json.startswith("not") else "unsupported evaluation run schema",
+    )
+
+
+@pytest.mark.parametrize("command", ("validate", "score"))
+def test_v2_cli_validate_and_score_invoke_trusted_verifier_exactly_once(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+    command: str,
+):
+    run, _, result = _v2_run_and_result(tmp_path, run_id=f"one-verify-{command}")
+    result_path = _write_result(run / "results" / "result.json", result)
+    calls: list[tuple[Path, str | None]] = []
+    real_verifier = evaluation.verify_trusted_run_freeze
+
+    def counted_verifier(run_root: str | Path, expected_digest: str | None) -> dict:
+        calls.append((Path(run_root).resolve(), expected_digest))
+        return real_verifier(run_root, expected_digest)
+
+    monkeypatch.setattr(evaluation, "verify_trusted_run_freeze", counted_verifier)
+
+    assert atlas_eval_main([
+        command, str(result_path), "--freeze-digest", result["freeze_manifest_sha256"],
+    ]) == 0
+    capsys.readouterr()
+    assert calls == [(run.resolve(), result["freeze_manifest_sha256"])]
+
+
+@pytest.mark.parametrize("command", ("validate", "score"))
+def test_v2_cli_rejects_valid_modified_rubric_copy(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], command: str,
+):
+    run, rubric, result = _v2_run_and_result(tmp_path, run_id=f"rubric-{command}")
+    result_path = _write_result(run / "results" / "results.json", result)
+    rubric_copy = deepcopy(rubric)
+    rubric_copy["partial_value"] = 0.4
+    copied_path = _write_result(tmp_path / f"copied-{command}-rubric.json", rubric_copy)
+
+    _assert_cli_failure(
+        [
+            command, str(result_path),
+            "--rubric", str(copied_path),
+            "--freeze-digest", result["freeze_manifest_sha256"],
+        ],
+        capsys,
+        "frozen run rubric",
+    )
+
+
+@pytest.mark.parametrize("command", ("validate", "score"))
+def test_cli_rejects_v1_v2_result_run_schema_mismatches(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], command: str,
+):
+    v2_run, rubric, v2_result = _v2_run_and_result(tmp_path, run_id=f"schema-v2-{command}")
+    v1_result_path = _write_result(v2_run / "results" / "v1.json", _result(rubric))
+    _assert_cli_failure(
+        [
+            command, str(v1_result_path),
+            "--freeze-digest", v2_result["freeze_manifest_sha256"],
+        ],
+        capsys,
+        "schema",
+    )
+
+    v1_run = tmp_path / f"schema-v1-{command}"
+    (v1_run / "results").mkdir(parents=True)
+    (v1_run / "rubric.json").write_bytes(stable_json(rubric))
+    (v1_run / "run.json").write_bytes(stable_json({
+        "schema_version": "atlas-evaluation-run/1.0",
+        "run_id": "legacy",
+    }))
+    v2_result_path = _write_result(v1_run / "results" / "v2.json", v2_result)
+    _assert_cli_failure(
+        [
+            command, str(v2_result_path),
+            "--freeze-digest", v2_result["freeze_manifest_sha256"],
+        ],
+        capsys,
+        "schema",
+    )
+
+
+def test_v1_cli_validate_and_score_keep_legacy_output_without_freeze_digest(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str],
+):
+    rubric = load_json(ROOT / "evaluation" / "rubric.json")
+    result = _result(rubric)
+    (tmp_path / "rubric.json").write_bytes(stable_json(rubric))
+    result_path = _write_result(tmp_path / "result.json", result)
+
+    assert atlas_eval_main(["validate", str(result_path)]) == 0
+    assert capsys.readouterr().out == "Evaluation result is valid.\n"
+    assert atlas_eval_main(["score", str(result_path)]) == 0
+    assert json.loads(capsys.readouterr().out) == {
+        "schema_version": "atlas-evaluation-score/1.0",
+        "family_scores": {"M1": 20.0, "M2": 20.0, "M4": 15.0, "M5": 30.0, "M6": 14.4},
+        "total": 99.4,
+        "gates_pass": True,
+        "fabrication_gate": True,
+        "honest_refusal_gate": True,
+        "verdict": "Ship",
+    }

@@ -67,5 +67,47 @@
     "ship": 80,
     "ship_with_fixes": 65
   },
-  "gates": ["G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8"]
+  "gates": ["G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8"],
+  "gate_definitions": {
+    "G1": {
+      "name": "Frozen fixture identity",
+      "requirement": "Record the de-branded fixture identity and provenance.",
+      "evidence": "Frozen fixture and fixture manifest paths."
+    },
+    "G2": {
+      "name": "Immutable evaluation inputs",
+      "requirement": "Keep the live Atlas snapshot and source fixture immutable during the run.",
+      "evidence": "Frozen Atlas snapshot and fixture revision records."
+    },
+    "G3": {
+      "name": "Question and truth isolation",
+      "requirement": "Keep paired questions and ground truth isolated from authoring roles.",
+      "evidence": "Protected question, persona, and ground-truth paths."
+    },
+    "G4": {
+      "name": "Verified cold baseline",
+      "requirement": "Verify the cold Atlas baseline before interrogation.",
+      "evidence": "Frozen baseline validation records."
+    },
+    "G5": {
+      "name": "Governed Atlas authoring",
+      "requirement": "Record governed authoring, validation, and independent review.",
+      "evidence": "Protected Atlas snapshot and review evidence paths."
+    },
+    "G6": {
+      "name": "Pure retrieval arms",
+      "requirement": "Keep Atlas-only and raw-source-only retrieval arms within their tool policies.",
+      "evidence": "Frozen tool-policy and per-arm telemetry paths."
+    },
+    "G7": {
+      "name": "Answer integrity",
+      "requirement": "Verify citations, fabrication handling, absence, and honest refusal.",
+      "evidence": "Protected answer, telemetry, and ground-truth evidence paths."
+    },
+    "G8": {
+      "name": "Pre-judge reproducibility",
+      "requirement": "Freeze inputs before judging and score the comparison deterministically.",
+      "evidence": "Master freeze manifest, rubric, and protected scoring inputs."
+    }
+  }
 }
