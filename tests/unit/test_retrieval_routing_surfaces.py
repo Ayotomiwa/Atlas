@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import re
 import tomllib
 
 from scripts.lib.frontmatter import parse_frontmatter
@@ -67,6 +68,31 @@ def _assert_ordered(surface: str, *needles: str) -> None:
         assert positions == sorted(positions), f"{relative}: routing order differs"
 
 
+def _metadata_description(relative: str) -> str:
+    path = ROOT / relative
+    if path.suffix == ".toml":
+        return tomllib.loads(path.read_text(encoding="utf-8"))["description"]
+    metadata, _ = parse_frontmatter(path)
+    return metadata["description"]
+
+
+def _paragraph_containing(text: str, needle: str) -> str:
+    paragraphs = re.split(r"\n\s*\n", text)
+    matches = [paragraph for paragraph in paragraphs if needle in paragraph]
+    assert len(matches) == 1, f"expected one paragraph containing {needle!r}"
+    return matches[0]
+
+
+def _markdown_section(text: str, heading: str) -> str:
+    match = re.search(
+        rf"^## {re.escape(heading)}\s*$\n(?P<body>.*?)(?=^## |\Z)",
+        text,
+        flags=re.MULTILINE | re.DOTALL,
+    )
+    assert match, f"missing section {heading!r}"
+    return match["body"]
+
+
 def test_binding_matrix_and_retrieval_ladder_match_on_both_platforms() -> None:
     _assert_all(
         "runtime",
@@ -115,6 +141,34 @@ def test_direct_ask_source_authority_and_guided_fallback_are_paired() -> None:
     )
 
 
+def test_impact_entrypoints_require_explicit_ask_or_bound_routing() -> None:
+    for surface in ("impact", "impact_agent"):
+        for relative in SURFACE_PAIRS[surface]:
+            description = _metadata_description(relative)
+            assert "direct Ask Atlas" in description, relative
+            assert "bound repository" in description, relative
+
+
+def test_answer_label_membership_is_exact_and_excludes_evidence_kinds() -> None:
+    expected = {"Atlas", "Repository (located via Atlas)", "Inference", "Unresolved"}
+    for relative, text in zip(
+        SURFACE_PAIRS["provenance"], _texts("provenance"), strict=True
+    ):
+        declaration = re.search(
+            r"Classify each material claim as (?P<labels>.+?)\.", text
+        )
+        assert declaration, relative
+        labels = set(re.findall(r"\*\*([^*]+)\*\*", declaration["labels"]))
+        assert labels == expected, relative
+        label_section = _markdown_section(text, "Answer labels")
+        listed_labels = set(
+            re.findall(r"^- \*\*([^*]+)\*\*:", label_section, re.MULTILINE)
+        )
+        assert listed_labels == expected, relative
+        assert "`External:" not in text, relative
+        assert "`User-confirmed:" not in text, relative
+
+
 def test_flow_synthesis_session_reuse_and_bounded_reentry_are_paired() -> None:
     for surface in ("discover", "discovery_agent"):
         _assert_all(
@@ -159,6 +213,21 @@ def test_exact_change_guard_and_semantic_risk_readiness_are_paired() -> None:
     for surface in ("impact", "impact_agent"):
         _assert_all(surface, *exact_change_terms, *semantic_risk_terms)
         _assert_all(surface, "direct neighbors before", "local isolated edit")
+
+
+def test_exact_change_staging_is_non_authoritative_in_the_guard_itself() -> None:
+    guard = (
+        "`_staging/` records are non-authoritative routing and completeness "
+        "evidence, never factual authority"
+    )
+    for surface in ("impact", "impact_agent"):
+        for relative, text in zip(
+            SURFACE_PAIRS[surface], _texts(surface), strict=True
+        ):
+            exact_change = _paragraph_containing(text, "For an exact-change prompt")
+            assert guard in exact_change, relative
+
+    _assert_all("runtime", guard)
 
 
 def test_managed_block_is_binding_signal_and_exposes_risk_triggers() -> None:

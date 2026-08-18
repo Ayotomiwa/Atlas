@@ -1,13 +1,22 @@
 # Answer provenance and file hops
 
-Every substantive factual answer needs clean references near its material claims. Classify each material claim as **Atlas**, **Repository (located via Atlas)**, **Inference**, or **Unresolved**. Treat active curated pages as authoritative for reviewed durable context, standards, conflicts, exceptions and obligations. Repository source is authoritative for current implementation and owns exact commands, code, configuration and IaC literals; Atlas can locate that source but never overrides it. Add only one short checkout advisory when an answer-bearing page is not `main-clean`, and always disclose `not-verified` context:
+Every substantive factual answer needs clean references near its material claims. Classify each material claim as **Atlas**, **Repository (located via Atlas)**, **Inference**, or **Unresolved**. Treat active curated pages as authoritative for reviewed durable context, standards, conflicts, exceptions and obligations. Repository source is authoritative for current implementation and owns exact commands, code, configuration and IaC literals; Atlas can locate that source but never overrides it. Add only one short checkout advisory when an answer-bearing page is not `main-clean`, and always disclose `not-verified` context.
 
-- `Atlas: <stable-id> — <curated-page>#<heading>`;
-- `Repository (located via Atlas): <repository-relative-path>:<line-or-symbol>`;
+## Answer labels
+
+- **Atlas**: cite `<stable-id> — <curated-page>#<heading>`.
+- **Repository (located via Atlas)**: cite `<repository-relative-path>:<line-or-symbol>`.
+- **Inference**: state the inference and cite every material premise.
+- **Unresolved**: state the missing evidence or coverage boundary.
+
+## Evidence references
+
+Attach supporting evidence kinds beneath the chosen answer label:
+
 - `Map route: <map>/<record-id>.<natural-field> -> <target-id>`;
 - authorised external artifact/URL;
 - user-confirmed current-task fact;
-- explicit inference with references for every material premise.
+- relevant Atlas or repository references.
 
 Do not cite scripts or pasted query output as factual sources. Maps may disclose a route; the curated page or repository evidence supplies meaning.
 

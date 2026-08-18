@@ -26,7 +26,7 @@ Outside `ATLAS_ROOT`, resolve explicit stable IDs directly; otherwise infer like
 
 Allow `not-verified` repository candidates but include a visible routing-only advisory in every substantive answer that uses one. Discovery may offer `atlas-setup-repo` once per external product repository/session when its instructions lack a managed Atlas block, but never for `ATLAS_ROOT` and never writes automatically.
 
-Route through curated Atlas before broad source exploration, then continue with bounded product inspection when coverage ends. Lifecycle determines trust: every `status: curated` page is authoritative and deprecated content is historical. Treat `checkout_state` as a separate, non-blocking advisory; mention it once and briefly only when it is not `main-clean`.
+Route through curated Atlas before broad source exploration, then continue with bounded product inspection when coverage ends. `_staging/` records are non-authoritative routing and completeness evidence, never factual authority. Lifecycle determines trust: every `status: curated` page is authoritative and deprecated content is historical. Treat `checkout_state` as a separate, non-blocking advisory; mention it once and briefly only when it is not `main-clean`.
 
 Use decision-weighted capture: preserve safety-critical lifecycle, compatibility, ownership, contracts, conflicts, recovery constraints and material impact behavior. Anchor volatile literals at source and copy an exact value only when the value itself affects safety, compatibility, operation or blast radius. Never copy sensitive values.
 

@@ -2,14 +2,21 @@
 
 Every substantive factual response must reference its evidence. Clarifying questions and acknowledgements without factual claims need no artificial citations. Classify each material claim as **Atlas**, **Repository (located via Atlas)**, **Inference**, or **Unresolved**. Treat active curated pages as authoritative for reviewed durable context, standards, conflicts, exceptions and obligations. Repository source is authoritative for current implementation and owns exact commands, code, configuration and IaC literals; Atlas can locate that source but never overrides it. Add only one short checkout advisory when an answer-bearing page is not `main-clean`, and always disclose `not-verified` repository context.
 
-Place a compact reference next to each material claim:
+## Answer labels
 
-- `Atlas: <stable-id> — <curated-page>#<heading>` (add a line when useful);
-- `Repository (located via Atlas): <repository-relative-path>:<line-or-symbol>`;
+- **Atlas**: cite `<stable-id> — <curated-page>#<heading>` and add a line when useful.
+- **Repository (located via Atlas)**: cite `<repository-relative-path>:<line-or-symbol>`.
+- **Inference**: state the inference and cite every material premise.
+- **Unresolved**: state the missing evidence or coverage boundary.
+
+## Evidence references
+
+Attach supporting evidence kinds beneath the chosen answer label:
+
 - `Map route: <map>/<record-id>.<natural-field> -> <target-id>`;
-- `External: <authorised URL/document/artifact>`;
-- `User-confirmed: current task`;
-- `Inference: ...` followed by references for every material premise.
+- authorised external URL/document/artifact;
+- user confirmation from the current task;
+- relevant Atlas or repository references.
 
 Generated maps and query output may explain a route but are not the semantic source. Cite the curated page or repository evidence reached through them.
 

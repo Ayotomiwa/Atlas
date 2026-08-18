@@ -53,7 +53,7 @@ Search returns candidates, not truth. Select using the question, match reasons, 
 
 Allow `locator_match: not-verified` product candidates, but include a visible routing-only advisory in every substantive answer that uses one: path context was routing evidence rather than proof of repository identity. If an Atlas-relevant product repository outside `ATLAS_ROOT` lacks a valid managed instructions block, make one non-blocking `atlas-setup-repo` offer per repository/session; discovery remains read-only.
 
-Route through curated Atlas before broad product-source exploration. If Atlas is insufficient, state where coverage ended and continue with a bounded source inspection inside the user's scope. Never use staging, generated maps, query output, generation or lint as semantic authority.
+Route through curated Atlas before broad product-source exploration. If Atlas is insufficient, state where coverage ended and continue with a bounded source inspection inside the user's scope. `_staging/` records are non-authoritative routing and completeness evidence, never factual authority. Never use generated maps, query output, generation or lint as semantic authority.
 
 Lifecycle determines trust: every `status: curated` page is `authoritative`, while deprecated content is `historical`. Query reports Git separately as `checkout_state`; mention a non-`main-clean` state once and briefly, without blocking or downgrading authority. Merge changes the checkout advisory automatically and requires no page-status mutation.
 
