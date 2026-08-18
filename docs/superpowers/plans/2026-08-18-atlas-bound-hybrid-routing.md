@@ -72,7 +72,15 @@
 - [ ] Preserve direct-before-transitive impact traversal, local isolated-edit bypass, missing-coverage honesty, ephemeral session reuse, and bounded re-entry.
 - [ ] Re-run the focused surface tests, the full unit suite, Atlas lint, rebuild check, and diff check; then commit the task.
 
-## External Promotion Validation
+### Task 3: External promotion validation
+
+**Files:**
+- External only: fresh sealed destination outside the Atlas checkout
+- Report: `.superpowers/sdd/2026-08-18-atlas-bound-hybrid-routing/task-3-report.md`
+
+**Interfaces:**
+- Consumes the reviewed Task 1 exact-range query and Task 2 routing contracts.
+- Produces a promotion verdict and measured-or-null telemetry; it does not modify Atlas production files or evaluation v2.
 
 After both reviewed tasks are complete, use a fresh external sealed destination and an unseen de-branded Atlas-bound fixture. Do not change evaluation v2 or store artifacts in live Atlas.
 
