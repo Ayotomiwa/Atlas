@@ -263,6 +263,155 @@ def test_session_reuse_and_bounded_reentry_are_paired() -> None:
         )
 
 
+def test_uncertain_atlas_evidence_never_becomes_a_confirmed_claim() -> None:
+    uncertainty_terms = (
+        "possible, unconfirmed, or conflicting",
+        "never promote",
+        "definitive, executable, or complete claim",
+        "qualify the claim",
+        "smallest source verification",
+        "precisely the uncertain edge",
+        "external targets and unknown coverage",
+        "separate states",
+    )
+    for surface in (
+        "provenance",
+        "discover",
+        "impact",
+        "discovery_agent",
+        "impact_agent",
+    ):
+        _assert_all(surface, *uncertainty_terms)
+
+    _assert_all(
+        "provenance",
+        "Curated page authority never upgrades an individual field or edge confidence",
+    )
+    for surface in ("discover", "impact"):
+        _assert_all(
+            surface,
+            "Curated page authority never upgrades an individual field or edge confidence",
+        )
+
+    _assert_all(
+        "managed_block",
+        "possible, unconfirmed, or conflicting",
+        "external targets and unknown coverage",
+        "separate states",
+    )
+
+
+def test_complete_flow_and_readiness_require_fallback_at_uncertain_coverage() -> None:
+    fallback_terms = (
+        "complete flow or readiness",
+        "partial or uncertain",
+        "bounded source fallback",
+        "missing flow edge",
+    )
+    for surface in ("discover", "impact", "discovery_agent", "impact_agent"):
+        _assert_all(surface, *fallback_terms)
+
+
+def test_session_access_ledger_and_warm_call_reuse_are_explicit() -> None:
+    _assert_all(
+        "runtime",
+        "ephemeral ordered access ledger",
+        "retained-context",
+        "atlas-bootstrap",
+        "Atlas query",
+        "Atlas page read",
+        "source read",
+        "Derive the route and fallback description",
+        "actual ordered access events",
+        "Never persist the ledger",
+        "Batch independent Atlas reads",
+        "batch Atlas-located source verification",
+        "selected IDs and already-opened pages",
+        "answer-bearing",
+        "`atlas-bootstrap` is session-only",
+        "`retained-context` only",
+        "route `retained-context` with fallback false",
+        "route `atlas-only` with fallback false",
+        "route `atlas-plus-source` with fallback true",
+        "route `source-only` with fallback false",
+        "retained origin: `atlas`, `source`, or `mixed`",
+        "current-question purpose",
+        "locator or coverage endpoint",
+        "`atlas-bootstrap` unrelated to the current question",
+        "current-question Atlas route",
+        "even when Atlas supplies only a locator or miss boundary",
+        "retained Atlas or mixed context",
+    )
+    _assert_ordered(
+        "runtime",
+        "Retained context",
+        "One known targeted source read",
+        "Atlas before uncertain",
+    )
+    _assert_all(
+        "handoffs",
+        "ephemeral ordered access ledger",
+        "retained-context",
+        "atlas-bootstrap",
+        "actual ordered access events",
+        "current-question purpose",
+        "retained origin",
+        "locator or coverage endpoint",
+        "answer-bearing",
+        "Batch independent Atlas reads",
+        "batch Atlas-located source verification",
+    )
+    _assert_all(
+        "managed_block",
+        "retained context",
+        "already-opened pages",
+        "Batch independent Atlas reads",
+    )
+
+
+def test_verified_source_evidence_can_satisfy_a_follow_up_without_retrieval() -> None:
+    reuse_terms = (
+        "already verified repository evidence",
+        "zero new retrieval",
+        "original Atlas edge was possible",
+        "supports every material follow-up claim",
+        "required confidence",
+        "related evidence must not upgrade a different uncertain edge",
+    )
+    for surface in ("runtime", "provenance", "discover", "impact"):
+        _assert_all(surface, *reuse_terms)
+
+
+def test_exact_volatile_values_remain_source_authoritative() -> None:
+    exact_terms = (
+        "exact volatile values",
+        "source-authoritative",
+        "commands, code, configuration, and IaC literals",
+    )
+    for surface in ("runtime", "provenance", "discover", "impact"):
+        for relative, text in zip(SURFACE_PAIRS[surface], _texts(surface), strict=True):
+            lowered = text.lower()
+            for term in exact_terms:
+                assert term.lower() in lowered, f"{relative}: missing {term!r}"
+
+
+def test_documented_flows_do_not_become_executable_wiring() -> None:
+    wiring_terms = (
+        "documentation alone supports documented or intended behavior",
+        "does not confirm executable or deployed wiring",
+        "current executable or deployed evidence appropriate to the boundary",
+        "code, configuration, IaC, tests, or runtime/control-plane state",
+    )
+    for surface in (
+        "provenance",
+        "discover",
+        "impact",
+        "discovery_agent",
+        "impact_agent",
+    ):
+        _assert_all(surface, *wiring_terms)
+
+
 def test_exact_change_guard_and_semantic_risk_readiness_are_paired() -> None:
     exact_change_terms = (
         "_staging/changes",

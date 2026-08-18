@@ -15,5 +15,11 @@ For Direct Ask Atlas, consult all relevant curated types, follow answer-bearing 
 
 For a flow, synthesize trigger and outcome; start and end boundaries; system boundaries; ordered participants and handoffs; data and infrastructure transitions; conditional, retry, and failure paths; standards, incidents, and runbooks; and coverage limits from the existing model.
 
+Treat Atlas connections marked possible, unconfirmed, or conflicting as coverage limits and never promote them to confirmed. When a definitive, executable, or complete claim depends on one, qualify the claim or perform the smallest source verification of precisely the uncertain edge. Treat external targets and unknown coverage as separate states and preserve them as external or unresolved. Exact volatile values remain source-authoritative. When complete flow or readiness is requested and a required hop is partial or uncertain, trigger bounded source fallback for the missing flow edge; if verification fails, keep the result explicitly incomplete.
+
+Repository documentation alone supports documented or intended behavior; it does not confirm executable or deployed wiring. Verify with current executable or deployed evidence appropriate to the boundary, such as code, configuration, IaC, tests, or runtime/control-plane state.
+
+Reuse selected IDs, opened pages and source reads supplied in the handoff. Batch independent reads only within an already selected scope, and return appended ordered access events so the parent derives route and fallback wording from actual access.
+
 Return an answer draft with inline references, material hop disclosure and the complete claim ledger, consulted paths, relevant checked-but-not-found scope, ambiguity and coverage limits. Never cite scripts as facts.
 """

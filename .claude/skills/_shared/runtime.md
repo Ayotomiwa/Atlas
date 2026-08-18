@@ -34,12 +34,18 @@ Pass absolute paths internally and to agents. In user-facing answers, cite paths
 Keep an ephemeral Atlas session state inside the current conversation only:
 
 - validated Atlas root, product root and current path;
-- selected stable IDs and curated pages already opened;
+- selected IDs and already-opened pages;
 - product-source paths already inspected;
 - the current coverage endpoint;
 - whether the checkout advisory has already been disclosed.
 
 A new conversation starts cold; never persist this state. Reuse it only while the selected routing mode, product repository where applicable, selected record and evidence, and question type remain unchanged and no source or checkout change is suspected. For an unchanged local follow-up, do not repeat an Atlas query, page open or source read that the retained context already answers.
+
+Alongside that state, maintain an **ephemeral ordered access ledger** whose events distinguish `retained-context`, `atlas-bootstrap`, Atlas query, Atlas page read, and source read. Each event records its current-question purpose, whether it was answer-bearing or supplied a locator or coverage endpoint, and for retained context the retained origin: `atlas`, `source`, or `mixed`. Derive the route and fallback description from the actual ordered access events. `retained-context` only means route `retained-context` with fallback false. A current-question Atlas route that answers without source means route `atlas-only` with fallback false. A current-question Atlas route followed at its coverage endpoint by source means route `atlas-plus-source` with fallback true, even when Atlas supplies only a locator or miss boundary. A retained Atlas or mixed context followed by a source read needed at its coverage endpoint follows the same Atlas-plus-source rule; retained source context plus source remains source-only. `atlas-bootstrap` is session-only unless it supplies current-question evidence or routing; `atlas-bootstrap` unrelated to the current question followed by source, or source access without a current-question Atlas route, means route `source-only` with fallback false. Never persist the ledger or introduce a new telemetry schema or service.
+
+Batch independent Atlas reads of already selected records, and batch Atlas-located source verification when the missing claims share one authorised boundary; do not widen scope merely to batch.
+
+When already verified repository evidence remains current and supports every material follow-up claim at the required confidence, a follow-up may use it with zero new retrieval; do not force fallback merely because the original Atlas edge was possible; related evidence must not upgrade a different uncertain edge.
 
 Re-enter the applicable Atlas routing mode when the repository or selected record changes, source or checkout state may have changed, the question crosses the recorded coverage endpoint, or the work concerns impact, ownership, conflicts, standards, recovery or another boundary. Re-entry opens only the routes needed for the new scope and carries still-valid session state into any specialist handoff.
 
@@ -57,6 +63,6 @@ Route through curated Atlas before broad product-source exploration. If Atlas is
 
 Lifecycle determines trust: every `status: curated` page is `authoritative`, while deprecated content is `historical`. Query reports Git separately as `checkout_state`; mention a non-`main-clean` state once and briefly, without blocking or downgrading authority. Merge changes the checkout advisory automatically and requires no page-status mutation.
 
-Use decision-weighted capture: preserve safety-critical lifecycle, compatibility, ownership, contracts, conflicts, recovery constraints and material impact behavior. Keep precise source anchors for volatile literals; copy an exact value only when the value itself affects safety, compatibility, operation or blast radius. Never copy sensitive values.
+Use decision-weighted capture: preserve safety-critical lifecycle, compatibility, ownership, contracts, conflicts, recovery constraints and material impact behavior. Treat exact volatile values as source-authoritative, including commands, code, configuration, and IaC literals. Atlas may locate them; copy an exact value only when the value itself affects safety, compatibility, operation or blast radius. Never copy sensitive values.
 
 Scripts resolve, traverse, compile and validate. They do not decide what a result means, whether more exploration is required, or how an answer should be presented.
