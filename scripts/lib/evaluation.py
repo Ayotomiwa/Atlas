@@ -200,14 +200,28 @@ def _immutable_run_metadata(metadata: dict, *, allow_missing_incremental_head: b
     return projection
 
 
+def _resolved_run_path(run_root: Path, path: Path, owner: str) -> Path:
+    try:
+        resolved = path.resolve(strict=True)
+        resolved.relative_to(run_root.resolve(strict=True))
+    except ValueError as exc:
+        raise EvaluationError(f"{owner} resolves outside the evaluation run") from exc
+    except OSError as exc:
+        raise EvaluationError(f"cannot resolve {owner}: {exc}") from exc
+    return resolved
+
+
 def _protected_files(run_root: Path) -> dict[str, str]:
-    files = {"rubric.json": digest_file(run_root / "rubric.json")}
+    rubric_path = _resolved_run_path(run_root, run_root / "rubric.json", "rubric.json")
+    files = {"rubric.json": digest_file(rubric_path)}
     for root in PROTECTED_RUN_ROOTS:
-        files.update({
-            path.relative_to(run_root).as_posix(): digest_file(path)
-            for path in sorted((run_root / root).rglob("*"))
-            if path.is_file()
-        })
+        protected_root = run_root / root
+        _resolved_run_path(run_root, protected_root, root)
+        for path in sorted(protected_root.rglob("*")):
+            relative = path.relative_to(run_root).as_posix()
+            resolved = _resolved_run_path(run_root, path, relative)
+            if path.is_file():
+                files[relative] = digest_file(resolved)
     return files
 
 
@@ -258,7 +272,9 @@ def _validate_v2_freeze_inputs(run_root: Path, metadata: dict) -> dict:
     paired_questions = run_root / "questions" / "paired.jsonl"
     if not paired_questions.is_file():
         raise EvaluationError("paired question bank is missing: questions/paired.jsonl")
-    _validate_paired_questions(paired_questions)
+    _validate_paired_questions(
+        _resolved_run_path(run_root, paired_questions, "questions/paired.jsonl")
+    )
     for name in REQUIRED_V2_MANIFESTS:
         if not (run_root / "manifests" / name).is_file():
             raise EvaluationError(f"required manifest input is missing: manifests/{name}")
@@ -286,7 +302,7 @@ def _validate_freeze_manifest(manifest: dict) -> tuple[dict[str, str], dict]:
 
 def freeze_run(run_root: str | Path) -> Path:
     run_root = Path(run_root).resolve()
-    run_path = run_root / "run.json"
+    run_path = _resolved_run_path(run_root, run_root / "run.json", "run.json")
     metadata = load_json(run_path)
     if metadata.get("schema_version") != RUN_SCHEMA_V2:
         raise EvaluationError("master run freeze is only supported for v2 runs")
@@ -311,14 +327,17 @@ def freeze_run(run_root: str | Path) -> Path:
 
 def verify_run_freeze(run_root: str | Path) -> list[str]:
     run_root = Path(run_root).resolve()
-    metadata = load_json(run_root / "run.json")
+    run_path = _resolved_run_path(run_root, run_root / "run.json", "run.json")
+    metadata = load_json(run_path)
     current_projection = _immutable_run_metadata(metadata, allow_missing_incremental_head=True)
     if metadata.get("run_frozen") is not True:
         raise EvaluationError("evaluation run is not frozen")
     manifest_digest = metadata.get("freeze_manifest_sha256")
     if not _is_sha256_digest(manifest_digest):
         raise EvaluationError("run metadata freeze_manifest_sha256 must be a SHA-256 digest")
-    manifest_path = run_root / "freeze-manifest.json"
+    manifest_path = _resolved_run_path(
+        run_root, run_root / "freeze-manifest.json", "freeze-manifest.json"
+    )
     manifest = load_json(manifest_path)
     expected_files, expected_projection = _validate_freeze_manifest(manifest)
     changes: list[str] = []
@@ -423,13 +442,14 @@ def _exact_object(value: object, fields: set[str], owner: str) -> dict:
 def _observable(value: object, owner: str) -> int | float | None:
     if value is None:
         return None
-    if (
-        not isinstance(value, (int, float))
-        or isinstance(value, bool)
-        or not isfinite(float(value))
-        or value < 0
-    ):
+    if not isinstance(value, (int, float)) or isinstance(value, bool) or value < 0:
         raise EvaluationError(f"{owner} must be a non-negative number or null; never estimate it")
+    try:
+        finite = isfinite(float(value))
+    except (OverflowError, ValueError):
+        finite = False
+    if not finite:
+        raise EvaluationError(f"{owner} must be a finite non-negative number or null; never estimate it")
     return value
 
 
@@ -523,11 +543,19 @@ def _validate_authoring_telemetry(value: dict, owner: str) -> dict:
     return value
 
 
-def _v2_run_context(result: dict, rubric: dict, run_root: str | Path | None) -> tuple[Path, set[str], list[dict]]:
+def _v2_run_context(
+    result: dict,
+    rubric: dict,
+    run_root: str | Path | None,
+    expected_freeze_manifest_sha256: str | None,
+) -> tuple[Path, set[str], list[dict]]:
     if run_root is None:
         raise EvaluationError("v2 results require run_root")
+    if not _is_sha256_digest(expected_freeze_manifest_sha256):
+        raise EvaluationError("v2 results require expected_freeze_manifest_sha256 as a SHA-256 digest")
     root = Path(run_root).resolve()
-    metadata = load_json(root / "run.json")
+    run_path = _resolved_run_path(root, root / "run.json", "run.json")
+    metadata = load_json(run_path)
     if metadata.get("schema_version") != RUN_SCHEMA_V2:
         raise EvaluationError(f"v2 result run_root must use {RUN_SCHEMA_V2}")
     changes = verify_run_freeze(root)
@@ -536,25 +564,38 @@ def _v2_run_context(result: dict, rubric: dict, run_root: str | Path | None) -> 
     rubric_digest = sha256(stable_json(rubric)).hexdigest()
     if metadata.get("rubric_sha256") != rubric_digest or result.get("rubric_sha256") != rubric_digest:
         raise EvaluationError("result, run and supplied rubric digests must match")
-    manifest_path = root / "freeze-manifest.json"
-    if (
-        result.get("freeze_manifest_sha256") != metadata.get("freeze_manifest_sha256")
-        or result.get("freeze_manifest_sha256") != digest_file(manifest_path)
+    manifest_path = _resolved_run_path(root, root / "freeze-manifest.json", "freeze-manifest.json")
+    actual_manifest_digest = digest_file(manifest_path)
+    if any(
+        value != expected_freeze_manifest_sha256
+        for value in (
+            actual_manifest_digest,
+            metadata.get("freeze_manifest_sha256"),
+            result.get("freeze_manifest_sha256"),
+        )
     ):
-        raise EvaluationError("result freeze_manifest_sha256 does not match the frozen run")
+        raise EvaluationError("actual, run and result digests must match the caller-trusted freeze manifest digest")
     manifest = load_json(manifest_path)
     frozen_files, _ = _validate_freeze_manifest(manifest)
-    return root, set(frozen_files), _load_paired_questions(root / "questions" / "paired.jsonl")
+    paired_path = _resolved_run_path(root, root / "questions" / "paired.jsonl", "questions/paired.jsonl")
+    return root, set(frozen_files), _load_paired_questions(paired_path)
 
 
-def _validate_v2_result(result: dict, rubric: dict, run_root: str | Path | None) -> dict:
+def _validate_v2_result(
+    result: dict,
+    rubric: dict,
+    run_root: str | Path | None,
+    expected_freeze_manifest_sha256: str | None,
+) -> dict:
     result_fields = {
         "schema_version", "rubric_sha256", "freeze_manifest_sha256", "gates", "metrics", "questions",
     }
     if "authoring_telemetry" in result:
         result_fields.add("authoring_telemetry")
     _exact_object(result, result_fields, "v2 result")
-    root, frozen_files, paired = _v2_run_context(result, rubric, run_root)
+    root, frozen_files, paired = _v2_run_context(
+        result, rubric, run_root, expected_freeze_manifest_sha256
+    )
     gates = _exact_object(result["gates"], set(rubric["gates"]), "gates")
     for gate, value in gates.items():
         if not isinstance(value, dict) or set(value) != {"passed", "evidence"}:
@@ -571,6 +612,7 @@ def _validate_v2_result(result: dict, rubric: dict, run_root: str | Path | None)
             evidence_paths.add(path)
             if path != "freeze-manifest.json" and path not in frozen_files:
                 raise EvaluationError(f"gates.{gate}.evidence[{index}] must name a frozen file")
+            _resolved_run_path(root, root / path, f"gates.{gate}.evidence[{index}]")
     metrics = _validate_v2_core_metrics(result["metrics"])
     question_results = result["questions"]
     if not isinstance(question_results, list) or not question_results:
@@ -622,8 +664,11 @@ def _validate_v2_result(result: dict, rubric: dict, run_root: str | Path | None)
                 raise EvaluationError(f"questions.{question_id}.{arm}.telemetry must be arm-specific")
             if telemetry_path not in frozen_files:
                 raise EvaluationError(f"questions.{question_id}.{arm}.telemetry must name a frozen file")
+            resolved_telemetry = _resolved_run_path(
+                root, root / telemetry_path, f"questions.{question_id}.{arm}.telemetry"
+            )
             telemetry[(question_id, arm)] = _validate_question_telemetry(
-                load_json(root / telemetry_path), question_id, arm, f"questions.{question_id}.{arm}"
+                load_json(resolved_telemetry), question_id, arm, f"questions.{question_id}.{arm}"
             )
     authoring = None
     if "authoring_telemetry" in result:
@@ -632,7 +677,8 @@ def _validate_v2_result(result: dict, rubric: dict, run_root: str | Path | None)
             raise EvaluationError("authoring_telemetry must be beneath telemetry/")
         if authoring_path not in frozen_files:
             raise EvaluationError("authoring_telemetry must name a frozen file")
-        authoring = _validate_authoring_telemetry(load_json(root / authoring_path), "authoring telemetry")
+        resolved_authoring = _resolved_run_path(root, root / authoring_path, "authoring_telemetry")
+        authoring = _validate_authoring_telemetry(load_json(resolved_authoring), "authoring telemetry")
     return {
         "paired": paired,
         "by_id": by_id,
@@ -642,12 +688,18 @@ def _validate_v2_result(result: dict, rubric: dict, run_root: str | Path | None)
     }
 
 
-def validate_result(result: dict, rubric: dict, run_root: str | Path | None = None) -> None:
+def validate_result(
+    result: dict,
+    rubric: dict,
+    run_root: str | Path | None = None,
+    *,
+    expected_freeze_manifest_sha256: str | None = None,
+) -> None:
     if result.get("schema_version") == RESULT_SCHEMA:
         _validate_v1_result(result, rubric)
         return
     if result.get("schema_version") == RESULT_SCHEMA_V2:
-        _validate_v2_result(result, rubric, run_root)
+        _validate_v2_result(result, rubric, run_root, expected_freeze_manifest_sha256)
         return
     raise EvaluationError(f"schema_version must be {RESULT_SCHEMA} or {RESULT_SCHEMA_V2}")
 
@@ -736,16 +788,38 @@ def _mean(values: list[float | bool]) -> float:
     return sum(float(value) for value in values) / len(values)
 
 
+def _finite_total(values: list[int | float], owner: str) -> int | float:
+    try:
+        total = sum(values)
+        finite = isfinite(float(total))
+    except (OverflowError, ValueError):
+        finite = False
+        total = 0
+    if not finite:
+        raise EvaluationError(f"{owner} must be finite")
+    return total
+
+
+def _finite_derived(value: float, owner: str) -> float:
+    try:
+        finite = isfinite(float(value))
+    except (OverflowError, ValueError):
+        finite = False
+    if not finite:
+        raise EvaluationError(f"{owner} must be finite")
+    return value
+
+
 def _read_reduction(records: list[tuple[dict, dict]], field: str = "bytes_read") -> float | None:
     atlas_values = [atlas[field] for atlas, _ in records]
     control_values = [control[field] for _, control in records]
     if any(value is None for value in (*atlas_values, *control_values)):
         return None
-    atlas_total = sum(atlas_values)
-    control_total = sum(control_values)
+    atlas_total = _finite_total(atlas_values, f"aggregate {field}")
+    control_total = _finite_total(control_values, f"aggregate {field}")
     if control_total == 0:
         return None
-    return (control_total - atlas_total) / control_total
+    return _finite_derived((control_total - atlas_total) / control_total, f"derived {field} reduction")
 
 
 def _derive_v2(data: dict, rubric: dict) -> tuple[dict, dict]:
@@ -795,8 +869,19 @@ def _derive_v2(data: dict, rubric: dict) -> tuple[dict, dict]:
         if authoring_cost is None or any(value is None for value in (*atlas_values, *control_values)):
             break_even[field] = None
             continue
-        marginal_saving = (sum(control_values) - sum(atlas_values)) / len(records)
-        break_even[field] = authoring_cost / marginal_saving if marginal_saving > 0 else None
+        atlas_total = _finite_total(atlas_values, f"aggregate {field}")
+        control_total = _finite_total(control_values, f"aggregate {field}")
+        marginal_saving = _finite_derived(
+            (control_total - atlas_total) / len(records), f"marginal {field} saving"
+        )
+        if marginal_saving > 0:
+            try:
+                break_even_value = authoring_cost / marginal_saving
+            except OverflowError as exc:
+                raise EvaluationError(f"break_even.{field} must be finite") from exc
+            break_even[field] = _finite_derived(break_even_value, f"break_even.{field}")
+        else:
+            break_even[field] = None
     comparison = {
         "atlas_accuracy": atlas_accuracy,
         "control_accuracy": control_accuracy,
@@ -844,12 +929,18 @@ def _derive_v2(data: dict, rubric: dict) -> tuple[dict, dict]:
     return comparison, normalized
 
 
-def score_result(result: dict, rubric: dict, run_root: str | Path | None = None) -> dict:
+def score_result(
+    result: dict,
+    rubric: dict,
+    run_root: str | Path | None = None,
+    *,
+    expected_freeze_manifest_sha256: str | None = None,
+) -> dict:
     if result.get("schema_version") == RESULT_SCHEMA:
         _validate_v1_result(result, rubric)
         return _score_validated_result(result, rubric, gates_pass=all(result["gates"].values()))
     if result.get("schema_version") == RESULT_SCHEMA_V2:
-        data = _validate_v2_result(result, rubric, run_root)
+        data = _validate_v2_result(result, rubric, run_root, expected_freeze_manifest_sha256)
         comparison, normalized = _derive_v2(data, rubric)
         return _score_validated_result(
             normalized,

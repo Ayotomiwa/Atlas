@@ -2,12 +2,15 @@ from copy import deepcopy
 from hashlib import sha256
 from pathlib import Path
 import json
+import os
+import subprocess
 
 import pytest
 
 from scripts.lib.evaluation import (
     EvaluationError,
     RUN_SCHEMA_V2,
+    digest_file,
     freeze_answers,
     freeze_run,
     load_json,
@@ -317,9 +320,8 @@ def _v2_run_and_result(
     telemetry_overrides = telemetry_overrides or {}
     for question in _PAIRED_QUESTIONS:
         for arm in ("atlas", "control"):
-            telemetry = _question_telemetry(
-                question["id"], arm, **telemetry_overrides.get((question["id"], arm), {})
-            )
+            telemetry = _question_telemetry(question["id"], arm)
+            telemetry.update(telemetry_overrides.get((question["id"], arm), {}))
             (run / "telemetry" / arm / f"{question['id']}.json").write_bytes(stable_json(telemetry))
     authoring = {
         "schema_version": "atlas-evaluation-phase-telemetry/1.0",
@@ -379,10 +381,32 @@ def _v2_run_and_result(
     return run, rubric, result
 
 
+def _validate_v2(result: dict, rubric: dict, run: Path, *, expected_digest: str | None = None) -> None:
+    validate_result(
+        result,
+        rubric,
+        run_root=run,
+        expected_freeze_manifest_sha256=(
+            result["freeze_manifest_sha256"] if expected_digest is None else expected_digest
+        ),
+    )
+
+
+def _score_v2(result: dict, rubric: dict, run: Path, *, expected_digest: str | None = None) -> dict:
+    return score_result(
+        result,
+        rubric,
+        run_root=run,
+        expected_freeze_manifest_sha256=(
+            result["freeze_manifest_sha256"] if expected_digest is None else expected_digest
+        ),
+    )
+
+
 def test_v2_derives_literal_paired_comparison_and_break_even(tmp_path: Path):
     run, rubric, result = _v2_run_and_result(tmp_path)
 
-    score = score_result(result, rubric, run_root=run)
+    score = _score_v2(result, rubric, run)
 
     assert score["comparison"] == {
         "atlas_accuracy": 0.8333333333333334,
@@ -432,7 +456,7 @@ def test_v2_requires_exact_paired_membership_and_categories(tmp_path: Path, muta
     mutation(result)
 
     with pytest.raises(EvaluationError, match=message):
-        validate_result(result, rubric, run_root=run)
+        _validate_v2(result, rubric, run)
 
 
 def test_v2_requires_run_root_and_rejects_judge_entered_m5_m6(tmp_path: Path):
@@ -444,7 +468,7 @@ def test_v2_requires_run_root_and_rejects_judge_entered_m5_m6(tmp_path: Path):
         invalid = deepcopy(result)
         invalid["metrics"][metric] = {}
         with pytest.raises(EvaluationError, match="exactly M1, M2 and M4"):
-            validate_result(invalid, rubric, run_root=run)
+            _validate_v2(invalid, rubric, run)
 
 
 @pytest.mark.parametrize(
@@ -463,31 +487,31 @@ def test_v2_gates_require_safe_frozen_evidence(tmp_path: Path, evidence: list[ob
     result["gates"]["G1"]["evidence"] = evidence
 
     with pytest.raises(EvaluationError, match=message):
-        validate_result(result, rubric, run_root=run)
+        _validate_v2(result, rubric, run)
 
 
 def test_v2_allows_bound_freeze_manifest_as_gate_evidence_and_rejects_gate_extras(tmp_path: Path):
     run, rubric, result = _v2_run_and_result(tmp_path)
     result["gates"]["G8"]["evidence"] = ["freeze-manifest.json"]
-    validate_result(result, rubric, run_root=run)
+    _validate_v2(result, rubric, run)
 
     result["gates"]["G8"]["note"] = "judge prose"
     with pytest.raises(EvaluationError, match="exactly passed and evidence"):
-        validate_result(result, rubric, run_root=run)
+        _validate_v2(result, rubric, run)
 
 
 def test_v2_preserves_negative_and_null_read_reduction_with_zero_positive_credit(tmp_path: Path):
     negative_run, rubric, negative_result = _v2_run_and_result(
         tmp_path, run_id="negative", telemetry_overrides={("Q1", "atlas"): {"bytes_read": 700}}
     )
-    negative = score_result(negative_result, rubric, run_root=negative_run)
+    negative = _score_v2(negative_result, rubric, negative_run)
     assert negative["comparison"]["read_cost_reduction"] == -0.5
     assert negative["family_scores"]["M6"] == 7.0
 
     null_run, rubric, null_result = _v2_run_and_result(
         tmp_path, run_id="null", telemetry_overrides={("Q1", "atlas"): {"bytes_read": None}}
     )
-    null_score = score_result(null_result, rubric, run_root=null_run)
+    null_score = _score_v2(null_result, rubric, null_run)
     assert null_score["comparison"]["read_cost_reduction"] is None
     assert null_score["comparison"]["conditions"]["cold"]["read_cost_reduction"] is None
     assert null_score["family_scores"]["M6"] == 7.0
@@ -501,14 +525,14 @@ def test_v2_fallback_disclosure_handles_proportion_and_no_fallback(tmp_path: Pat
             ("Q1", "atlas"): {"fallback_used": True, "fallback_disclosed": True},
         },
     )
-    assert score_result(proportion_result, rubric, run_root=proportion_run)["comparison"]["fallback_disclosure"] == 0.5
+    assert _score_v2(proportion_result, rubric, proportion_run)["comparison"]["fallback_disclosure"] == 0.5
 
     no_fallback_run, rubric, no_fallback_result = _v2_run_and_result(
         tmp_path,
         run_id="no-fallback",
         telemetry_overrides={("Q2", "atlas"): {"fallback_used": False, "fallback_disclosed": None}},
     )
-    assert score_result(no_fallback_result, rubric, run_root=no_fallback_run)["comparison"]["fallback_disclosure"] == 1.0
+    assert _score_v2(no_fallback_result, rubric, no_fallback_run)["comparison"]["fallback_disclosure"] == 1.0
 
 
 def test_v2_records_stable_arm_purity_violations_and_forces_not_ready(tmp_path: Path):
@@ -520,7 +544,7 @@ def test_v2_records_stable_arm_purity_violations_and_forces_not_ready(tmp_path: 
         },
     )
 
-    score = score_result(result, rubric, run_root=run)
+    score = _score_v2(result, rubric, run)
     assert score["comparison"]["protocol_violations"] == [
         "Q1/atlas: source_accessed=true",
         "Q2/control: atlas_accessed=true",
@@ -533,7 +557,7 @@ def test_v2_rejects_bad_telemetry_reference_and_schema(tmp_path: Path):
     run, rubric, result = _v2_run_and_result(tmp_path, run_id="references")
     result["questions"][0]["atlas"]["telemetry"] = "telemetry/control/Q1.json"
     with pytest.raises(EvaluationError, match="arm-specific"):
-        validate_result(result, rubric, run_root=run)
+        _validate_v2(result, rubric, run)
 
     bad_run, rubric, bad_result = _v2_run_and_result(
         tmp_path,
@@ -541,7 +565,7 @@ def test_v2_rejects_bad_telemetry_reference_and_schema(tmp_path: Path):
         telemetry_overrides={("Q1", "atlas"): {"schema_version": "bad"}},
     )
     with pytest.raises(EvaluationError, match="telemetry schema_version"):
-        validate_result(bad_result, rubric, run_root=bad_run)
+        _validate_v2(bad_result, rubric, bad_run)
 
 
 def test_v2_rejects_invalid_optional_authoring_telemetry(tmp_path: Path):
@@ -549,7 +573,7 @@ def test_v2_rejects_invalid_optional_authoring_telemetry(tmp_path: Path):
         tmp_path, authoring_overrides={"phase": "judging"}
     )
     with pytest.raises(EvaluationError, match="authoring telemetry phase"):
-        validate_result(result, rubric, run_root=run)
+        _validate_v2(result, rubric, run)
 
 
 def test_v2_failed_gate_fabrication_and_refusal_force_not_ready(tmp_path: Path):
@@ -561,14 +585,237 @@ def test_v2_failed_gate_fabrication_and_refusal_force_not_ready(tmp_path: Path):
     ):
         invalid = deepcopy(result)
         mutation(invalid)
-        assert score_result(invalid, rubric, run_root=run)["verdict"] == "Not ready"
+        assert _score_v2(invalid, rubric, run)["verdict"] == "Not ready"
 
 
 def test_v1_scoring_and_validation_ignore_optional_run_root(tmp_path: Path):
     rubric = load_json(ROOT / "evaluation" / "rubric.json")
     result = _result(rubric)
-    expected = score_result(result, rubric)
+    expected = {
+        "schema_version": "atlas-evaluation-score/1.0",
+        "family_scores": {"M1": 20.0, "M2": 20.0, "M4": 15.0, "M5": 30.0, "M6": 14.4},
+        "total": 99.4,
+        "gates_pass": True,
+        "fabrication_gate": True,
+        "honest_refusal_gate": True,
+        "verdict": "Ship",
+    }
 
-    validate_result(result, rubric, run_root=tmp_path)
-    assert score_result(result, rubric, run_root=tmp_path) == expected
+    validate_result(result, rubric, run_root=tmp_path, expected_freeze_manifest_sha256="not-a-digest")
+    assert score_result(
+        result, rubric, run_root=tmp_path, expected_freeze_manifest_sha256="not-a-digest"
+    ) == expected
     assert "comparison" not in expected
+
+
+def test_v2_requires_caller_trusted_freeze_digest(tmp_path: Path):
+    run, rubric, result = _v2_run_and_result(tmp_path)
+
+    with pytest.raises(EvaluationError, match="expected_freeze_manifest_sha256"):
+        validate_result(result, rubric, run_root=run)
+    with pytest.raises(EvaluationError, match="expected_freeze_manifest_sha256"):
+        score_result(result, rubric, run_root=run, expected_freeze_manifest_sha256="bad")
+
+
+def test_v2_rejects_coordinated_frozen_state_rewrite_against_trusted_digest(tmp_path: Path):
+    run, rubric, result = _v2_run_and_result(tmp_path)
+    trusted_digest = result["freeze_manifest_sha256"]
+    telemetry_path = run / "telemetry" / "atlas" / "Q1.json"
+    telemetry = load_json(telemetry_path)
+    telemetry["bytes_read"] = 101
+    telemetry_path.write_bytes(stable_json(telemetry))
+    manifest_path = run / "freeze-manifest.json"
+    manifest = load_json(manifest_path)
+    manifest["files"]["telemetry/atlas/Q1.json"] = digest_file(telemetry_path)
+    manifest_path.write_bytes(stable_json(manifest))
+    rewritten_digest = digest_file(manifest_path)
+    metadata = load_json(run / "run.json")
+    metadata["freeze_manifest_sha256"] = rewritten_digest
+    (run / "run.json").write_bytes(stable_json(metadata))
+    result["freeze_manifest_sha256"] = rewritten_digest
+    assert verify_run_freeze(run) == []
+
+    with pytest.raises(EvaluationError, match="caller-trusted freeze manifest digest"):
+        _validate_v2(result, rubric, run, expected_digest=trusted_digest)
+    with pytest.raises(EvaluationError, match="caller-trusted freeze manifest digest"):
+        _score_v2(result, rubric, run, expected_digest=trusted_digest)
+
+
+def test_v2_freeze_rejects_protected_file_symlink_resolving_outside_run(tmp_path: Path):
+    fixture = tmp_path / "fixture"
+    fixture.mkdir()
+    run = prepare_run(ROOT, tmp_path / "sealed", run_id="external-file-link", fixture=fixture, fixture_head="abc")
+    _write_v2_inputs(run)
+    outside = tmp_path / "outside.txt"
+    outside.write_text("outside\n", encoding="utf-8")
+    protected = run / "fixture" / "external.txt"
+    try:
+        protected.symlink_to(outside)
+    except (NotImplementedError, OSError) as exc:
+        pytest.skip(f"file symlinks are unavailable on this platform: {exc}")
+
+    with pytest.raises(EvaluationError, match="resolves outside the evaluation run"):
+        freeze_run(run)
+
+
+def test_v2_freeze_rejects_protected_directory_link_resolving_outside_run(tmp_path: Path):
+    fixture = tmp_path / "fixture"
+    fixture.mkdir()
+    run = prepare_run(ROOT, tmp_path / "sealed", run_id="external-link", fixture=fixture, fixture_head="abc")
+    _write_v2_inputs(run)
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "outside.txt").write_text("outside\n", encoding="utf-8")
+    protected = run / "fixture" / "external"
+    try:
+        protected.symlink_to(outside, target_is_directory=True)
+    except (NotImplementedError, OSError) as exc:
+        if os.name != "nt":
+            pytest.skip(f"directory symlinks are unavailable on this platform: {exc}")
+        junction = subprocess.run(
+            ["cmd", "/c", "mklink", "/J", str(protected), str(outside)],
+            capture_output=True,
+            text=True,
+        )
+        if junction.returncode != 0:
+            pytest.skip(f"directory links are unavailable on this platform: {junction.stderr.strip()}")
+
+    with pytest.raises(EvaluationError, match="resolves outside the evaluation run"):
+        freeze_run(run)
+
+
+@pytest.mark.parametrize(
+    ("overrides", "message"),
+    (
+        ({"unexpected": 0}, "must contain exactly"),
+        ({"bytes_read": True}, "bytes_read"),
+        ({"bytes_read": -1}, "bytes_read"),
+        ({"bytes_read": float("inf")}, "bytes_read"),
+        ({"question_id": "Q2"}, "question_id"),
+        ({"arm": "control"}, "telemetry arm"),
+    ),
+)
+def test_v2_rejects_telemetry_shape_numeric_and_routing_errors(
+    tmp_path: Path, overrides: dict, message: str,
+):
+    run, rubric, result = _v2_run_and_result(
+        tmp_path, telemetry_overrides={("Q1", "atlas"): overrides}
+    )
+
+    with pytest.raises(EvaluationError, match=message):
+        _validate_v2(result, rubric, run)
+
+
+@pytest.mark.parametrize(
+    ("arm", "overrides", "message"),
+    (
+        ("atlas", {"atlas_hit": None}, "atlas_hit"),
+        ("atlas", {"fallback_used": None}, "fallback_used"),
+        ("atlas", {"fallback_disclosed": None, "fallback_used": True}, "fallback_disclosed"),
+        ("atlas", {"source_accessed": None}, "source_accessed"),
+        ("atlas", {"atlas_accessed": None}, "atlas_accessed"),
+        ("control", {"atlas_hit": False}, "atlas_hit"),
+        ("control", {"fallback_used": False}, "fallback_used"),
+        ("control", {"fallback_disclosed": False}, "fallback_disclosed"),
+        ("control", {"source_accessed": None}, "source_accessed"),
+        ("control", {"atlas_accessed": None}, "atlas_accessed"),
+    ),
+)
+def test_v2_enforces_arm_specific_boolean_null_matrix(
+    tmp_path: Path, arm: str, overrides: dict, message: str,
+):
+    run, rubric, result = _v2_run_and_result(
+        tmp_path, telemetry_overrides={("Q1", arm): overrides}
+    )
+
+    with pytest.raises(EvaluationError, match=message):
+        _validate_v2(result, rubric, run)
+
+
+def test_v2_nulls_zero_control_read_and_unobservable_authoring_break_even(tmp_path: Path):
+    overrides = {
+        (question["id"], "control"): {"bytes_read": 0}
+        for question in _PAIRED_QUESTIONS
+    }
+    run, rubric, result = _v2_run_and_result(tmp_path, telemetry_overrides=overrides)
+    result.pop("authoring_telemetry")
+
+    comparison = _score_v2(result, rubric, run)["comparison"]
+    assert comparison["read_cost_reduction"] is None
+    assert comparison["break_even"] == {
+        "bytes_read": None,
+        "tool_calls": None,
+        "latency_ms": None,
+        "input_tokens": None,
+        "output_tokens": None,
+    }
+
+
+@pytest.mark.parametrize("atlas_q1_bytes", (400, 700))
+def test_v2_nulls_break_even_for_zero_or_negative_marginal_saving(
+    tmp_path: Path, atlas_q1_bytes: int,
+):
+    run, rubric, result = _v2_run_and_result(
+        tmp_path, telemetry_overrides={("Q1", "atlas"): {"bytes_read": atlas_q1_bytes}}
+    )
+
+    assert _score_v2(result, rubric, run)["comparison"]["break_even"]["bytes_read"] is None
+
+
+def test_v2_negative_accuracy_receives_no_positive_m6_credit(tmp_path: Path):
+    run, rubric, result = _v2_run_and_result(tmp_path)
+    result["questions"][0]["atlas"]["grade"] = "WRONG"
+    result["questions"][0]["control"]["grade"] = "CORRECT"
+
+    score = _score_v2(result, rubric, run)
+    assert score["comparison"]["accuracy_delta"] == -0.16666666666666663
+    assert score["family_scores"]["M6"] == 6.0
+
+
+def test_v2_atlas_fabricated_grade_forces_not_ready(tmp_path: Path):
+    run, rubric, result = _v2_run_and_result(tmp_path)
+    result["questions"][0]["atlas"]["grade"] = "FABRICATED"
+
+    score = _score_v2(result, rubric, run)
+    assert score["fabrication_gate"] is False
+    assert score["verdict"] == "Not ready"
+
+
+def test_v2_rejects_very_large_observable_integer_as_evaluation_error(tmp_path: Path):
+    run, rubric, result = _v2_run_and_result(
+        tmp_path, telemetry_overrides={("Q1", "atlas"): {"bytes_read": 10 ** 400}}
+    )
+
+    with pytest.raises(EvaluationError, match="bytes_read"):
+        _validate_v2(result, rubric, run)
+
+
+def test_v2_rejects_non_finite_aggregate_totals(tmp_path: Path):
+    overrides = {
+        (question["id"], arm): {"bytes_read": 1e308}
+        for question in _PAIRED_QUESTIONS
+        for arm in ("atlas", "control")
+    }
+    run, rubric, result = _v2_run_and_result(tmp_path, telemetry_overrides=overrides)
+
+    with pytest.raises(EvaluationError, match="aggregate bytes_read"):
+        _score_v2(result, rubric, run)
+
+
+def test_v2_rejects_non_finite_derived_break_even(tmp_path: Path):
+    overrides = {
+        (question["id"], "atlas"): {"input_tokens": 0.0}
+        for question in _PAIRED_QUESTIONS
+    }
+    overrides.update({
+        (question["id"], "control"): {"input_tokens": 1e-308}
+        for question in _PAIRED_QUESTIONS
+    })
+    run, rubric, result = _v2_run_and_result(
+        tmp_path,
+        telemetry_overrides=overrides,
+        authoring_overrides={"input_tokens": 1e308},
+    )
+
+    with pytest.raises(EvaluationError, match="break_even.input_tokens"):
+        _score_v2(result, rubric, run)
