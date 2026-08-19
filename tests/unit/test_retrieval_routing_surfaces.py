@@ -118,6 +118,8 @@ def test_binding_matrix_and_three_way_entrance_match_on_both_platforms() -> None
     )
     _assert_all(
         "runtime",
+        "Atlas-first entrance",
+        "do not query or open Atlas",
         "selected curated page",
         "index fallback",
         "reverse or multi-hop",
@@ -366,6 +368,14 @@ def test_session_revision_compatibility_and_warm_call_reuse_are_explicit() -> No
     )
     for surface in ("runtime", "handoffs", "managed_block"):
         _assert_absent(surface, "ephemeral ordered access ledger")
+
+
+def test_curated_trust_docs_use_deprecated_not_historical() -> None:
+    for relative in ("_curated/README.md", "_curated/maps/README.md"):
+        text = (ROOT / relative).read_text(encoding="utf-8")
+        trust_paragraph = _paragraph_containing(text, "deprecated content")
+        assert "deprecated" in trust_paragraph, relative
+        assert "historical" not in trust_paragraph, relative
 
 
 def test_verified_source_evidence_can_satisfy_a_follow_up_without_retrieval() -> None:

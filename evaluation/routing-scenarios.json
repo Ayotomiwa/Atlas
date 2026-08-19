@@ -1,0 +1,89 @@
+{
+  "schema_version": "atlas-routing-scenarios/1.0",
+  "scenarios": [
+    {
+      "id": "local-source",
+      "title": "Known local source boundary",
+      "prompt": "In src/worker.py, what starts the worker?",
+      "condition": "fresh",
+      "follows": null,
+      "allowed_routes": ["source-only"],
+      "requires_atlas": false,
+      "requires_source": true,
+      "zero_retrieval": false,
+      "first_access": ["source-read"],
+      "requires_revision": false,
+      "atlas_before_source": false
+    },
+    {
+      "id": "unfamiliar-flow",
+      "title": "Unfamiliar cross-system flow",
+      "prompt": "How does the monthly publication flow work?",
+      "condition": "fresh",
+      "follows": null,
+      "allowed_routes": ["atlas-only", "atlas-plus-source", "unresolved"],
+      "requires_atlas": true,
+      "requires_source": false,
+      "zero_retrieval": false,
+      "first_access": ["atlas-query", "atlas-page"],
+      "requires_revision": false,
+      "atlas_before_source": false
+    },
+    {
+      "id": "warm-follow-up",
+      "title": "Warm follow-up fully supported by retained evidence",
+      "prompt": "Which component performs its final step?",
+      "condition": "warm",
+      "follows": "unfamiliar-flow",
+      "allowed_routes": ["retained-context"],
+      "requires_atlas": false,
+      "requires_source": false,
+      "zero_retrieval": true,
+      "first_access": [],
+      "requires_revision": false,
+      "atlas_before_source": false
+    },
+    {
+      "id": "revision-change",
+      "title": "Exact source question at a requested revision",
+      "prompt": "At HEAD~1, what started this worker?",
+      "condition": "fresh",
+      "follows": null,
+      "allowed_routes": ["source-only"],
+      "requires_atlas": false,
+      "requires_source": true,
+      "zero_retrieval": false,
+      "first_access": ["source-read"],
+      "requires_revision": true,
+      "atlas_before_source": false
+    },
+    {
+      "id": "readiness",
+      "title": "Cross-boundary readiness with exact source verification",
+      "prompt": "Is the monthly publisher ready to release?",
+      "condition": "fresh",
+      "follows": null,
+      "allowed_routes": ["atlas-plus-source"],
+      "requires_atlas": true,
+      "requires_source": true,
+      "zero_retrieval": false,
+      "first_access": ["atlas-query", "atlas-page"],
+      "requires_revision": false,
+      "atlas_before_source": true
+    },
+    {
+      "id": "unknown-ownership",
+      "title": "Ownership remains unknown after routed checks",
+      "prompt": "Who owns the monthly publisher?",
+      "condition": "fresh",
+      "follows": null,
+      "allowed_routes": ["unresolved"],
+      "requires_atlas": true,
+      "requires_source": false,
+      "zero_retrieval": false,
+      "first_access": ["atlas-query", "atlas-page"],
+      "requires_revision": false,
+      "atlas_before_source": false
+    }
+  ]
+}

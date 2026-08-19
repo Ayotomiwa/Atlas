@@ -1464,3 +1464,230 @@ def test_v1_cli_validate_and_score_keep_legacy_output_without_freeze_digest(
         "honest_refusal_gate": True,
         "verdict": "Ship",
     }
+
+
+def _routing_acceptance_result() -> dict:
+    current = "a" * 40
+    requested_commit = "b" * 40
+    telemetry = {field: None for field in evaluation.OBSERVABLE_FIELDS}
+    return {
+        "schema_version": "atlas-routing-acceptance/1.0",
+        "atlas_commit": "c" * 40,
+        "model": "claude-test",
+        "scenarios": [
+            {
+                "id": "local-source",
+                "prompt": "In src/worker.py, what starts the worker?",
+                "session_id": "session-local",
+                "route": "source-only",
+                "requested_revision": None,
+                "resolved_revision": current,
+                "accesses": [
+                    {"kind": "source-read", "target": "src/worker.py:run", "revision": current}
+                ],
+                "citations": [
+                    {"kind": "source", "target": "src/worker.py:10", "revision": current}
+                ],
+                "telemetry": dict(telemetry),
+            },
+            {
+                "id": "unfamiliar-flow",
+                "prompt": "How does the monthly publication flow work?",
+                "session_id": "session-flow",
+                "route": "atlas-only",
+                "requested_revision": None,
+                "resolved_revision": None,
+                "accesses": [
+                    {"kind": "atlas-query", "target": "flow.monthly-publish", "revision": None}
+                ],
+                "citations": [
+                    {
+                        "kind": "atlas",
+                        "target": "_curated/flows/payments/monthly-publish.md",
+                        "revision": None,
+                    }
+                ],
+                "telemetry": dict(telemetry),
+            },
+            {
+                "id": "warm-follow-up",
+                "prompt": "Which component performs its final step?",
+                "session_id": "session-flow",
+                "route": "retained-context",
+                "requested_revision": None,
+                "resolved_revision": None,
+                "accesses": [],
+                "citations": [
+                    {
+                        "kind": "atlas",
+                        "target": "_curated/flows/payments/monthly-publish.md",
+                        "revision": None,
+                    }
+                ],
+                "telemetry": dict(telemetry),
+            },
+            {
+                "id": "revision-change",
+                "prompt": "At HEAD~1, what started this worker?",
+                "session_id": "session-revision",
+                "route": "source-only",
+                "requested_revision": "HEAD~1",
+                "resolved_revision": requested_commit,
+                "accesses": [
+                    {"kind": "source-read", "target": "src/worker.py:run", "revision": requested_commit}
+                ],
+                "citations": [
+                    {
+                        "kind": "source",
+                        "target": "src/worker.py:10",
+                        "revision": requested_commit,
+                    }
+                ],
+                "telemetry": dict(telemetry),
+            },
+            {
+                "id": "readiness",
+                "prompt": "Is the monthly publisher ready to release?",
+                "session_id": "session-readiness",
+                "route": "atlas-plus-source",
+                "requested_revision": None,
+                "resolved_revision": current,
+                "accesses": [
+                    {"kind": "atlas-page", "target": "comp.monthly-publisher", "revision": None},
+                    {"kind": "source-read", "target": "deploy/publisher.yaml", "revision": current},
+                ],
+                "citations": [
+                    {
+                        "kind": "atlas",
+                        "target": "_curated/components/payments/monthly-publisher.md",
+                        "revision": None,
+                    },
+                    {"kind": "source", "target": "deploy/publisher.yaml:8", "revision": current},
+                ],
+                "telemetry": dict(telemetry),
+            },
+            {
+                "id": "unknown-ownership",
+                "prompt": "Who owns the monthly publisher?",
+                "session_id": "session-ownership",
+                "route": "unresolved",
+                "requested_revision": None,
+                "resolved_revision": None,
+                "accesses": [
+                    {"kind": "atlas-query", "target": "ownership monthly publisher", "revision": None}
+                ],
+                "citations": [
+                    {
+                        "kind": "atlas",
+                        "target": "_curated/components/payments/monthly-publisher.md#ownership",
+                        "revision": None,
+                    }
+                ],
+                "telemetry": dict(telemetry),
+            },
+        ],
+    }
+
+
+def test_routing_acceptance_validates_the_six_observed_access_scenarios():
+    scenarios = load_json(ROOT / "evaluation" / "routing-scenarios.json")
+    evaluation.validate_routing_acceptance(_routing_acceptance_result(), scenarios)
+
+
+def test_routing_acceptance_binds_results_to_frozen_prompts():
+    scenarios = load_json(ROOT / "evaluation" / "routing-scenarios.json")
+    result = _routing_acceptance_result()
+    result["scenarios"][0]["prompt"] = "A different prompt"
+    with pytest.raises(EvaluationError, match="frozen prompt"):
+        evaluation.validate_routing_acceptance(result, scenarios)
+
+
+def test_routing_acceptance_binds_source_citations_to_resolved_revision():
+    scenarios = load_json(ROOT / "evaluation" / "routing-scenarios.json")
+    result = _routing_acceptance_result()
+    revision = next(item for item in result["scenarios"] if item["id"] == "revision-change")
+    revision["citations"][0]["revision"] = "d" * 40
+    with pytest.raises(EvaluationError, match="citation.*resolved_revision"):
+        evaluation.validate_routing_acceptance(result, scenarios)
+
+
+def test_routing_acceptance_rejects_missing_scenarios_and_warm_retrieval():
+    scenarios = load_json(ROOT / "evaluation" / "routing-scenarios.json")
+    result = _routing_acceptance_result()
+    result["scenarios"].pop()
+    with pytest.raises(EvaluationError, match="missing routing scenarios"):
+        evaluation.validate_routing_acceptance(result, scenarios)
+
+    result = _routing_acceptance_result()
+    warm = next(item for item in result["scenarios"] if item["id"] == "warm-follow-up")
+    warm["accesses"].append(
+        {"kind": "atlas-query", "target": "comp.monthly-publisher", "revision": None}
+    )
+    with pytest.raises(EvaluationError, match="zero retrieval"):
+        evaluation.validate_routing_acceptance(result, scenarios)
+
+    result = _routing_acceptance_result()
+    local = next(item for item in result["scenarios"] if item["id"] == "local-source")
+    local["accesses"].append(
+        {"kind": "atlas-query", "target": "comp.worker", "revision": None}
+    )
+    with pytest.raises(EvaluationError, match="source-only"):
+        evaluation.validate_routing_acceptance(result, scenarios)
+
+
+def test_routing_acceptance_rejects_revision_mismatch_and_wrong_readiness_order():
+    scenarios = load_json(ROOT / "evaluation" / "routing-scenarios.json")
+    result = _routing_acceptance_result()
+    revision = next(item for item in result["scenarios"] if item["id"] == "revision-change")
+    revision["accesses"][0]["revision"] = "d" * 40
+    with pytest.raises(EvaluationError, match="resolved_revision"):
+        evaluation.validate_routing_acceptance(result, scenarios)
+
+    result = _routing_acceptance_result()
+    readiness = next(item for item in result["scenarios"] if item["id"] == "readiness")
+    readiness["accesses"].reverse()
+    with pytest.raises(EvaluationError, match="first access|Atlas before source"):
+        evaluation.validate_routing_acceptance(result, scenarios)
+
+
+def test_routing_acceptance_enforces_fresh_and_warm_session_boundaries():
+    scenarios = load_json(ROOT / "evaluation" / "routing-scenarios.json")
+    result = _routing_acceptance_result()
+    warm = next(item for item in result["scenarios"] if item["id"] == "warm-follow-up")
+    warm["session_id"] = "new-session"
+    with pytest.raises(EvaluationError, match="same session"):
+        evaluation.validate_routing_acceptance(result, scenarios)
+
+    result = _routing_acceptance_result()
+    revision = next(item for item in result["scenarios"] if item["id"] == "revision-change")
+    revision["session_id"] = "session-flow"
+    with pytest.raises(EvaluationError, match="fresh session"):
+        evaluation.validate_routing_acceptance(result, scenarios)
+
+
+def test_routing_acceptance_cli_and_telemetry_are_strict(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str],
+):
+    result = _routing_acceptance_result()
+    path = _write_result(tmp_path / "routing.json", result)
+    assert atlas_eval_main(["validate-routing", str(path)]) == 0
+    assert capsys.readouterr().out == "Routing acceptance result is valid.\n"
+
+    result["scenarios"][0]["telemetry"]["tool_calls"] = -1
+    path = _write_result(tmp_path / "routing-invalid.json", result)
+    assert atlas_eval_main(["validate-routing", str(path)]) == 1
+    assert "non-negative" in capsys.readouterr().err
+
+
+def test_routing_acceptance_is_a_separate_documented_evaluation_mode():
+    paths = (
+        ROOT / ".claude" / "skills" / "atlas-evaluate" / "SKILL.md",
+        ROOT / ".agents" / "skills" / "atlas-evaluate" / "SKILL.md",
+        ROOT / "evaluation" / "README.md",
+    )
+    for path in paths:
+        text = path.read_text(encoding="utf-8")
+        assert "validate-routing" in text, path
+        assert "routing-scenarios.json" in text, path
+        assert "fresh" in text and "warm" in text, path
+        assert "separate" in text and "answer" in text, path

@@ -10,7 +10,7 @@ Use this three-way entrance after Atlas eligibility is established:
 2. **Exact source boundary** when a bound-repository question is genuinely local and identifies one known file, symbol or isolated edit. Explicit Ask Atlas does not use this bypass.
 3. **Atlas first** for Explicit Ask Atlas and for uncertain, broad, multi-hop, Git-history, durable-context, impact, ownership, conflict, standards, recovery or readiness questions.
 
-After selecting the entrance, open the selected curated page and follow its answer-bearing links. Use the relevant collection/domain index fallback when identity is weak or ambiguous, use maps only for reverse or multi-hop traversal after stable-ID selection, and perform the smallest bounded source check where Atlas coverage ends. Preserve an unresolved boundary when neither Atlas nor authorised source closes the question.
+The retained-evidence and exact-source-boundary entrances do not query or open Atlas unless a re-entry condition below applies. For the Atlas-first entrance, open the selected curated page and follow its answer-bearing links. Use the relevant collection/domain index fallback when identity is weak or ambiguous, use maps only for reverse or multi-hop traversal after stable-ID selection, and perform the smallest bounded source check where Atlas coverage ends. Preserve an unresolved boundary when neither Atlas nor authorised source closes the question.
 
 Resolve `ATLAS_ROOT` from `${CLAUDE_SKILL_DIR}`: the live package root is three directories above an Atlas skill directory. Canonicalise the absolute path and validate that `<ATLAS_ROOT>/atlas-package.json` exists, has `schema_version: atlas-package/1.0`, and identifies the expected package before using Atlas. If resolution or validation fails, state that Atlas was not consulted, tell the user to restart with `claude --add-dir <path-to-current-Atlas-checkout>`, explain that a moved checkout must be supplied again, and offer bounded product-source inspection.
 
@@ -50,7 +50,7 @@ When already verified repository evidence remains current and supports every mat
 
 Re-enter the applicable Atlas routing mode when the repository, requested revision, selected record or question type changes; source or checkout state may have changed; the question crosses the recorded coverage endpoint; or the work concerns impact, ownership, conflicts, standards, recovery or another boundary. Re-entry opens only the routes needed for the new scope and carries still-valid session state into any specialist handoff.
 
-For ordinary product questions outside `ATLAS_ROOT`, the typed hybrid entrance is eligible after direct Ask Atlas or when the current product repository contains a valid managed Atlas block. `matched`, `path-derived`, and `not-verified` managed bindings are eligible; only `not-verified` requires the routing-only advisory below. In an unbound repository without explicit intent, do not query Atlas. When eligible, resolve an explicit stable ID directly. Otherwise infer likely curated types and run:
+For ordinary product questions outside `ATLAS_ROOT`, the typed hybrid entrance is eligible after direct Ask Atlas or when the current product repository contains a valid managed Atlas block. `matched`, `path-derived`, and `not-verified` managed bindings are eligible; only `not-verified` requires the routing-only advisory below. In an unbound repository without explicit intent, do not query Atlas. When the Atlas-first entrance is selected, resolve an explicit stable ID directly. Otherwise infer likely curated types and run:
 
 ```text
 python <ATLAS_ROOT>/scripts/atlas_query.py --root <ATLAS_ROOT> --format json find <query> --type <type> --path <current-path>
@@ -60,7 +60,7 @@ Search returns candidates, not truth. Select using the question, match reasons, 
 
 Allow `locator_match: not-verified` product candidates, but include a visible routing-only advisory in every substantive answer that uses one: path context was routing evidence rather than proof of repository identity. If an Atlas-relevant product repository outside `ATLAS_ROOT` lacks a valid managed instructions block, make one non-blocking `atlas-setup-repo` offer per repository/session; discovery remains read-only.
 
-Route through curated Atlas before broad product-source exploration. If Atlas is insufficient, state where coverage ended and continue with a bounded source inspection inside the user's scope. `_staging/` records are non-authoritative routing and completeness evidence, never factual authority. Never use generated maps, query output, generation or lint as semantic authority.
+When Atlas is used, route through curated Atlas before broad product-source exploration. If Atlas is insufficient, state where coverage ended and continue with a bounded source inspection inside the user's scope. `_staging/` records are non-authoritative routing and completeness evidence, never factual authority. Never use generated maps, query output, generation or lint as semantic authority.
 
 Lifecycle determines trust: every `status: curated` page is `authoritative`, while deprecated content is `deprecated` and non-authoritative. Query reports Git separately as `checkout_state`; mention a non-`main-clean` state once and briefly, without blocking or downgrading authority. Merge changes the checkout advisory automatically and requires no page-status mutation.
 

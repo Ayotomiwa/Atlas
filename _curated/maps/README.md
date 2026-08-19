@@ -42,4 +42,4 @@ python scripts/atlas_query.py neighbors comp.example-ingest
 python scripts/atlas_query.py impact comp.example-ingest --direction downstream
 ```
 
-The query tool derives trust from lifecycle: `status: curated` is authoritative and deprecated content is historical. It reports Git separately through a compact checkout-state advisory, which never blocks traversal or changes authority. `context` resolves physical Git/path information to ordered repository/component candidates without hiding ambiguity. Open linked pages when the map cannot answer the question completely.
+The query tool derives trust from lifecycle: `status: curated` is authoritative and deprecated content is `deprecated` and non-authoritative. It reports Git separately through a compact checkout-state advisory, which never blocks traversal or changes authority. `context` resolves physical Git/path information to ordered repository/component candidates without hiding ambiguity. Open linked pages when the map cannot answer the question completely.

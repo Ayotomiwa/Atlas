@@ -13,6 +13,12 @@ RUN_SCHEMA_V2 = "atlas-evaluation-run/2.0"
 RUN_FREEZE_SCHEMA_V2 = "atlas-evaluation-run-freeze/2.0"
 QUESTION_TELEMETRY_SCHEMA = "atlas-evaluation-telemetry/1.0"
 PHASE_TELEMETRY_SCHEMA = "atlas-evaluation-phase-telemetry/1.0"
+ROUTING_ACCEPTANCE_SCHEMA = "atlas-routing-acceptance/1.0"
+ROUTING_SCENARIOS_SCHEMA = "atlas-routing-scenarios/1.0"
+ROUTE_CLASSES = {
+    "retained-context", "source-only", "atlas-only", "atlas-plus-source", "unresolved",
+}
+ROUTING_ACCESS_KINDS = {"atlas-query", "atlas-page", "source-read"}
 CATEGORY_TO_WEIGHT = {
     "LOOKUP": "lookup",
     "SYNTHESIS": "synthesis",
@@ -536,6 +542,238 @@ def _observable(value: object, owner: str) -> int | float | None:
     if not finite:
         raise EvaluationError(f"{owner} must be a finite non-negative number or null; never estimate it")
     return value
+
+
+def _full_commit(value: object, owner: str) -> str:
+    if (
+        not isinstance(value, str)
+        or len(value) not in {40, 64}
+        or value != value.lower()
+        or any(character not in "0123456789abcdef" for character in value)
+    ):
+        raise EvaluationError(f"{owner} must be a full lowercase 40- or 64-character commit")
+    return value
+
+
+def _routing_scenario_contracts(value: dict) -> list[dict]:
+    value = _exact_object(value, {"schema_version", "scenarios"}, "routing scenarios")
+    if value["schema_version"] != ROUTING_SCENARIOS_SCHEMA:
+        raise EvaluationError(f"routing scenarios schema_version must be {ROUTING_SCENARIOS_SCHEMA}")
+    scenarios = value["scenarios"]
+    if not isinstance(scenarios, list) or not scenarios:
+        raise EvaluationError("routing scenarios must be a non-empty list")
+    fields = {
+        "id", "title", "prompt", "condition", "follows", "allowed_routes", "requires_atlas", "requires_source",
+        "zero_retrieval", "first_access", "requires_revision", "atlas_before_source",
+    }
+    ids: set[str] = set()
+    for index, scenario in enumerate(scenarios):
+        owner = f"routing scenarios[{index}]"
+        scenario = _exact_object(scenario, fields, owner)
+        scenario_id = scenario["id"]
+        if not isinstance(scenario_id, str) or not scenario_id.strip() or scenario_id in ids:
+            raise EvaluationError(f"{owner}.id must be unique and non-empty")
+        ids.add(scenario_id)
+        if not isinstance(scenario["title"], str) or not scenario["title"].strip():
+            raise EvaluationError(f"{owner}.title must be non-empty")
+        if not isinstance(scenario["prompt"], str) or not scenario["prompt"].strip():
+            raise EvaluationError(f"{owner}.prompt must be non-empty")
+        if scenario["condition"] not in {"fresh", "warm"}:
+            raise EvaluationError(f"{owner}.condition must be fresh or warm")
+        follows = scenario["follows"]
+        if scenario["condition"] == "fresh" and follows is not None:
+            raise EvaluationError(f"{owner}.follows must be null for a fresh scenario")
+        if scenario["condition"] == "warm" and (
+            not isinstance(follows, str) or not follows.strip() or follows == scenario_id
+        ):
+            raise EvaluationError(f"{owner}.follows must name another scenario for a warm scenario")
+        routes = scenario["allowed_routes"]
+        if (
+            not isinstance(routes, list)
+            or not routes
+            or len(routes) != len(set(routes))
+            or any(route not in ROUTE_CLASSES for route in routes)
+        ):
+            raise EvaluationError(f"{owner}.allowed_routes must be unique supported route classes")
+        first = scenario["first_access"]
+        if (
+            not isinstance(first, list)
+            or len(first) != len(set(first))
+            or any(kind not in ROUTING_ACCESS_KINDS for kind in first)
+        ):
+            raise EvaluationError(f"{owner}.first_access must contain unique supported access kinds")
+        for field in (
+            "requires_atlas", "requires_source", "zero_retrieval",
+            "requires_revision", "atlas_before_source",
+        ):
+            _bool(scenario[field], f"{owner}.{field}")
+    unknown_predecessors = sorted(
+        scenario["follows"]
+        for scenario in scenarios
+        if scenario["condition"] == "warm" and scenario["follows"] not in ids
+    )
+    if unknown_predecessors:
+        raise EvaluationError(
+            f"warm routing scenarios reference unknown predecessors: {', '.join(unknown_predecessors)}"
+        )
+    return scenarios
+
+
+def validate_routing_acceptance(result: dict, scenario_contract: dict) -> None:
+    """Validate observed retrieval order separately from sealed answer-quality scoring."""
+    result = _exact_object(
+        result, {"schema_version", "atlas_commit", "model", "scenarios"},
+        "routing acceptance result",
+    )
+    if result["schema_version"] != ROUTING_ACCEPTANCE_SCHEMA:
+        raise EvaluationError(f"routing result schema_version must be {ROUTING_ACCEPTANCE_SCHEMA}")
+    _full_commit(result["atlas_commit"], "routing result atlas_commit")
+    if not isinstance(result["model"], str) or not result["model"].strip():
+        raise EvaluationError("routing result model must be non-empty")
+    contracts = _routing_scenario_contracts(scenario_contract)
+    expected = {scenario["id"]: scenario for scenario in contracts}
+    items = result["scenarios"]
+    if not isinstance(items, list) or not items:
+        raise EvaluationError("routing result scenarios must be a non-empty list")
+    result_fields = {
+        "id", "prompt", "session_id", "route", "requested_revision", "resolved_revision",
+        "accesses", "citations", "telemetry",
+    }
+    actual: dict[str, dict] = {}
+    for index, item in enumerate(items):
+        item = _exact_object(item, result_fields, f"routing result scenarios[{index}]")
+        scenario_id = item["id"]
+        if not isinstance(scenario_id, str) or not scenario_id.strip() or scenario_id in actual:
+            raise EvaluationError("routing result scenario ids must be unique and non-empty")
+        actual[scenario_id] = item
+    missing = sorted(set(expected) - set(actual))
+    extra = sorted(set(actual) - set(expected))
+    if missing:
+        raise EvaluationError(f"missing routing scenarios: {', '.join(missing)}")
+    if extra:
+        raise EvaluationError(f"extra routing scenarios: {', '.join(extra)}")
+
+    fresh_sessions: dict[str, str] = {}
+    for scenario in contracts:
+        item = actual[scenario["id"]]
+        if item["prompt"] != scenario["prompt"]:
+            raise EvaluationError(
+                f"routing result {scenario['id']}.prompt must equal the frozen prompt"
+            )
+        session_id = item["session_id"]
+        if not isinstance(session_id, str) or not session_id.strip():
+            raise EvaluationError(f"routing result {scenario['id']}.session_id must be non-empty")
+        if scenario["condition"] == "fresh":
+            if session_id in fresh_sessions:
+                raise EvaluationError(
+                    f"routing result {scenario['id']} must use a fresh session; "
+                    f"it reuses {fresh_sessions[session_id]}"
+                )
+            fresh_sessions[session_id] = scenario["id"]
+    for scenario in contracts:
+        if scenario["condition"] == "warm":
+            item = actual[scenario["id"]]
+            predecessor = actual[scenario["follows"]]
+            if item["session_id"] != predecessor["session_id"]:
+                raise EvaluationError(
+                    f"routing result {scenario['id']} must use the same session as {scenario['follows']}"
+                )
+
+    access_fields = {"kind", "target", "revision"}
+    for scenario in contracts:
+        scenario_id = scenario["id"]
+        item = actual[scenario_id]
+        owner = f"routing result {scenario_id}"
+        if item["route"] not in scenario["allowed_routes"]:
+            allowed = ", ".join(scenario["allowed_routes"])
+            raise EvaluationError(f"{owner}.route must be one of: {allowed}")
+        requested = item["requested_revision"]
+        if requested is not None and (not isinstance(requested, str) or not requested.strip()):
+            raise EvaluationError(f"{owner}.requested_revision must be non-empty or null")
+        resolved = item["resolved_revision"]
+        if resolved is not None:
+            resolved = _full_commit(resolved, f"{owner}.resolved_revision")
+        if scenario["requires_revision"] and (requested is None or resolved is None):
+            raise EvaluationError(f"{owner} requires requested_revision and resolved_revision")
+
+        accesses = item["accesses"]
+        if not isinstance(accesses, list):
+            raise EvaluationError(f"{owner}.accesses must be a list")
+        kinds: list[str] = []
+        for access_index, access in enumerate(accesses):
+            access_owner = f"{owner}.accesses[{access_index}]"
+            access = _exact_object(access, access_fields, access_owner)
+            kind = access["kind"]
+            if kind not in ROUTING_ACCESS_KINDS:
+                raise EvaluationError(f"{access_owner}.kind is unsupported")
+            if not isinstance(access["target"], str) or not access["target"].strip():
+                raise EvaluationError(f"{access_owner}.target must be non-empty")
+            if kind == "source-read":
+                source_revision = _full_commit(access["revision"], f"{access_owner}.revision")
+                if resolved is None or source_revision != resolved:
+                    raise EvaluationError(f"{access_owner}.revision must match resolved_revision")
+            elif access["revision"] is not None:
+                raise EvaluationError(f"{access_owner}.revision must be null for Atlas access")
+            kinds.append(kind)
+
+        atlas_positions = [index for index, kind in enumerate(kinds) if kind.startswith("atlas-")]
+        source_positions = [index for index, kind in enumerate(kinds) if kind == "source-read"]
+        route = item["route"]
+        if route == "retained-context" and accesses:
+            raise EvaluationError(f"{owner} retained-context must perform zero retrieval")
+        if route == "source-only" and (atlas_positions or not source_positions):
+            raise EvaluationError(f"{owner} source-only must use source without Atlas access")
+        if route == "atlas-only" and (not atlas_positions or source_positions):
+            raise EvaluationError(f"{owner} atlas-only must use Atlas without source access")
+        if route == "atlas-plus-source" and (not atlas_positions or not source_positions):
+            raise EvaluationError(f"{owner} atlas-plus-source must use both Atlas and source")
+        if scenario["zero_retrieval"] and accesses:
+            raise EvaluationError(f"{owner} requires zero retrieval")
+        if scenario["requires_atlas"] and not atlas_positions:
+            raise EvaluationError(f"{owner} requires an Atlas access")
+        if scenario["requires_source"] and not source_positions:
+            raise EvaluationError(f"{owner} requires a source read")
+        if accesses and scenario["first_access"] and kinds[0] not in scenario["first_access"]:
+            raise EvaluationError(f"{owner} has an invalid first access")
+        if scenario["atlas_before_source"] and (
+            not atlas_positions or not source_positions or min(atlas_positions) > min(source_positions)
+        ):
+            raise EvaluationError(f"{owner} must access Atlas before source")
+
+        citations = item["citations"]
+        if not isinstance(citations, list) or not citations:
+            raise EvaluationError(f"{owner}.citations must be a non-empty list")
+        citation_fields = {"kind", "target", "revision"}
+        seen_citations: set[tuple[str, str, str | None]] = set()
+        for citation_index, citation in enumerate(citations):
+            citation_owner = f"{owner}.citations[{citation_index}]"
+            citation = _exact_object(citation, citation_fields, citation_owner)
+            citation_kind = citation["kind"]
+            if citation_kind not in {"atlas", "source"}:
+                raise EvaluationError(f"{citation_owner}.kind must be atlas or source")
+            citation_target = citation["target"]
+            if not isinstance(citation_target, str) or not citation_target.strip():
+                raise EvaluationError(f"{citation_owner}.target must be non-empty")
+            citation_revision = citation["revision"]
+            if citation_kind == "source":
+                citation_revision = _full_commit(
+                    citation_revision, f"{citation_owner}.revision"
+                )
+                if resolved is None or citation_revision != resolved:
+                    raise EvaluationError(
+                        f"{citation_owner}.revision must match resolved_revision"
+                    )
+            elif citation_revision is not None:
+                raise EvaluationError(
+                    f"{citation_owner}.revision must be null for an Atlas citation"
+                )
+            citation_key = (citation_kind, citation_target, citation_revision)
+            if citation_key in seen_citations:
+                raise EvaluationError(f"{owner}.citations must be unique")
+            seen_citations.add(citation_key)
+        telemetry = _exact_object(item["telemetry"], set(OBSERVABLE_FIELDS), f"{owner}.telemetry")
+        for field in OBSERVABLE_FIELDS:
+            _observable(telemetry[field], f"{owner}.telemetry.{field}")
 
 
 def _safe_run_path(value: object, owner: str) -> str:

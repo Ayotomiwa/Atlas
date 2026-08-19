@@ -14,7 +14,7 @@ A `status: curated` page must carry `reviewed_by`, an ISO `last_reviewed` and ev
 
 `reviewed_by` names **the person who curated the page**, not a later merger or publisher. When an agent curates, it takes that identity from the session's `git config user.name`, or asks the user when Git has no usable identity. It is never left empty on a curated page, and never filled with the agent's own name. `last_reviewed` is the date that curation established the content against its evidence; write it as a plain ISO date.
 
-Query tooling derives trust from lifecycle: every active `status: curated` page is `authoritative`, and deprecated content is `historical`. Checkout state is a separate advisory (`main-clean`, `off-main`, `modified`, `untracked`, `detached` or `git-unknown`). It is shown briefly when relevant and never blocks routing or downgrades authority; after merge and checkout on `main`/`master`, it becomes `main-clean` automatically without editing the page.
+Query tooling derives trust from lifecycle: every active `status: curated` page is `authoritative`, and deprecated content is `deprecated` and non-authoritative. Checkout state is a separate advisory (`main-clean`, `off-main`, `modified`, `untracked`, `detached` or `git-unknown`). It is shown briefly when relevant and never blocks routing or downgrades authority; after merge and checkout on `main`/`master`, it becomes `main-clean` automatically without editing the page.
 
 ## Concept responsibilities
 

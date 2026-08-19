@@ -6,6 +6,20 @@ The v2 evaluation compares the complete fixed cost of creating a governed, curat
 
 Authoring is a separate pre-retrieval phase. Repository selection and cold/incremental snapshot preparation, onboarding, staging, curation, validation, independent review, and Atlas snapshot export happen before interrogation. Their observable cost belongs only in authoring telemetry and is never mixed into per-question marginal telemetry. Authors may see disposable Atlas and fixture/source worktrees plus an authoring persona, but never paired questions, ground truth, answers, scores, or category quotas.
 
+## Routing acceptance
+
+Routing acceptance is a smaller, separate evaluation. It checks whether an agent chooses and preserves the intended retrieval route; it does not score whether the answer is correct and does not change the sealed v2 protocol.
+
+`routing-scenarios.json` fixes six prompts and their expected behaviors: a known local file starts at source, an unfamiliar flow starts at Atlas, a warm supported follow-up performs zero retrieval, a requested revision is resolved and used for every source citation, readiness starts with Atlas and then verifies exact source, and unknown ownership remains unresolved. Each fresh scenario uses a distinct session; the warm scenario reuses its named predecessor's session.
+
+Record the exact contract prompt, session ID, route class, ordered accesses, resolved revision, structured Atlas/source citations, and observable-or-`null` telemetry in an external `atlas-routing-acceptance/1.0` JSON file. Each citation contains `kind`, `target`, and `revision`; source citations use the scenario's resolved full commit, while Atlas citations use `null`. Then run:
+
+```text
+python scripts/atlas_eval.py validate-routing <result.json> --scenarios evaluation/routing-scenarios.json
+```
+
+The command validates observed access order and session/revision binding only. It neither reads ground truth nor grades answer quality. Keep full access-event telemetry here rather than in normal Atlas session instructions.
+
 ## Versioned contracts
 
 New runs use `atlas-evaluation-run/2.0`, a master run freeze, and `atlas-evaluation-result/2.0`. The master freeze covers the frozen rubric plus fixture, questions, personas, ground truth, answers, telemetry, and manifests. The coordinator owns the complete paired bank and supplies exactly one frozen question at a time to both retrieval attempts. The Atlas interrogator receives that question and the frozen Atlas snapshot only; product source is unavailable. The control receives the same single question and frozen raw fixture, including hidden files and relevant Git history, but no Atlas package or snapshot, Atlas-managed instructions, network, or persistent scratch index. Neither retrieval role receives `questions/paired.jsonl`, another question, or bank-level category/condition information.

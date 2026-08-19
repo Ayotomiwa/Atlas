@@ -22,6 +22,7 @@ from scripts.lib.evaluation import (
     resolve_rubric_path,
     score_result,
     validate_result,
+    validate_routing_acceptance,
     verify_answer_freeze,
     verify_trusted_run_freeze,
 )
@@ -71,7 +72,9 @@ def _result_run_schema(result: dict, run_root: Path | None) -> str | None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Prepare, freeze, validate and score sealed Atlas evaluations.")
+    parser = argparse.ArgumentParser(
+        description="Prepare, freeze, validate and score Atlas evaluations, including routing acceptance."
+    )
     sub = parser.add_subparsers(dest="command", required=True)
     prepare = sub.add_parser("prepare")
     prepare.add_argument("--destination", required=True)
@@ -94,6 +97,11 @@ def main(argv: list[str] | None = None) -> int:
     score.add_argument("--rubric")
     score.add_argument("--run-root")
     score.add_argument("--freeze-digest")
+    validate_routing = sub.add_parser("validate-routing")
+    validate_routing.add_argument("result")
+    validate_routing.add_argument(
+        "--scenarios", default=str(ROOT / "evaluation" / "routing-scenarios.json")
+    )
     args = parser.parse_args(argv)
     try:
         if args.command == "prepare":
@@ -135,6 +143,10 @@ def main(argv: list[str] | None = None) -> int:
                     print(change, file=sys.stderr)
                 return 1
             print("Evaluation run freeze is valid." if is_v2 else "Evaluation answer freeze is valid.")
+            return 0
+        if args.command == "validate-routing":
+            validate_routing_acceptance(load_json(args.result), load_json(args.scenarios))
+            print("Routing acceptance result is valid.")
             return 0
         result = load_json(args.result)
         run_root = _resolve_result_run_root(args.result, args.run_root)
