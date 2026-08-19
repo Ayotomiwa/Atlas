@@ -19,7 +19,9 @@ Then ask an ordinary question, for example:
 - "Where is this worker deployed?"
 - "Which standards apply to this code?"
 
-Claude decides whether Atlas can help. It opens the most likely reviewed page, follows its links, and uses generated maps only when it needs a reverse or multi-step route. If several records could match, it shows the candidates instead of silently choosing one.
+Claude chooses one of three entrances. It reuses evidence already read in the same conversation when the repository, revision and question still match. It reads an exact source file or symbol directly for a genuinely local question. Otherwise it starts with Atlas, opens the most likely reviewed page, follows its links, and uses generated maps only for a reverse or multi-step route. If several records could match, it shows the candidates instead of silently choosing one.
+
+This means Atlas is strongest for a cold start, a question that crosses repository or system boundaries, or shared context that must outlive the current session. A warm conversation may answer a narrow local follow-up faster from source it already holds; Atlas does not force another lookup in that case.
 
 Every substantive answer identifies where its claims came from. For a cross-system answer, Claude also shows the important page or source-file hops. When the current checkout is not a clean `main` or `master` checkout, it gives one short advisory and continues.
 

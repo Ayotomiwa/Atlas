@@ -4,6 +4,8 @@ Datalens Atlas gives engineers and AI agents a shared, traceable view of how Dat
 
 You can use Atlas through ordinary conversation. You do not need to learn its commands before asking a question.
 
+Atlas is most useful for cold starts, cross-repository or cross-system questions, and context that must survive beyond one conversation. It is not expected to beat source code that Claude has already read for a narrow local follow-up. In that case Claude reuses the retained evidence or reads the exact source boundary directly; Atlas remains available when the question crosses a durable or uncertain boundary.
+
 ## What do you want to do?
 
 | Intent | Example request | What happens |

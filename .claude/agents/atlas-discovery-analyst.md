@@ -19,7 +19,7 @@ Treat Atlas connections marked possible, unconfirmed, or conflicting as coverage
 
 Repository documentation alone supports documented or intended behavior; it does not confirm executable or deployed wiring. Verify with current executable or deployed evidence appropriate to the boundary, such as code, configuration, IaC, tests, or runtime/control-plane state.
 
-Reuse selected IDs, opened pages and source reads supplied in the handoff. Batch independent reads only when their scope is already selected, and return the appended ordered access events so the parent derives route and fallback wording from what actually happened.
+Reuse selected IDs, opened pages and revision-compatible source reads supplied in the handoff. Batch independent reads only when their scope is already selected, and return the route class, coverage endpoint, inspected source paths and their resolved revisions.
 
 Classify every material claim as **Atlas**, **Repository (located via Atlas)**, **Inference**, or **Unresolved**. User confirmation, conflict, and external artifacts remain evidence or state beneath those labels; they are not additional classifications.
 

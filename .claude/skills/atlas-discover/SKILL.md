@@ -8,7 +8,7 @@ allowed-tools: Read, Grep, Glob, Bash, Agent
 
 Read `../_shared/human-intents.md`, `../_shared/runtime.md`, `../_shared/answer-provenance.md`, and `../_shared/agent-handoffs.md` before substantive work. This is the normal **Ask Atlas** route and is read-only.
 
-1. Apply the shared binding matrix and ordered retrieval ladder. A known targeted read may answer a clearly local bound-repository question, but uncertain or broad lookup routes through Atlas first. When current path is inside `ATLAS_ROOT`, distinguish a stored-knowledge question from an Atlas-implementation question using the shared runtime contract.
+1. Apply the shared binding matrix and three-way entrance. Reuse compatible retained evidence, allow one exact source boundary only for a genuinely local bound-repository question, and use Atlas first for Direct Ask Atlas or uncertain/cross-boundary work. When current path is inside `ATLAS_ROOT`, distinguish a stored-knowledge question from an Atlas-implementation question using the shared runtime contract.
 2. Validate Atlas root. If unavailable, state that Atlas was not consulted, give the `claude --add-dir <path-to-current-Atlas-checkout>` recovery, and offer bounded local inspection.
 3. Resolve an explicit stable ID directly. In stored-knowledge mode inside Atlas, infer likely record types and run typed `find` without path context; in an external product checkout use current-path context. Treat up to three results as candidates; disclose and preserve ambiguity and every `not-verified` product context used.
 4. For a **Direct Ask Atlas**, consult all relevant curated types, follow answer-bearing links, and synthesize all supported material. Then answer, guide the smallest next evidence location, or report an unresolved boundary. If a structured conflict matches, lead with both evidenced claims before the page's bounded interpretation. If search is weak or ambiguous, consult the relevant collection/domain index, then the curated root index. Use maps only for reverse or multi-hop traversal after selection.
@@ -21,7 +21,7 @@ Treat Atlas connections marked possible, unconfirmed, or conflicting as coverage
 
 Repository documentation alone supports documented or intended behavior; it does not confirm executable or deployed wiring. Verify with current executable or deployed evidence appropriate to the boundary, such as code, configuration, IaC, tests, or runtime/control-plane state.
 
-When already verified repository evidence remains current and supports every material follow-up claim at the required confidence, a follow-up may use it with zero new retrieval; do not force fallback merely because the original Atlas edge was possible; related evidence must not upgrade a different uncertain edge.
+When already verified repository evidence remains current, revision-compatible and supports every material follow-up claim at the required confidence, a follow-up may use it with zero new retrieval; do not force fallback merely because the original Atlas edge was possible; related evidence must not upgrade a different uncertain edge. Resolve a requested revision before source use and cite Git at that revision for past implementation.
 
 For a flow question, synthesize trigger and outcome; start and end boundaries; system boundaries; ordered participants and handoffs; data and infrastructure transitions; conditional, retry, and failure paths; standards, incidents, and runbooks; and coverage limits from the existing model. Do not reduce the answer to a list of matched records.
 

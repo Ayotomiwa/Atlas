@@ -68,6 +68,12 @@ def _assert_ordered(surface: str, *needles: str) -> None:
         assert positions == sorted(positions), f"{relative}: routing order differs"
 
 
+def _assert_absent(surface: str, *needles: str) -> None:
+    for relative, text in zip(SURFACE_PAIRS[surface], _texts(surface), strict=True):
+        for needle in needles:
+            assert needle not in text, f"{relative}: obsolete text remains: {needle!r}"
+
+
 def _metadata_description(relative: str) -> str:
     path = ROOT / relative
     if path.suffix == ".toml":
@@ -93,7 +99,7 @@ def _markdown_section(text: str, heading: str) -> str:
     return match["body"]
 
 
-def test_binding_matrix_and_retrieval_ladder_match_on_both_platforms() -> None:
+def test_binding_matrix_and_three_way_entrance_match_on_both_platforms() -> None:
     _assert_all(
         "runtime",
         "managed Atlas block",
@@ -106,13 +112,16 @@ def test_binding_matrix_and_retrieval_ladder_match_on_both_platforms() -> None:
     )
     _assert_ordered(
         "runtime",
-        "Retained context",
-        "One known targeted source read",
-        "Atlas before uncertain",
-        "Complete Atlas answer",
-        "Partial Atlas answer",
-        "Atlas-guided source route",
-        "Bounded source and unresolved gap",
+        "Retained evidence",
+        "Exact source boundary",
+        "Atlas first",
+    )
+    _assert_all(
+        "runtime",
+        "selected curated page",
+        "index fallback",
+        "reverse or multi-hop",
+        "coverage ends",
     )
 
 
@@ -312,52 +321,39 @@ def test_complete_flow_and_readiness_require_fallback_at_uncertain_coverage() ->
         _assert_all(surface, *fallback_terms)
 
 
-def test_session_access_ledger_and_warm_call_reuse_are_explicit() -> None:
+def test_session_revision_compatibility_and_warm_call_reuse_are_explicit() -> None:
     _assert_all(
         "runtime",
-        "ephemeral ordered access ledger",
+        "ephemeral Atlas session state",
+        "requested revision or range",
+        "resolved full commit or range",
+        "revision used for each inspected source path",
+        "repository, revision, question type and required confidence",
         "retained-context",
-        "atlas-bootstrap",
-        "Atlas query",
-        "Atlas page read",
-        "source read",
-        "Derive the route and fallback description",
-        "actual ordered access events",
-        "Never persist the ledger",
-        "Batch independent Atlas reads",
+        "source-only",
+        "atlas-only",
+        "atlas-plus-source",
+        "unresolved",
+        "Git at that revision",
+        "never becomes historical evidence",
+        "Full ordered access events belong only in Atlas routing evaluation artifacts",
+        "independent Atlas reads",
         "batch Atlas-located source verification",
         "selected IDs and already-opened pages",
-        "answer-bearing",
-        "`atlas-bootstrap` is session-only",
-        "`retained-context` only",
-        "route `retained-context` with fallback false",
-        "route `atlas-only` with fallback false",
-        "route `atlas-plus-source` with fallback true",
-        "route `source-only` with fallback false",
-        "retained origin: `atlas`, `source`, or `mixed`",
-        "current-question purpose",
-        "locator or coverage endpoint",
-        "`atlas-bootstrap` unrelated to the current question",
-        "current-question Atlas route",
-        "even when Atlas supplies only a locator or miss boundary",
-        "retained Atlas or mixed context",
     )
     _assert_ordered(
         "runtime",
-        "Retained context",
-        "One known targeted source read",
-        "Atlas before uncertain",
+        "Retained evidence",
+        "Exact source boundary",
+        "Atlas first",
     )
     _assert_all(
         "handoffs",
-        "ephemeral ordered access ledger",
-        "retained-context",
-        "atlas-bootstrap",
-        "actual ordered access events",
-        "current-question purpose",
-        "retained origin",
-        "locator or coverage endpoint",
-        "answer-bearing",
+        "requested revision or range",
+        "resolved full commit or range",
+        "source paths and their revisions",
+        "route class",
+        "coverage endpoint",
         "Batch independent Atlas reads",
         "batch Atlas-located source verification",
     )
@@ -365,8 +361,11 @@ def test_session_access_ledger_and_warm_call_reuse_are_explicit() -> None:
         "managed_block",
         "retained context",
         "already-opened pages",
-        "Batch independent Atlas reads",
+        "requested revision",
+        "resolved commit",
     )
+    for surface in ("runtime", "handoffs", "managed_block"):
+        _assert_absent(surface, "ephemeral ordered access ledger")
 
 
 def test_verified_source_evidence_can_satisfy_a_follow_up_without_retrieval() -> None:
@@ -473,8 +472,9 @@ def test_managed_block_is_binding_signal_and_exposes_risk_triggers() -> None:
     _assert_all(
         "managed_block",
         "Presence of this managed block binds this repository to Atlas",
-        "uncertain, broad, multi-hop, Git-history, or durable-context lookup",
-        "semantic-risk change readiness regardless of diff size",
+        "uncertain, broad, multi-hop, Git-history",
+        "durable-context",
+        "impact, ownership, standards, recovery or readiness",
         "Explicit Ask Atlas",
     )
 

@@ -4,15 +4,13 @@ Use `human-intents.md` for the user-facing action and keep this file's search, t
 
 For automatic routing in a product repository, a valid managed Atlas block in its instructions is the binding signal. **Explicit Ask Atlas** always consults Atlas, whether the repository is bound or unbound. In an **unbound repository** without that explicit intent, do not invoke Atlas automatically. In a bound repository, one known local target may be read directly; an uncertain, broad, multi-hop, Git-history, or durable-context lookup routes through Atlas before broad source search. `ATLAS_ROOT` stored-knowledge and implementation modes remain governed by the classification below.
 
-Use this ordered retrieval ladder for a bound repository or Explicit Ask Atlas; direct Ask enters Atlas no later than step 3:
+Use this three-way entrance after Atlas eligibility is established:
 
-1. **Retained context** that still answers the unchanged question.
-2. **One known targeted source read** for a clearly local question or local isolated edit.
-3. **Atlas before uncertain** or broad, multi-hop, Git-history, durable-context, impact, ownership, conflict, standards or recovery lookup.
-4. **Complete Atlas answer** when curated evidence fully supports the result.
-5. **Partial Atlas answer** plus the smallest source fallback where coverage ends.
-6. **Atlas-guided source route** when Atlas identifies the next evidence boundary but cannot answer.
-7. **Bounded source and unresolved gap** when neither Atlas nor the authorised source boundary closes the question.
+1. **Retained evidence** when the same repository, revision, question type and required confidence remain compatible and the evidence still supports every material claim.
+2. **Exact source boundary** when a bound-repository question is genuinely local and identifies one known file, symbol or isolated edit. Explicit Ask Atlas does not use this bypass.
+3. **Atlas first** for Explicit Ask Atlas and for uncertain, broad, multi-hop, Git-history, durable-context, impact, ownership, conflict, standards, recovery or readiness questions.
+
+After selecting the entrance, open the selected curated page and follow its answer-bearing links. Use the relevant collection/domain index fallback when identity is weak or ambiguous, use maps only for reverse or multi-hop traversal after stable-ID selection, and perform the smallest bounded source check where Atlas coverage ends. Preserve an unresolved boundary when neither Atlas nor authorised source closes the question.
 
 Resolve `ATLAS_ROOT` from `${CLAUDE_SKILL_DIR}`: the live package root is three directories above an Atlas skill directory. Canonicalise the absolute path and validate that `<ATLAS_ROOT>/atlas-package.json` exists, has `schema_version: atlas-package/1.0`, and identifies the expected package before using Atlas. If resolution or validation fails, state that Atlas was not consulted, tell the user to restart with `claude --add-dir <path-to-current-Atlas-checkout>`, explain that a moved checkout must be supplied again, and offer bounded product-source inspection.
 
@@ -35,19 +33,22 @@ Keep an ephemeral Atlas session state inside the current conversation only:
 
 - validated Atlas root, product root and current path;
 - selected IDs and already-opened pages;
-- product-source paths already inspected;
+- requested revision or range, when the question names one;
+- resolved full commit or range for repository reads;
+- product-source paths already inspected and the revision used for each inspected source path;
 - the current coverage endpoint;
+- the current route class: `retained-context`, `source-only`, `atlas-only`, `atlas-plus-source` or `unresolved`;
 - whether the checkout advisory has already been disclosed.
 
-A new conversation starts cold; never persist this state. Reuse it only while the selected routing mode, product repository where applicable, selected record and evidence, and question type remain unchanged and no source or checkout change is suspected. For an unchanged local follow-up, do not repeat an Atlas query, page open or source read that the retained context already answers.
+A new conversation starts cold; never persist this ephemeral Atlas session state. Reuse it only while repository, revision, question type and required confidence remain compatible, the selected record still applies and no source or checkout change is suspected. For an unchanged local follow-up, do not repeat an Atlas query, page open or source read that retained context already answers. A revision change invalidates only the affected source evidence and re-enters routing for that scope. Git at that revision is authoritative for past implementation; current Atlas knowledge may locate the boundary but never becomes historical evidence.
 
-Alongside that state, maintain an **ephemeral ordered access ledger** whose events distinguish `retained-context`, `atlas-bootstrap`, Atlas query, Atlas page read, and source read. Each event records its current-question purpose, whether it was answer-bearing or supplied a locator or coverage endpoint, and for retained context the retained origin: `atlas`, `source`, or `mixed`. Derive the route and fallback description from the actual ordered access events. `retained-context` only means route `retained-context` with fallback false. A current-question Atlas route that answers without source means route `atlas-only` with fallback false. A current-question Atlas route followed at its coverage endpoint by source means route `atlas-plus-source` with fallback true, even when Atlas supplies only a locator or miss boundary. A retained Atlas or mixed context followed by a source read needed at its coverage endpoint follows the same Atlas-plus-source rule; retained source context plus source remains source-only. `atlas-bootstrap` is session-only unless it supplies current-question evidence or routing; `atlas-bootstrap` unrelated to the current question followed by source, or source access without a current-question Atlas route, means route `source-only` with fallback false. Never persist the ledger or introduce a new telemetry schema or service.
+Choose the route class from the evidence actually used: retained context only is `retained-context`; direct repository evidence without a current-question Atlas route is `source-only`; Atlas without source is `atlas-only`; Atlas followed by source at its coverage endpoint is `atlas-plus-source`; and an unclosed material gap is `unresolved`. Full ordered access events belong only in Atlas routing evaluation artifacts, never normal product-session state or a new persistent service.
 
 Batch independent Atlas reads of already selected records, and batch Atlas-located source verification when the missing claims share one authorised boundary; do not widen scope merely to batch.
 
 When already verified repository evidence remains current and supports every material follow-up claim at the required confidence, a follow-up may use it with zero new retrieval; do not force fallback merely because the original Atlas edge was possible; related evidence must not upgrade a different uncertain edge.
 
-Re-enter the applicable Atlas routing mode when the repository or selected record changes, source or checkout state may have changed, the question crosses the recorded coverage endpoint, or the work concerns impact, ownership, conflicts, standards, recovery or another boundary. Re-entry opens only the routes needed for the new scope and carries still-valid session state into any specialist handoff.
+Re-enter the applicable Atlas routing mode when the repository, requested revision, selected record or question type changes; source or checkout state may have changed; the question crosses the recorded coverage endpoint; or the work concerns impact, ownership, conflicts, standards, recovery or another boundary. Re-entry opens only the routes needed for the new scope and carries still-valid session state into any specialist handoff.
 
 For ordinary product questions outside `ATLAS_ROOT`, the typed hybrid entrance is eligible after direct Ask Atlas or when the current product repository contains a valid managed Atlas block. `matched`, `path-derived`, and `not-verified` managed bindings are eligible; only `not-verified` requires the routing-only advisory below. In an unbound repository without explicit intent, do not query Atlas. When eligible, resolve an explicit stable ID directly. Otherwise infer likely curated types and run:
 
@@ -61,7 +62,7 @@ Allow `locator_match: not-verified` product candidates, but include a visible ro
 
 Route through curated Atlas before broad product-source exploration. If Atlas is insufficient, state where coverage ended and continue with a bounded source inspection inside the user's scope. `_staging/` records are non-authoritative routing and completeness evidence, never factual authority. Never use generated maps, query output, generation or lint as semantic authority.
 
-Lifecycle determines trust: every `status: curated` page is `authoritative`, while deprecated content is `historical`. Query reports Git separately as `checkout_state`; mention a non-`main-clean` state once and briefly, without blocking or downgrading authority. Merge changes the checkout advisory automatically and requires no page-status mutation.
+Lifecycle determines trust: every `status: curated` page is `authoritative`, while deprecated content is `deprecated` and non-authoritative. Query reports Git separately as `checkout_state`; mention a non-`main-clean` state once and briefly, without blocking or downgrading authority. Merge changes the checkout advisory automatically and requires no page-status mutation.
 
 Use decision-weighted capture: preserve safety-critical lifecycle, compatibility, ownership, contracts, conflicts, recovery constraints and material impact behavior. Treat exact volatile values as source-authoritative, including commands, code, configuration, and IaC literals. Atlas may locate them; copy an exact value only when the value itself affects safety, compatibility, operation or blast radius. Never copy sensitive values.
 

@@ -7,7 +7,7 @@
 - Fuzzy topic, path ties and multiple domain candidates require user selection.
 - Local scope includes questions owned by or affecting current-path repository/component candidates.
 - If local scope is empty, state that boundary and offer domain or package scope. Never substitute an unrelated global question silently.
-- Prefer active `status: curated`. A question from deprecated historical content is allowed only for an explicitly targeted page and must be labelled historical and non-authoritative.
+- Prefer active `status: curated`. A question from deprecated content is allowed only for an explicitly targeted page and must be labelled deprecated and non-authoritative.
 
 ## Asking a question
 

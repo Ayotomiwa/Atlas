@@ -6,7 +6,9 @@ Treat an Atlas connection with confidence possible, unconfirmed, or conflicting 
 
 Repository documentation alone supports documented or intended behavior; it does not confirm executable or deployed wiring. Verify with current executable or deployed evidence appropriate to the boundary, such as code, configuration, IaC, tests, or runtime/control-plane state.
 
-When already verified repository evidence remains current and supports every material follow-up claim at the required confidence, a follow-up may use it with zero new retrieval; do not force fallback merely because the original Atlas edge was possible; related evidence must not upgrade a different uncertain edge.
+Source reuse must match the requested revision. Resolve a named revision or range to an immutable commit or range and associate every inspected source path with it. For past implementation, cite Git at that resolved revision; current curated Atlas may locate the boundary but is not historical evidence.
+
+When already verified repository evidence remains current, revision-compatible and supports every material follow-up claim at the required confidence, a follow-up may use it with zero new retrieval; do not force fallback merely because the original Atlas edge was possible; related evidence must not upgrade a different uncertain edge.
 
 ## Answer labels
 

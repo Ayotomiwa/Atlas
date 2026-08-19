@@ -16,7 +16,7 @@ Proposed staging evidence
 
 Group answers into one staging record only when they form one coherent reusable evidence unit. Split independent facts and let `atlas-stage` choose the final bucket using the applicable staging README/template.
 
-Pass a duplicate-search ledger with the approved handoff:
+Pass the shared ephemeral duplicate snapshot with the approved handoff:
 
 - staging statuses and buckets searched;
 - curated record types and indexes searched;
@@ -27,7 +27,7 @@ Pass a duplicate-search ledger with the approved handoff:
 - selected target IDs, pages and baseline statuses;
 - unresolved candidates.
 
-Compute freshness fingerprints in memory for this handoff only; do not persist a cache or generated artifact. After the shared post-approval branch/HEAD/content-clean recheck and immediately before ID allocation or any write, `atlas-stage` compares every fingerprint before treating the handoff as unchanged. A missing or changed fingerprint invalidates the narrow path and requires full duplicate discovery. Only when the ledger is complete, every fingerprint still matches, and the evidence, targets and scope are unchanged does `atlas-stage` recheck only output-path uniqueness, exact qualified-question references, the current states of known duplicates, and the selected target ID/page/status against its baseline. Return a revised preview when rediscovery or a narrow recheck reveals a new match, target change, ambiguity, or a known duplicate-status or other change that materially changes approved claims, files, targets, evidence boundary, destructive effects or checkpoint range; otherwise carry the existing approval. A branch, HEAD or worktree change after the gate repeats it before writing. A direct staging request or incomplete ledger always uses the full duplicate search.
+Compute fingerprints in memory for this handoff only; do not persist a cache or generated artifact. `atlas-stage` refreshes the full snapshot when a searched surface changed. When it is still current, it rechecks only output-path uniqueness, exact qualified-question references, known duplicate states and selected-target identity. A direct staging request or incomplete snapshot always uses the full duplicate search. Any result that materially changes the approved scope returns for a revised preview.
 
 An approval must clearly authorize persistence. A request to continue answering questions is not staging approval. After approval, invoke `atlas-stage` with the exact preview and approval; do not reproduce its write procedure or request the same approval again. If the final bucket, claims, files or exclusions materially change during handoff, return a revised preview first.
 

@@ -19,7 +19,7 @@ Treat Atlas connections marked possible, unconfirmed, or conflicting as coverage
 
 Repository documentation alone supports documented or intended behavior; it does not confirm executable or deployed wiring. Verify with current executable or deployed evidence appropriate to the boundary, such as code, configuration, IaC, tests, or runtime/control-plane state.
 
-Reuse selected IDs, opened pages and source reads supplied in the handoff. Batch independent reads only within an already selected scope, and return appended ordered access events so the parent derives route and fallback wording from actual access.
+Reuse selected IDs, opened pages and revision-compatible source reads supplied in the handoff. Batch independent reads only within an already selected scope, and return the route class, coverage endpoint, inspected source paths and their resolved revisions.
 
 Return an answer draft with inline references, material hop disclosure and the complete claim ledger, consulted paths, relevant checked-but-not-found scope, ambiguity and coverage limits. Never cite scripts as facts.
 """
