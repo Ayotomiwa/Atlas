@@ -7,7 +7,7 @@ import json
 import re
 import subprocess
 from urllib.parse import urlsplit
-from typing import Sequence
+from typing import Collection, Sequence
 
 from scripts.lib.frontmatter import parse_frontmatter
 from scripts.lib.maps import CuratedPage, curated_pages, iter_curated_pages, load_package_config
@@ -63,6 +63,7 @@ SEARCH_INDEXES = {
     "runbook": "_curated/runbooks/index.md",
     "incident-learning": "_curated/incidents/index.md",
 }
+QUERY_FEATURES = frozenset({"search", "questions", "graph"})
 
 
 def _normalise_locator(value: str) -> str:
@@ -109,17 +110,23 @@ def _specificity(path: str) -> int:
     return 0 if path == "." else len(path.split("/"))
 
 
-class ExactResolver:
-    """Resolve one stable ID without constructing the traversal/search graph."""
+def _page_trust(status: object) -> str:
+    if status == "curated":
+        return "authoritative"
+    if status == "deprecated":
+        return "deprecated"
+    return "unknown"
+
+
+class CheckoutAdvisories:
+    """Resolve page checkout state with a constant number of Git calls."""
 
     def __init__(self, root: str | Path):
         self.root = Path(root).resolve()
-        self.config = load_package_config(self.root)
-        self.taxonomy = load_taxonomy(self.root)
-        self._branch = self._git_branch()
-        self.warnings = self._branch_warnings()
-        self.structured_diagnostics: list[dict] = []
-        self._stale_identifiers: set[str] = set()
+        self.branch = self._git_branch()
+        self._inventory_loaded = False
+        self._tracked: set[str] | None = None
+        self._changed: set[str] | None = None
 
     def _git_branch(self) -> str | None:
         try:
@@ -135,56 +142,97 @@ class ExactResolver:
         except (OSError, subprocess.SubprocessError):
             return None
 
-    def _branch_warnings(self) -> list[str]:
-        if self._branch is None:
+    def warnings(self) -> list[str]:
+        if self.branch is None:
             return ["Atlas branch could not be determined; curated records remain authoritative."]
-        if not self._branch:
+        if not self.branch:
             return ["Atlas is on a detached checkout; curated records remain authoritative."]
-        if self._branch not in {"main", "master"}:
+        if self.branch not in {"main", "master"}:
             return [
-                f"Atlas is on {self._branch}, not main or master; curated records are authoritative, "
+                f"Atlas is on {self.branch}, not main or master; curated records are authoritative, "
                 "but this checkout may include unmerged changes."
             ]
         return []
 
     @staticmethod
-    def _page_trust(status: object) -> str:
-        if status == "curated":
-            return "authoritative"
-        if status == "deprecated":
-            return "historical"
-        return "unknown"
+    def _paths(output: bytes) -> set[str]:
+        return {
+            value.decode("utf-8", errors="surrogateescape").replace("\\", "/")
+            for value in output.split(b"\0")
+            if value
+        }
 
-    def _page_checkout_state(self, path: Path, status: object) -> str | None:
-        if status != "curated":
-            return None
-        if self._branch is None:
-            return "git-unknown"
-        relative = path.relative_to(self.root).as_posix()
+    def _load_inventory(self) -> None:
+        if self._inventory_loaded:
+            return
+        self._inventory_loaded = True
+        if self.branch is None:
+            return
         try:
             tracked = subprocess.run(
-                ["git", "ls-files", "--error-unmatch", "--", relative],
+                ["git", "ls-files", "-z"],
                 cwd=self.root,
+                check=True,
                 capture_output=True,
-                text=True,
                 timeout=5,
-            ).returncode == 0
-            unchanged = subprocess.run(
-                ["git", "diff", "--quiet", "HEAD", "--", relative],
+            )
+            changed = subprocess.run(
+                ["git", "diff", "--name-only", "-z", "HEAD", "--"],
                 cwd=self.root,
+                check=True,
+                capture_output=True,
                 timeout=5,
-            ).returncode == 0
+            )
         except (OSError, subprocess.SubprocessError):
+            return
+        self._tracked = self._paths(tracked.stdout)
+        self._changed = self._paths(changed.stdout)
+
+    def state(self, path: Path, status: object) -> str | None:
+        if status != "curated":
+            return None
+        if self.branch is None:
             return "git-unknown"
-        if not tracked:
+        self._load_inventory()
+        if self._tracked is None or self._changed is None:
+            return "git-unknown"
+        relative = path.resolve().relative_to(self.root).as_posix()
+        if relative not in self._tracked:
             return "untracked"
-        if not unchanged:
+        if relative in self._changed:
             return "modified"
-        if not self._branch:
+        if not self.branch:
             return "detached"
-        if self._branch not in {"main", "master"}:
+        if self.branch not in {"main", "master"}:
             return "off-main"
         return "main-clean"
+
+
+class ExactResolver:
+    """Resolve one stable ID without constructing the traversal/search graph."""
+
+    def __init__(self, root: str | Path):
+        self.root = Path(root).resolve()
+        self.config = load_package_config(self.root)
+        self.taxonomy = load_taxonomy(self.root)
+        self._checkout = CheckoutAdvisories(self.root)
+        self._branch = self._checkout.branch
+        self.warnings = self._checkout.warnings()
+        self.structured_diagnostics: list[dict] = []
+        self._stale_identifiers: set[str] = set()
+
+    def _git_branch(self) -> str | None:
+        return self._checkout.branch
+
+    def _branch_warnings(self) -> list[str]:
+        return self._checkout.warnings()
+
+    @staticmethod
+    def _page_trust(status: object) -> str:
+        return _page_trust(status)
+
+    def _page_checkout_state(self, path: Path, status: object) -> str | None:
+        return self._checkout.state(path, status)
 
     def _page_route(self, page: CuratedPage) -> dict:
         return {
@@ -385,6 +433,7 @@ class AtlasQuery:
         *,
         compiled_maps: dict[str, dict] | None = None,
         pages: Sequence[CuratedPage] | None = None,
+        preload: Collection[str] | None = None,
     ):
         self.root = Path(root).resolve()
         self.config = load_package_config(self.root)
@@ -400,89 +449,31 @@ class AtlasQuery:
         self.conflicts: dict[str, dict] = {}
         self.question_diagnostics: list[dict] = []
         self.structured_diagnostics: list[dict] = []
-        self._branch = self._git_branch()
-        self._checkout_states: dict[Path, str | None] = {}
-        self.warnings = self._branch_warnings()
+        self._checkout = CheckoutAdvisories(self.root)
+        self._branch = self._checkout.branch
+        self.warnings = self._checkout.warnings()
+        self.loaded_features: set[str] = set()
         self._load()
+        requested = QUERY_FEATURES if preload is None else set(preload)
+        unknown = requested - QUERY_FEATURES
+        if unknown:
+            raise ValueError("unknown Atlas query preload feature(s): " + ", ".join(sorted(unknown)))
+        for feature in ("search", "questions", "graph"):
+            if feature in requested:
+                self._ensure_feature(feature)
 
     def _git_branch(self) -> str | None:
-        try:
-            result = subprocess.run(
-                ["git", "branch", "--show-current"],
-                cwd=self.root,
-                check=True,
-                capture_output=True,
-                text=True,
-                timeout=5,
-            )
-            return result.stdout.strip()
-        except (OSError, subprocess.SubprocessError):
-            return None
+        return self._checkout.branch
 
     def _branch_warnings(self) -> list[str]:
-        try:
-            current = self._branch
-        except Exception:
-            return ["Atlas branch could not be determined; curated records remain authoritative."]
-        if current is None:
-            return ["Atlas branch could not be determined; curated records remain authoritative."]
-        if not current:
-            return ["Atlas is on a detached checkout; curated records remain authoritative."]
-        if current not in {"main", "master"}:
-            return [
-                f"Atlas is on {current}, not main or master; curated records are authoritative, "
-                "but this checkout may include unmerged changes."
-            ]
-        return []
+        return self._checkout.warnings()
 
     @staticmethod
     def _page_trust(status: object) -> str:
-        if status == "curated":
-            return "authoritative"
-        if status == "deprecated":
-            return "historical"
-        return "unknown"
+        return _page_trust(status)
 
     def _page_checkout_state(self, path: Path, status: object) -> str | None:
-        if status != "curated":
-            return None
-        path = path.resolve()
-        if path in self._checkout_states:
-            return self._checkout_states[path]
-        if self._branch is None:
-            state = "git-unknown"
-            self._checkout_states[path] = state
-            return state
-        relative = path.relative_to(self.root).as_posix()
-        try:
-            tracked = subprocess.run(
-                ["git", "ls-files", "--error-unmatch", "--", relative],
-                cwd=self.root,
-                capture_output=True,
-                text=True,
-                timeout=5,
-            ).returncode == 0
-            unchanged = subprocess.run(
-                ["git", "diff", "--quiet", "HEAD", "--", relative],
-                cwd=self.root,
-                timeout=5,
-            ).returncode == 0
-        except (OSError, subprocess.SubprocessError):
-            state = "git-unknown"
-            self._checkout_states[path] = state
-            return state
-        if not tracked:
-            state = "untracked"
-        elif not unchanged:
-            state = "modified"
-        elif not self._branch:
-            state = "detached"
-        elif self._branch not in {"main", "master"}:
-            state = "off-main"
-        else:
-            state = "main-clean"
-        self._checkout_states[path] = state
-        return state
+        return self._checkout.state(path, status)
 
     def _load(self) -> None:
         map_payloads: list[tuple[str, dict]] = []
@@ -535,15 +526,25 @@ class AtlasQuery:
                 if identifier in self.records:
                     self.records[identifier]["trust"] = route["trust"]
                     self.records[identifier]["checkout_state"] = route["checkout_state"]
-        self._load_search_records(pages)
-        self._load_open_questions(pages)
-        for ident, record in self.records.items():
-            self._collect_record_edges(ident, record)
-        unique = {edge: edge for edge in self.edges}
-        self.edges = sorted(
-            unique.values(),
-            key=lambda edge: (edge.source, edge.target, edge.relationship, edge.field),
-        )
+    def _ensure_feature(self, feature: str) -> None:
+        if feature in self.loaded_features:
+            return
+        if feature == "search":
+            self._load_search_records(self.pages)
+        elif feature == "questions":
+            self._ensure_feature("search")
+            self._load_open_questions(self.pages)
+        elif feature == "graph":
+            for ident, record in self.records.items():
+                self._collect_record_edges(ident, record)
+            unique = {edge: edge for edge in self.edges}
+            self.edges = sorted(
+                unique.values(),
+                key=lambda edge: (edge.source, edge.target, edge.relationship, edge.field),
+            )
+        else:
+            raise ValueError(f"unknown Atlas query feature: {feature}")
+        self.loaded_features.add(feature)
 
     @staticmethod
     def _routing_values(frontmatter: dict, field: str) -> list[str]:
@@ -968,6 +969,8 @@ class AtlasQuery:
                 )
 
     def resolve(self, identifier: str) -> dict | None:
+        if "#" in identifier:
+            self._ensure_feature("search")
         conflict = self.conflicts.get(identifier)
         if conflict:
             return conflict
@@ -1194,6 +1197,7 @@ class AtlasQuery:
         path: str | Path | None = None,
         limit: int = 3,
     ) -> dict:
+        self._ensure_feature("search")
         query = query.strip()
         if not query:
             raise ValueError("find query must not be empty")
@@ -1388,6 +1392,8 @@ class AtlasQuery:
         include_pending: bool = False,
     ) -> dict:
         """Return deterministic question candidates without ranking their importance."""
+
+        self._ensure_feature("questions")
 
         if scope not in {"auto", "local", "domain", "package"}:
             raise ValueError("question scope must be auto, local, domain, or package")
@@ -1622,6 +1628,7 @@ class AtlasQuery:
         }
 
     def neighbors(self, identifier: str) -> list[dict]:
+        self._ensure_feature("graph")
         out: list[dict] = []
         for edge in self.edges:
             if edge.source == identifier or edge.target == identifier:
@@ -1645,6 +1652,7 @@ class AtlasQuery:
         producer sits on an incoming edge. Reporting one direction without
         saying the other is populated lets a partial answer read as complete.
         """
+        self._ensure_feature("graph")
         other = "upstream" if direction == "downstream" else "downstream"
         peers = []
         for edge in self.edges:
@@ -1654,6 +1662,7 @@ class AtlasQuery:
         return sorted(set(peers))
 
     def impact(self, identifier: str, *, direction: str = "downstream", max_depth: int = 6) -> list[dict]:
+        self._ensure_feature("graph")
         if direction not in {"downstream", "upstream"}:
             raise ValueError("direction must be downstream or upstream")
         adjacency: dict[str, list[Edge]] = {}

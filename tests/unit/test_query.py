@@ -322,7 +322,7 @@ def test_exact_resolver_overlays_deprecated_mapped_owner_status(tmp_path: Path):
     record = resolver_type(root).resolve("comp.fixture")
 
     assert record["status"] == "deprecated"
-    assert record["trust"] == "historical"
+    assert record["trust"] == "deprecated"
     assert record["checkout_state"] is None
 
 
@@ -359,7 +359,7 @@ def test_cli_resolve_uses_exact_resolver_without_atlas_query(tmp_path: Path, mon
     assert payload["record"]["id"] == "comp.fixture"
 
 
-def test_exact_resolver_preserves_checkout_and_history_advisories(tmp_path: Path):
+def test_exact_resolver_preserves_checkout_and_deprecation_advisories(tmp_path: Path):
     root, schema_path = _root(tmp_path)
     resolver_type = getattr(query_module, "ExactResolver", None)
     assert resolver_type is not None
@@ -386,9 +386,9 @@ def test_exact_resolver_preserves_checkout_and_history_advisories(tmp_path: Path
         schema_path.read_text(encoding="utf-8").replace("status: curated", "status: deprecated"),
         encoding="utf-8",
     )
-    historical = resolver_type(root).resolve("schema.fixture")
-    assert historical["trust"] == "historical"
-    assert historical["checkout_state"] is None
+    deprecated = resolver_type(root).resolve("schema.fixture")
+    assert deprecated["trust"] == "deprecated"
+    assert deprecated["checkout_state"] is None
 
 
 def test_assets_are_searchable_and_lineage_is_traversable(tmp_path: Path):
@@ -431,35 +431,59 @@ def test_curated_authority_is_separate_from_page_checkout_state(tmp_path: Path):
     assert dirty.resolve("repo.fixture")["checkout_state"] == "main-clean"
 
 
-def test_atlas_query_checks_each_curated_page_once_per_instance(tmp_path: Path, monkeypatch):
-    """Search, routing, and embedded records reuse the page's checkout advisory."""
+def test_atlas_query_uses_constant_bulk_git_calls_for_many_pages(tmp_path: Path, monkeypatch):
+    """Checkout advisories must not spawn Git once per curated page."""
     root, _ = _root(tmp_path)
+    _page_only_records(root)
+    standard_path = root / "_curated/standards/general/standard.md"
+    standard, _ = parse_frontmatter(standard_path)
+    for number in range(100):
+        record = {**standard, "id": f"standard.bulk-{number}", "title": f"Bulk standard {number}"}
+        _write(root, f"_curated/standards/general/bulk-{number}.md", record)
     _git_commit(root)
     pages = curated_pages(root)
     original_run = query_module.subprocess.run
-    checked: list[str] = []
+    checkout_commands: list[tuple[str, ...]] = []
 
     def counting_run(command, *args, **kwargs):
-        if command[:3] == ["git", "ls-files", "--error-unmatch"]:
-            checked.append(command[-1])
+        if command[:2] in (["git", "ls-files"], ["git", "diff"]):
+            checkout_commands.append(tuple(command))
         return original_run(command, *args, **kwargs)
 
     monkeypatch.setattr(query_module.subprocess, "run", counting_run)
 
     AtlasQuery(root, compiled_maps=build_maps(root, pages=pages), pages=pages)
 
-    assert checked == sorted(page.path.relative_to(root).as_posix() for page in pages)
+    assert len(pages) >= 100
+    assert [command[1] for command in checkout_commands] == ["ls-files", "diff"]
 
 
-def test_git_unavailable_does_not_remove_curated_authority_and_deprecated_is_historical(tmp_path: Path):
+def test_atlas_query_preloads_only_requested_features(tmp_path: Path):
+    root, _ = _root(tmp_path)
+    query = AtlasQuery(root, compiled_maps=build_maps(root), preload={"search"})
+
+    assert query.search_records
+    assert query.open_questions == []
+    assert query.edges == []
+
+    query.questions("schema.fixture")
+    assert "questions" in query.loaded_features
+    assert query.edges == []
+
+    query.neighbors("comp.fixture")
+    assert "graph" in query.loaded_features
+    assert query.edges
+
+
+def test_git_unavailable_does_not_remove_curated_authority_and_deprecated_is_deprecated(tmp_path: Path):
     root, schema_path = _root(tmp_path)
     query = AtlasQuery(root, compiled_maps=build_maps(root))
     assert query.resolve("schema.fixture")["trust"] == "authoritative"
     assert query.resolve("schema.fixture")["checkout_state"] == "git-unknown"
     text = schema_path.read_text(encoding="utf-8").replace("status: curated", "status: deprecated")
     schema_path.write_text(text, encoding="utf-8")
-    historical = AtlasQuery(root, compiled_maps=build_maps(root))
-    assert historical.resolve("schema.fixture")["trust"] == "historical"
+    deprecated = AtlasQuery(root, compiled_maps=build_maps(root))
+    assert deprecated.resolve("schema.fixture")["trust"] == "deprecated"
 
 
 def test_feature_branch_detached_untracked_and_archived_checkout_state(tmp_path: Path):

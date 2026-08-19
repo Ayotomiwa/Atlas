@@ -366,8 +366,16 @@ def main(argv: list[str] | None = None) -> int:
         _emit(payload, args.format)
         return 1 if payload.get("record") is None else 0
 
+    preloads = {
+        "find": {"search"},
+        "route": set(),
+        "context": set(),
+        "questions": {"questions"},
+        "neighbors": {"graph"},
+        "impact": {"graph"},
+    }
     try:
-        query = AtlasQuery(Path(args.root))
+        query = AtlasQuery(Path(args.root), preload=preloads[args.command])
     except (MapBuildError, OSError, json.JSONDecodeError) as exc:
         print(f"Atlas query failed: {exc}", file=sys.stderr)
         return 1
