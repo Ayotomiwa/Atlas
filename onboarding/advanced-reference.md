@@ -6,7 +6,7 @@ Most engineers can use Atlas through ordinary language: ask a question, teach it
 |---|---|---|
 | Ask Atlas | `atlas-discover`, `atlas-impact` | `atlas_query.py find`, `resolve`, `context`, `neighbors`, `impact` |
 | Teach Atlas | `atlas-stage`, `atlas-questions` | `atlas_query.py questions`, `staging`; `atlas_lint.py` |
-| Sync Atlas | `atlas-onboard-repository`, `atlas-onboard-standards`, `atlas-stage-changes` | `atlas_source_snapshot.py`, `atlas_query.py context`, `atlas_intake.py` |
+| Sync Atlas | `atlas-onboard-repository`, `atlas-onboard-infra-portfolio`, `atlas-onboard-standards`, `atlas-stage-changes` | `atlas_source_snapshot.py`, `atlas_onboarding_campaign.py`, `atlas_query.py context`, `atlas_intake.py` |
 | Curate Atlas | `atlas-curate`; `atlas-review` for an audit/second opinion | Git commit ranges, `rebuild_atlas.py`, `atlas_lint.py`; `atlas_review_snapshot.py` only for an uncommitted audit |
 | Improve Atlas prose | `atlas-humanize`; `atlas-lint` for correctness/contradictions | Atlas lint plus focused parser/freshness checks when relevant |
 | Improve or review Atlas diagrams | `atlas-diagram` | Generated flow views through `rebuild_atlas.py`; an available Mermaid renderer for optional syntax checks |
@@ -61,6 +61,17 @@ python scripts/atlas_source_snapshot.py cleanup --manifest <temporary-manifest>
 Without `--commit`, preparation accepts only the exact clean current `HEAD`. Dirty or historical/unmerged analysis uses an explicit revision and, when needed, a detached worktree below the operating-system temporary directory. Cleanup never switches, resets, stashes, cleans or force-removes the active checkout. A dirty temporary worktree is left in place and reported.
 
 The snapshot manifest is ephemeral operational state. It is never Atlas evidence and never advances `_intake/`. For an unmerged branch snapshot, onboarding records the branch commit as the knowledge snapshot and the merge base with the default branch as the future intake anchor; it does not pretend the branch has merged.
+
+## Infrastructure portfolio campaigns
+
+Use `atlas-onboard-infra-portfolio` when a confirmed inventory contains many logical infrastructure product boundaries. The skill selects a representative pilot, schedules bounded read-only analysis, passes each item through the existing repository onboarding workflow, and records resumable progress at `_intake/onboarding/<campaign-id>.json`. It does not create a second onboarding model or recursively onboard linked applications.
+
+```powershell
+python scripts/atlas_onboarding_campaign.py --format json show <campaign-id>
+python scripts/atlas_onboarding_campaign.py --format json show <campaign-id> --status queued --limit 5
+```
+
+Use the skill rather than hand-editing campaign JSON. Writes use a compare-and-swap digest and exact local commits. A stopped session resumes from committed queue and staging provenance; it does not continue in the background. Campaign completion means curation-ready evidence is staged, not authoritative. The controller never curates, clones, pushes, merges, or publishes.
 
 ## Power-user query routes
 

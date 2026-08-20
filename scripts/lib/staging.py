@@ -95,7 +95,7 @@ def _json_value(value: object) -> object:
 
 def _candidate_domain(relative_to_staging: Path) -> str:
     parts = relative_to_staging.parts
-    if len(parts) >= 3 and parts[0] in {"components", "flows"}:
+    if len(parts) >= 3 and parts[0] in {"components", "flows", "infra"}:
         return parts[1]
     return ""
 
@@ -320,6 +320,7 @@ def load_staging_records(root: str | Path) -> tuple[list[dict], list[dict]]:
                 "candidate_domain": page.candidate_domain,
                 "suggested_targets": targets,
                 "change_source": _json_value(frontmatter.get("change_source")),
+                "onboarding_source": _json_value(frontmatter.get("onboarding_source")),
                 "page": page.page,
             }
         )

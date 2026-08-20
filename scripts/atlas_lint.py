@@ -21,6 +21,12 @@ from scripts.lib.maps import (
     load_package_config,
     validate_map_frontmatter,
 )
+from scripts.lib.onboarding_campaign import (
+    CAMPAIGN_DIR,
+    CampaignError,
+    load_campaign,
+    validate_onboarding_source,
+)
 from scripts.lib.taxonomy import load_taxonomy
 
 
@@ -38,6 +44,7 @@ STAGING_ENVELOPE = {
     "status",
     "captured_by",
     "source_type",
+    "onboarding_source",
 }
 STAGING_TYPE_FIELDS = {"staging.change": {"change_source"}}
 # Fields an author might still write that nothing reads. Structured metadata earns
@@ -157,6 +164,192 @@ def _boolean_key_paths(value: object, prefix: str = "frontmatter") -> list[str]:
     return found
 
 
+def _load_onboarding_campaigns(
+    root: Path, issues: list[dict[str, object]]
+) -> dict[str, list[tuple[Path, dict]]]:
+    """Load direct campaign files so lint can check staging/controller joins."""
+
+    campaign_root = root / CAMPAIGN_DIR
+    campaigns: dict[str, list[tuple[Path, dict]]] = {}
+    if not campaign_root.exists():
+        return campaigns
+    for path in sorted(campaign_root.rglob("*.json")):
+        rel = path.relative_to(root)
+        if path.parent != campaign_root:
+            issues.append(
+                issue(
+                    "ATLAS029",
+                    "ERROR",
+                    rel,
+                    "onboarding campaigns must be direct children of _intake/onboarding",
+                )
+            )
+            continue
+        try:
+            campaign = load_campaign(path)
+        except CampaignError as exc:
+            issues.append(issue("ATLAS029", "ERROR", rel, str(exc)))
+            continue
+        campaign_id = campaign["campaign_id"]
+        campaigns.setdefault(campaign_id, []).append((rel, campaign))
+
+    for campaign_id, candidates in sorted(campaigns.items()):
+        if len(candidates) < 2:
+            continue
+        paths = [path for path, _ in candidates]
+        for path in paths:
+            issues.append(
+                issue(
+                    "ATLAS029",
+                    "ERROR",
+                    path,
+                    f"duplicate onboarding campaign_id {campaign_id}",
+                    related_paths=paths,
+                )
+            )
+    return campaigns
+
+
+def _lint_onboarding_joins(
+    campaigns: dict[str, list[tuple[Path, dict]]],
+    staging_records: dict[str, list[tuple[Path, dict]]],
+    staging_pages: list[tuple[Path, dict]],
+    issues: list[dict[str, object]],
+) -> None:
+    """Validate bidirectional portfolio controller references without prose rules."""
+
+    for staging_path, staging in staging_pages:
+        provenance = staging.get("onboarding_source")
+        if provenance is None:
+            continue
+        errors = validate_onboarding_source(provenance)
+        for message in errors:
+            issues.append(issue("ATLAS025", "ERROR", staging_path, message))
+        if errors:
+            continue
+        assert isinstance(provenance, dict)
+        campaign_id = provenance["campaign_id"]
+        item_id = provenance["item_id"]
+        campaign_candidates = campaigns.get(campaign_id) or []
+        if not campaign_candidates:
+            issues.append(
+                issue(
+                    "ATLAS029",
+                    "ERROR",
+                    staging_path,
+                    f"onboarding_source references missing campaign {campaign_id}",
+                )
+            )
+            continue
+        if len(campaign_candidates) != 1:
+            campaign_paths = ", ".join(path.as_posix() for path, _ in campaign_candidates)
+            issues.append(
+                issue(
+                    "ATLAS029",
+                    "ERROR",
+                    staging_path,
+                    f"onboarding_source references ambiguous campaign {campaign_id}: {campaign_paths}",
+                )
+            )
+            continue
+        _, campaign = campaign_candidates[0]
+        campaign_items = {
+            item.get("item_id"): item
+            for item in campaign.get("items", [])
+            if isinstance(item, dict) and isinstance(item.get("item_id"), str)
+        }
+        campaign_item = campaign_items.get(item_id)
+        if campaign_item is None:
+            issues.append(
+                issue(
+                    "ATLAS029",
+                    "ERROR",
+                    staging_path,
+                    f"onboarding_source references missing item {item_id} in campaign {campaign_id}",
+                )
+            )
+            continue
+        staging_id = staging.get("id")
+        state = campaign_item.get("state")
+        listed_ids = campaign_item.get("staging_ids")
+        if (
+            state == "staged"
+            and isinstance(staging_id, str)
+            and isinstance(listed_ids, list)
+            and staging_id not in listed_ids
+        ):
+            issues.append(
+                issue(
+                    "ATLAS029",
+                    "ERROR",
+                    staging_path,
+                    f"onboarding_source points to staged campaign item {item_id}, but "
+                    f"staging ID {staging_id} is not listed in that item's staging_ids",
+                )
+            )
+        elif state in {"already-covered", "skipped"}:
+            issues.append(
+                issue(
+                    "ATLAS029",
+                    "ERROR",
+                    staging_path,
+                    f"onboarding_source contradicts terminal campaign item {item_id} "
+                    f"with state {state}; that outcome must not have newly staged evidence",
+                )
+            )
+
+    for campaign_id, campaign_candidates in sorted(campaigns.items()):
+        if len(campaign_candidates) != 1:
+            continue
+        campaign_path, campaign = campaign_candidates[0]
+        for item_index, item in enumerate(campaign.get("items", [])):
+            if not isinstance(item, dict) or item.get("state") != "staged":
+                continue
+            item_id = item.get("item_id")
+            staging_ids = item.get("staging_ids")
+            if not isinstance(item_id, str) or not isinstance(staging_ids, list):
+                continue
+            for staging_index, staging_id in enumerate(staging_ids):
+                if not isinstance(staging_id, str):
+                    continue
+                location = f"items[{item_index}].staging_ids[{staging_index}]"
+                candidates = staging_records.get(staging_id) or []
+                if not candidates:
+                    issues.append(
+                        issue(
+                            "ATLAS029",
+                            "ERROR",
+                            campaign_path,
+                            f"{location} references missing staging ID {staging_id}",
+                        )
+                    )
+                    continue
+                if len(candidates) != 1:
+                    paths = ", ".join(path.as_posix() for path, _ in candidates)
+                    issues.append(
+                        issue(
+                            "ATLAS029",
+                            "ERROR",
+                            campaign_path,
+                            f"{location} references ambiguous staging ID {staging_id}: {paths}",
+                        )
+                    )
+                    continue
+                staging_path, staging = candidates[0]
+                if staging.get("onboarding_source") != {
+                    "campaign_id": campaign_id,
+                    "item_id": item_id,
+                }:
+                    issues.append(
+                        issue(
+                            "ATLAS029",
+                            "ERROR",
+                            campaign_path,
+                            f"{location} does not match onboarding_source on {staging_path.as_posix()}",
+                        )
+                    )
+
+
 def lint_repository(
     root: str | Path,
 ) -> list[dict[str, object]]:
@@ -187,6 +380,7 @@ def lint_repository(
     concept_fields = taxonomy["concept_fields"]
     seen_ids: dict[str, Path] = {}
     staging_records: dict[str, list[tuple[Path, dict]]] = {}
+    staging_pages: list[tuple[Path, dict]] = []
 
     for path in sorted(root.rglob("*.md")):
         rel = path.relative_to(root)
@@ -228,6 +422,7 @@ def lint_repository(
             issues.append(issue("ATLAS004", "ERROR", rel, f"package must equal {package_name}"))
 
         if str(typ).startswith("staging."):
+            staging_pages.append((rel, fm))
             ident = fm.get("id")
             if not valid_staging_id(ident):
                 issues.append(issue("ATLAS003", "ERROR", rel, "invalid staging id"))
@@ -370,6 +565,8 @@ def lint_repository(
         if typ == "standard" and status == "curated" and fm.get("requirement_level") == "unknown":
             issues.append(issue("ATLAS025", "ERROR", rel, "curated standards cannot use requirement_level: unknown"))
 
+    campaigns = _load_onboarding_campaigns(root, issues)
+
     for staging_id, candidates in sorted(staging_records.items()):
         if len(candidates) < 2:
             continue
@@ -385,6 +582,8 @@ def lint_repository(
                 related_ids=[staging_id],
             )
         )
+
+    _lint_onboarding_joins(campaigns, staging_records, staging_pages, issues)
 
     checkpoint_root = root / "_intake" / "checkpoints"
     if checkpoint_root.exists():

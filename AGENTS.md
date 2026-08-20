@@ -15,6 +15,7 @@ This repository is the Datalens Atlas package (`datalens`). It is a governed eng
 - Use exactly one concrete preview and one scope-bound approval per persistence operation; internal handoffs do not reset approval.
 - Reuse an existing feature branch for related Atlas writes and state its name non-blockingly. Ask for a suggested/custom branch only on the default branch, detached HEAD or unrelated history. Local commits never authorise push or merge.
 - Repository onboarding establishes a full curation-ready baseline from one immutable selected source snapshot. Incremental merged-change processing begins only after coverage exists.
+- For many confirmed infrastructure boundaries, use `atlas-onboard-infra-portfolio` to pilot and batch the existing repository onboarding workflow. It stops at committed staging evidence and never curates the portfolio.
 
 ## How repository rules are organised
 - `atlas-package.json` defines machine package identity, domains and entrypoints; known-package lookups may route directly to maps/indexes/pages.
@@ -45,11 +46,12 @@ Do not read the entire Atlas repository. Start from `index.md` or the relevant s
 
 When Codex is running inside this Atlas checkout, stored-knowledge questions still use `atlas-discover`: search curated records without treating the Atlas path as product context. Questions about Atlas implementation use local repository evidence instead.
 
-Use `python scripts/atlas_query.py staging` for the cross-bucket evidence queue. Use `atlas-stage-changes` when asked to assess merged default-branch changes since a shared source cursor; it stages approved evidence but never curates it.
+Use `python scripts/atlas_query.py staging` for the cross-bucket evidence queue. Use `atlas-stage-changes` when asked to assess merged default-branch changes since a shared source cursor. Use `atlas-onboard-infra-portfolio` for a confirmed multi-product infrastructure inventory; it delegates every item to repository onboarding.
 
 ## Operational records
 - staging lifecycle/queue state → each `_staging/` record's `status`
 - merged-source observation/consideration cursor → `_intake/checkpoints/<source-key>.json`
+- infrastructure portfolio onboarding queue → `_intake/onboarding/<campaign-id>.json`
 - latest curation checkpoint → `_curated/status/curation-status.md`
 - publication and later human-review history → Atlas PR/MR and Git history
 - significant Atlas milestones only → `log.md`

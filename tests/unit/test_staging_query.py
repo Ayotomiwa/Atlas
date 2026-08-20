@@ -21,6 +21,7 @@ def _write_staging(
     targets: list[str] | None = None,
     change_source: dict | None = None,
     target_body: str | None = None,
+    onboarding_source: dict | None = None,
 ) -> Path:
     frontmatter = {
         "id": record_id,
@@ -35,6 +36,8 @@ def _write_staging(
     }
     if change_source is not None:
         frontmatter["change_source"] = change_source
+    if onboarding_source is not None:
+        frontmatter["onboarding_source"] = onboarding_source
     if target_body is None:
         bullets = "\n".join(f"- `{target}`" for target in targets or []) or "None recorded."
         target_body = f"## Suggested curated targets\n\n{bullets}\n\n## Open questions\n"
@@ -146,6 +149,7 @@ def test_staging_defaults_to_active_records_across_buckets(tmp_path: Path):
         "candidate_domain": "payments",
         "suggested_targets": ["comp.payments-api"],
         "change_source": None,
+        "onboarding_source": None,
         "page": "_staging/components/payments/STG-20260810-payments.md",
     }
 
@@ -168,6 +172,27 @@ def test_staging_status_terminal_and_change_provenance(tmp_path: Path):
         tmp_path, statuses=["rejected"], include_terminal=True
     )
     assert [record["status"] for record in explicit["results"]] == ["rejected"]
+
+
+def test_staging_exposes_onboarding_provenance_and_infra_candidate_domain(tmp_path: Path, capsys):
+    _write_staging(
+        tmp_path,
+        "_staging/infra/platform/STG-20260820-infra.md",
+        record_id="STG-20260820-infra",
+        record_type="staging.infra",
+        status="new",
+        timestamp="2026-08-20",
+        onboarding_source={"campaign_id": "fixture-portfolio", "item_id": "platform"},
+    )
+
+    payload = query_staging(tmp_path)
+
+    assert payload["results"][0]["candidate_domain"] == "platform"
+    assert payload["results"][0]["onboarding_source"] == {
+        "campaign_id": "fixture-portfolio", "item_id": "platform"
+    }
+    assert main(["--root", str(tmp_path), "staging"]) == 0
+    assert "onboarding=fixture-portfolio/platform" in capsys.readouterr().out
 
 
 def test_staging_filters_are_and_across_kinds_and_or_within_kind(tmp_path: Path):

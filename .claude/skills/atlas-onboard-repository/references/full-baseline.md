@@ -39,7 +39,7 @@ Unknown is an honest result. Do not create a component, flow, resource, schema o
 
 ## Curation-ready output
 
-Stage one repository/component discovery record for the source boundary plus separate flow, infrastructure, schema, runbook, incident, standard or concept records whenever each has an independently useful evidenced boundary.
+Assess every lens, then stage only independently justified evidence. An infra-only boundary may make `staging.infra` the primary record; create a repository/component discovery record only when it has its own independently evidenced reusable boundary. Do not add an onboarding-specific staging type. Add separate flow, schema, runbook, incident, standard or concept records only when each has an independently useful evidenced boundary.
 
 Every staged record must include a readable explanation, precise source paths/anchors, causality rather than file adjacency, coverage limits and unresolved decisions. For every candidate component include its own causal walkthrough from entrypoint through material work to output/failure behavior. A file inventory is not a component explanation.
 

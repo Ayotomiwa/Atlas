@@ -12,7 +12,7 @@ Atlas is most useful for cold starts, cross-repository or cross-system questions
 |---|---|---|
 | Ask Atlas | "How does this publish data?" or "What could this change affect?" | Claude finds the relevant reviewed knowledge, follows its links, and checks source files when coverage ends. |
 | Teach Atlas | "Save this fact" or "What does Atlas still need to know?" | Claude checks provenance and duplicates, previews the evidence it could save, and writes only after approval. |
-| Sync Atlas | "Onboard this repository" or "Update Atlas for this repo" | Claude builds a full baseline or examines merged changes since the last shared checkpoint. |
+| Sync Atlas | "Onboard this repository", "Onboard this infrastructure portfolio", or "Update Atlas for this repo" | Claude builds a baseline, coordinates confirmed infrastructure boundaries, or examines merged changes since the last shared checkpoint. |
 | Curate Atlas | "Curate pending evidence for payments" | Claude proposes reviewed knowledge changes, validates them, and sends them through independent semantic review. |
 
 The workflow remains controlled behind the conversation: saved observations are not automatically trusted, uncertainty stays visible, writes require approval, and agents never merge or publish Atlas changes.
@@ -35,7 +35,7 @@ Known-package navigation can open an index, map, stable ID, or page directly. It
 
 - Reviewed reusable knowledge lives in `_curated/`. A page with `status: curated` is authoritative Atlas knowledge.
 - New observations live in `_staging/`. They are attributable evidence, not authority.
-- Merged-change progress lives in `_intake/`. It records what Atlas has observed and considered; it is not engineering evidence.
+- Source-processing progress lives in `_intake/`. It records merged-change checkpoints and infrastructure portfolio queues; it is not engineering evidence.
 - Generated maps and indexes help navigation. The curated page and cited source explain the fact.
 - Git branch state is shown as a small checkout advisory. Being off `main` or `master` does not make a curated page non-authoritative, but it may mean the latest local change has not been shared yet.
 - Missing coverage remains unknown. An absent link never proves that no dependency or impact exists.
@@ -75,7 +75,7 @@ Codex adaptations live in `.agents/skills/` and `.codex/agents/`. Product reposi
 | `atlas-package.json` | Machine-readable package identity, domains, entry points, taxonomy, and compiler contracts |
 | `index.md` | Root navigation for humans and agents |
 | `_staging/` | Immutable-by-policy evidence waiting for curation |
-| `_intake/` | Mutable, non-authoritative merged-change checkpoints |
+| `_intake/` | Mutable, non-authoritative merged-change checkpoints and infrastructure onboarding campaigns |
 | `_curated/` | Reviewed knowledge, collection policies, templates, and generated routes |
 | `taxonomy/` | Controlled author-facing classifications and allowed values |
 | `contracts/` | Compiler-only field and traversal rules |

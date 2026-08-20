@@ -1,6 +1,24 @@
-# `_intake/` — merged-change consideration state
+# `_intake/` — shared operational progress
 
-`_intake/` records how far Atlas has **observed and considered** a registered source repository's default branch. It prevents repeated monorepo scans and makes deferred work visible. It is shared operational state, not staging evidence, curated knowledge, or semantic authority.
+`_intake/` holds shared, mutable progress for source processing. Change checkpoints record how far Atlas has **observed and considered** a default branch. Infrastructure onboarding campaigns record which confirmed product boundaries have reached committed staging evidence. Both prevent repeated work and expose unresolved items; neither is staging evidence, curated knowledge, or semantic authority.
+
+## Infrastructure onboarding campaigns
+
+Store one campaign at `_intake/onboarding/<campaign-id>.json`. A campaign coordinates a confirmed infrastructure inventory through a representative pilot and bounded rollout batches. It does not contain source findings and does not replace repository onboarding: every item is still analysed and staged through `atlas-onboard-repository` and `atlas-repo-analyst`.
+
+Use the controller through a natural request such as “Onboard this infrastructure portfolio” or the explicit `atlas-onboard-infra-portfolio` skill. Inspect and update state only through the helper:
+
+```text
+python scripts/atlas_onboarding_campaign.py --format json show <campaign-id>
+python scripts/atlas_onboarding_campaign.py --format json show <campaign-id> --status blocked --limit 10
+python scripts/atlas_onboarding_campaign.py --format json write --campaign <campaign-id> --input <assembled-json> --expected-digest <sha256-or-missing>
+```
+
+The `atlas-onboarding-campaign/1.0` document stores credential-free sources, confirmed logical roots, campaign-local sampling traits, pilot membership, active-trial state, item state, selected source commits, resulting staging IDs and Atlas commits, and compact blocker/reason metadata. The required `active_trial` field is normally `null`; while `phase: paused` it may identify one evidenced archetype and a non-empty immutable selection of campaign item IDs. It can be cleared only after every selected item is terminal, in the same compare-and-swap update that resumes rollout or completes an otherwise terminal campaign. The field is operational routing state, not an engineering claim. The document never stores local checkout paths, source content, engineering findings, worker leases, session IDs, or `in-progress` state.
+
+Items are `queued`, `blocked`, `staged`, `already-covered`, or `skipped`; phases are `pilot`, `rollout`, `paused`, or `complete`. A stopped session does not continue in the background. Resume reconciles committed staging provenance before retrying, and compare-and-swap protects every update from silent concurrent overwrite. Completion means each item is `staged` with committed evidence recorded, `already-covered` by adequate existing evidence, or explicitly `skipped` with a reason. The controller never curates, clones, pushes, merges, or publishes; authority remains the separate curation and human-review path.
+
+Campaign writes hold a sibling lock across digest comparison and atomic replacement. A campaign lock left by an interrupted process may be removed only after verifying that no writer is active; never delete it merely to bypass a live conflict. Reload the campaign and reconcile its digest after stale-lock recovery.
 
 ## Checkpoints
 

@@ -224,6 +224,12 @@ def _emit(payload: dict, output_format: str) -> None:
                 context.append(f"date={record['timestamp']}")
             if record.get("source_type"):
                 context.append(f"source={record['source_type']}")
+            onboarding_source = record.get("onboarding_source")
+            if isinstance(onboarding_source, dict):
+                campaign_id = onboarding_source.get("campaign_id")
+                item_id = onboarding_source.get("item_id")
+                if isinstance(campaign_id, str) and isinstance(item_id, str):
+                    context.append(f"onboarding={campaign_id}/{item_id}")
             print(f"  {'; '.join(context)}")
             if record.get("description"):
                 print(f"  {record['description']}")

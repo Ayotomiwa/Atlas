@@ -15,6 +15,7 @@ Route by question or trust layer:
 - What raw evidence is awaiting review? Use the [staging index](_staging/index.md).
 - What staging evidence is active or historical across all buckets? Ask Claude for the desired status, bucket, domain, date or target scope.
 - Which merged monorepo changes have Atlas considered, or what should be staged next? Ask Claude to update Atlas for the repository; shared cursors are explained in [change intake](_intake/README.md).
+- How can we onboard a confirmed infrastructure portfolio without losing progress between sessions? Ask Claude to coordinate the infrastructure portfolio; the resumable queue is explained in [operational intake](_intake/README.md).
 - What is the latest curation checkpoint? Open [curation status](_curated/status/curation-status.md).
 - How is new context captured? Start with [onboarding](onboarding/index.md).
 - Which controlled values apply? Read [taxonomy](taxonomy/README.md).
