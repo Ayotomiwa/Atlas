@@ -24,7 +24,11 @@ An infrastructure package or promoted resource that performs work is simply a ty
 
 ## Generated views
 
-`python scripts/rebuild_atlas.py` renders the step table. Set `diagram: true` only when a generated Mermaid view helps; diagram necessity remains curator judgment. The map does not duplicate steps into later component or infrastructure rosters. It derives only `downstream_flows`; the query tool derives participant and impact views from the steps.
+`python scripts/rebuild_atlas.py` renders the step table and, when `diagram: true`, an accessible Mermaid flowchart. Use a diagram for one question with roughly three to eight meaningful steps; keep the table as the text fallback. Components, infrastructure, resources, external systems and manual actions use distinct shapes. Dashed borders mark uncertain steps, while dashed edges mark failure or retry paths, so meaning never depends on color.
+
+When no transition is authored anywhere, the diagram connects steps by order. Once a flow authors any transition, the diagram renders only explicit transitions; capture every evidenced branch needed to understand that topology. Never hand-edit the generated block. Use `atlas-diagram` to review whether a diagram is useful and readable without changing its meaning.
+
+The map does not duplicate steps into later component or infrastructure rosters. It derives only `downstream_flows`; the query tool derives participant and impact views from the steps.
 
 Maps connect; pages explain boundary, failure behavior, evidence and question context.
 
@@ -40,5 +44,6 @@ Before approving a flow page, confirm that:
 - entry points match real triggers, with `entry_point_type` supported by a schedule, event or caller;
 - failure paths and their operational consequences are evidenced, not inferred from the happy path;
 - gaps in the chain are declared as coverage limits, so a partial flow is never read as complete.
+- a requested diagram answers one question, stays readable at normal width, and preserves a useful table/prose fallback.
 
 This README defines the flow page model and review rules. Flow discovery and curation workflows own investigation, approvals, persistence, validation, and independent review.

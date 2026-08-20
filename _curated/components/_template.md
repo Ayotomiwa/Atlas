@@ -89,7 +89,7 @@ Record evidenced failure modes, observable symptoms, monitoring routes and suppo
 
 ## Diagram
 
-Add reviewed Mermaid only when it materially clarifies internal structure or boundaries.
+Add reviewed Mermaid only when one view of roughly three to eight meaningful nodes materially clarifies an internal boundary or control path. Keep the structured routing table and prose as the accessible fallback. Do not infer an edge for visual completeness.
 
 <!-- atlas:generated-related-routes:start -->
 ## Related Atlas routes

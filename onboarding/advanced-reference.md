@@ -9,6 +9,7 @@ Most engineers can use Atlas through ordinary language: ask a question, teach it
 | Sync Atlas | `atlas-onboard-repository`, `atlas-onboard-standards`, `atlas-stage-changes` | `atlas_source_snapshot.py`, `atlas_query.py context`, `atlas_intake.py` |
 | Curate Atlas | `atlas-curate`; `atlas-review` for an audit/second opinion | Git commit ranges, `rebuild_atlas.py`, `atlas_lint.py`; `atlas_review_snapshot.py` only for an uncommitted audit |
 | Improve Atlas prose | `atlas-humanize`; `atlas-lint` for correctness/contradictions | Atlas lint plus focused parser/freshness checks when relevant |
+| Improve or review Atlas diagrams | `atlas-diagram` | Generated flow views through `rebuild_atlas.py`; an available Mermaid renderer for optional syntax checks |
 
 These names are useful for explicit invocation but are not a prerequisite for normal use. Claude chooses among them from the user's request and current context.
 
@@ -44,6 +45,8 @@ When Claude or Codex runs inside the Atlas checkout, questions about stored engi
 The shared `clear-writing.md` contract applies while Atlas skills and agents draft pages or durable reports. It requires plain technical language while preserving evidence, confidence, coverage, controlled terms, safety requirements, parser-owned headings, tables, links, and generated markers.
 
 Use `atlas-humanize` for an approved, bounded prose cleanup. It separates style problems from semantic contradictions, refuses generated content and committed staging evidence, previews once, and verifies that no material claim changed or disappeared. Use `atlas-lint` for validation failures, broken links, contradictions, and evidence-sensitive repair routing.
+
+Use `atlas-diagram` when a persisted page or answer needs a clearer visual. Console answers default to a short text route, tree, or table. Persisted diagrams answer one engineering question, normally stay between three and eight meaningful nodes, preserve uncertainty without relying on color, and retain prose or tables as a fallback. Generated flow Mermaid comes only from structured steps and is rebuilt rather than hand-edited.
 
 ## Source snapshots
 

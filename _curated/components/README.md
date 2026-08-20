@@ -26,7 +26,7 @@ Each connection entry uses `id` for a stable Atlas target or `name` for an exter
 
 ## Documentation depth
 
-Document purpose, responsibility, source entrypoints, concise control flow, durable interfaces, dependencies, configuration concepts, deployment context, failures and operational routes. Exact setup/build/run commands remain owned by the source repository. Add reviewed Mermaid only when it materially clarifies structure.
+Document purpose, responsibility, source entrypoints, concise control flow, durable interfaces, dependencies, configuration concepts, deployment context, failures and operational routes. Exact setup/build/run commands remain owned by the source repository. Add reviewed Mermaid only when one view of roughly three to eight meaningful nodes materially clarifies an internal boundary or control path. Follow the shared diagram-writing rules: preserve evidence and uncertainty, avoid color-only meaning, and keep the prose or structured table as a fallback. Use `atlas-diagram` for focused review.
 
 Run `python scripts/rebuild_atlas.py` after structured changes. Never edit generated maps or managed tables.
 
@@ -44,5 +44,6 @@ Before approving a component page, confirm that:
 - no flow participation is authored here;
 - failure and operational context routes to runbooks and monitoring without copying sensitive logs;
 - coverage limits and open questions name what is unknown rather than leaving it blank.
+- any diagram answers one engineering question and introduces no node, edge or causal claim beyond the reviewed page evidence.
 
 This README defines the component page model and review rules. Repository onboarding and curation workflows own discovery, approvals, persistence, validation, and independent review.

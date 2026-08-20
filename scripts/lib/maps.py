@@ -988,6 +988,8 @@ def build_maps(
                 "open_questions": questions,
             }
         elif typ == "flow":
+            if "diagram" in fm and not isinstance(fm["diagram"], bool):
+                raise MapBuildError(f"{path}: flow diagram must be a boolean")
             flows[ident] = {
                 **common,
                 "flow_scope": fm.get("flow_scope", ""),

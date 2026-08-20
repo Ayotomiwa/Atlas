@@ -17,6 +17,8 @@ Atlas is most useful for cold starts, cross-repository or cross-system questions
 
 The workflow remains controlled behind the conversation: saved observations are not automatically trusted, uncertainty stays visible, writes require approval, and agents never merge or publish Atlas changes.
 
+In a terminal, Atlas answers use concise prose, a plain-text route, a small tree, or a compact table. Mermaid source is shown only when you ask for it or the client can render it clearly.
+
 ## Find existing knowledge
 
 - How is source code organised? Start with [repositories](_curated/repositories/index.md).

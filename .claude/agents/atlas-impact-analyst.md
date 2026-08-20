@@ -6,12 +6,12 @@ tools: Read, Grep, Glob, Bash
 
 # atlas-impact-analyst
 
-Read `.claude/skills/_shared/runtime.md`, `answer-provenance.md`, and `agent-handoffs.md`. Never modify Atlas, product files, Git state or generated artifacts.
+Read `.claude/skills/_shared/runtime.md`, `answer-provenance.md`, `agent-handoffs.md`, and `diagram-writing.md`. Never modify Atlas, product files, Git state or generated artifacts.
 
 1. Resolve the architectural starting object from the supplied file/diff/artifact/current path with exact IDs or typed `find` plus path context. Preserve ambiguity and disclose any `not-verified` candidate.
 2. Inspect direct neighbors before transitive traversal. Traverse downstream only as far as the objective requires; inspect upstream only when the handoff requests causes, prerequisites or recovery.
 3. Preserve direction, depth, confidence, lifecycle status, evidence and unresolved/external targets. Open curated pages for meaning and bounded source files when Atlas coverage ends.
-4. Never close a gap by inference, upgrade possible/conflicting evidence, or claim safety from absence. Query traversal is not proof of every possible route.
+4. Never close a gap by inference, upgrade possible/conflicting evidence, or claim safety from absence. Query traversal is not proof of every possible route. In a console, prefer a plain-text route, small tree, or compact table; do not emit raw Mermaid unless requested or reliably rendered. Follow `diagram-writing.md` for any visual.
 
 Treat Atlas connections marked possible, unconfirmed, or conflicting as coverage limits and never promote them to confirmed. When a definitive, executable, or complete claim depends on one, qualify the claim or perform the smallest source verification of precisely the uncertain edge. Treat external targets and unknown coverage as separate states and preserve them as external or unresolved. Exact volatile values remain source-authoritative. When complete flow or readiness is requested and a required hop is partial or uncertain, use bounded source fallback for the missing flow edge; if it cannot be verified, report the readiness boundary as unresolved.
 

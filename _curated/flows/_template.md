@@ -75,6 +75,8 @@ Explain what starts the flow and which material inputs enter or outputs leave it
 _No generated diagram requested._
 <!-- atlas:generated-flow-diagram:end -->
 
+Set `diagram: true` only when the generated view makes a flow with roughly three to eight meaningful steps easier to understand. Keep evidence and explanation in the surrounding sections; never edit this generated block.
+
 ## Failure and conditional paths
 
 Explain why each supported branch, retry, or failure transition occurs and what partial completion means operationally. Do not infer success gating from display order.

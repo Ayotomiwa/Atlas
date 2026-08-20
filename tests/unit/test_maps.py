@@ -330,6 +330,101 @@ def test_shared_curated_snapshot_preserves_generated_outputs(tmp_path: Path):
     )
 
 
+def test_generated_flow_diagram_is_accessible_readable_and_semantic(tmp_path: Path):
+    root = _coherent_root(tmp_path)
+    flow_path = root / "_curated/flows/test/flow.md"
+    frontmatter, body = flow_path.read_text(encoding="utf-8").split("---", 2)[1:]
+    flow = yaml.safe_load(frontmatter)
+    flow["title"] = "Fixture order route"
+    flow["description"] = "Routes an order through storage, notification, and manual recovery."
+    flow["diagram"] = True
+    flow["steps"] = [
+        {
+            "step_id": "receive",
+            "order": 10,
+            "name": 'Receive "order" | validate',
+            "participant": {"type": "component", "id": "comp.fixture", "name": "Fixture API"},
+            "role": "accepts the order",
+            "confidence": "reviewed",
+            "evidence": ["src/handler.py"],
+            "transitions": [{"to": "store", "on": "success"}],
+        },
+        {
+            "step_id": "store",
+            "order": 20,
+            "name": "Store order",
+            "participant": {"type": "infra", "id": "infra.fixture", "name": "Storage package"},
+            "role": "persists the order",
+            "confidence": "reviewed",
+            "evidence": ["infra/main.tf"],
+            "transitions": [
+                {"to": "notify", "on": "success"},
+                {"to": "recover", "on": "failure", "condition": "write fails"},
+            ],
+        },
+        {
+            "step_id": "notify",
+            "order": 30,
+            "name": "Notify partner",
+            "participant": {"type": "external-system", "name": "Partner webhook"},
+            "role": "receives the notification",
+            "confidence": "reviewed",
+            "evidence": ["src/handler.py"],
+        },
+        {
+            "step_id": "recover",
+            "order": 40,
+            "name": "Review failed order",
+            "participant": {"type": "manual", "name": "On-call engineer"},
+            "role": "decides whether to retry",
+            "confidence": "unconfirmed",
+            "note": "The responsible role is not yet confirmed.",
+            "transitions": [{"to": "store", "on": "retry"}],
+        },
+    ]
+    flow_path.write_text(
+        "---\n" + yaml.safe_dump(flow, sort_keys=False) + "---" + body,
+        encoding="utf-8",
+    )
+
+    maps = build_maps(root)
+    rendered = build_page_view_outputs(root, compiled_maps=maps)[flow_path].decode("utf-8")
+
+    assert "flowchart TB" in rendered
+    assert "accTitle: Fixture order route flow" in rendered
+    assert "accDescr: Routes an order through storage, notification, and manual recovery." in rendered
+    assert 's0["10. Receive &quot;order&quot; &#124; validate<br/>Fixture API"]' in rendered
+    assert 's1[["20. Store order<br/>Storage package"]]' in rendered
+    assert 's2(["30. Notify partner<br/>Partner webhook"])' in rendered
+    assert 's3{{"40. Review failed order<br/>On-call engineer"}}' in rendered
+    assert "s1 -->|failure: write fails| s3" in rendered
+    assert "class s3 uncertain" in rendered
+    assert "classDef uncertain stroke-dasharray: 5 5" in rendered
+    assert "linkStyle 2,3 stroke-dasharray: 5 5" in rendered
+    assert "Dashed node borders mark uncertain steps" in rendered
+    assert "Dashed edges mark failure or retry paths" in rendered
+    assert "\\n" not in rendered
+
+
+def test_flow_diagram_flag_must_be_boolean(tmp_path: Path):
+    root = _coherent_root(tmp_path)
+    flow_path = root / "_curated/flows/test/flow.md"
+    frontmatter, body = flow_path.read_text(encoding="utf-8").split("---", 2)[1:]
+    flow = yaml.safe_load(frontmatter)
+    flow["diagram"] = "true"
+    flow_path.write_text(
+        "---\n" + yaml.safe_dump(flow, sort_keys=False) + "---" + body,
+        encoding="utf-8",
+    )
+
+    issues = validate_map_frontmatter(root)
+
+    assert any(
+        issue.path.endswith("flow.md") and "diagram must be a boolean" in issue.message
+        for issue in issues
+    )
+
+
 def test_rebuild_loads_each_curated_page_once_and_is_deterministic(tmp_path: Path, monkeypatch):
     """A rebuild shares one parsed snapshot across maps, catalogues, and page views."""
     root = _coherent_root(tmp_path)

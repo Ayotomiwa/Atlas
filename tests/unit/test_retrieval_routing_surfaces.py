@@ -31,6 +31,10 @@ SURFACE_PAIRS = {
         ".claude/skills/atlas-impact/SKILL.md",
         ".agents/skills/atlas-impact/SKILL.md",
     ),
+    "diagram": (
+        ".claude/skills/atlas-diagram/SKILL.md",
+        ".agents/skills/atlas-diagram/SKILL.md",
+    ),
     "discovery_agent": (
         ".claude/agents/atlas-discovery-analyst.md",
         ".codex/agents/atlas-discovery-analyst.toml",
@@ -490,7 +494,7 @@ def test_managed_block_is_binding_signal_and_exposes_risk_triggers() -> None:
 
 
 def test_paired_skill_and_agent_metadata_remain_valid() -> None:
-    for surface in ("discover", "impact"):
+    for surface in ("discover", "impact", "diagram"):
         claude, codex = SURFACE_PAIRS[surface]
         claude_metadata, _ = parse_frontmatter(ROOT / claude)
         codex_metadata, _ = parse_frontmatter(ROOT / codex)
@@ -501,3 +505,47 @@ def test_paired_skill_and_agent_metadata_remain_valid() -> None:
         claude_metadata, _ = parse_frontmatter(ROOT / claude)
         codex_metadata = tomllib.loads((ROOT / codex).read_text(encoding="utf-8"))
         assert claude_metadata["name"] == codex_metadata["name"]
+
+
+def test_diagram_contract_keeps_console_answers_readable_and_mermaid_evidenced() -> None:
+    shared_pairs = (
+        ".claude/skills/_shared/diagram-writing.md",
+        ".agents/skills/_shared/diagram-writing.md",
+    )
+    for relative in shared_pairs:
+        text = (ROOT / relative).read_text(encoding="utf-8")
+        for term in (
+            "one engineering question",
+            "evidenced facts",
+            "plain-text route",
+            "raw Mermaid",
+            "three meaningful nodes",
+            "eight nodes",
+            "color alone",
+            "table or prose fallback",
+            "generated Mermaid block",
+        ):
+            assert term in text, f"{relative}: missing {term!r}"
+
+    for surface in ("discover", "impact", "discovery_agent", "impact_agent"):
+        _assert_all(
+            surface,
+            "plain-text route",
+            "compact table",
+            "raw Mermaid",
+            "diagram-writing",
+        )
+
+    _assert_all(
+        "diagram",
+        "generated flow diagram",
+        "curator-authored component diagram",
+        "never hand-edit a generated Mermaid block",
+        "console",
+        "syntax",
+        "readability",
+    )
+
+    advanced = (ROOT / "onboarding/advanced-reference.md").read_text(encoding="utf-8")
+    assert "Improve or review Atlas diagrams" in advanced
+    assert "atlas-diagram" in advanced

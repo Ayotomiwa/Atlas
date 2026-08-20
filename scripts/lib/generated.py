@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from html import escape
 from pathlib import Path
 import os
 import re
@@ -372,6 +373,29 @@ def _flow_steps_table(root: Path, page: Path, fm: dict, routes: dict[str, dict])
     return "\n".join(lines)
 
 
+def _mermaid_text(value: object) -> str:
+    """Return one safe, readable Mermaid label line."""
+    collapsed = " ".join(str(value or "").split())
+    return escape(collapsed, quote=True).replace("|", "&#124;")
+
+
+def _mermaid_accessibility_text(value: object) -> str:
+    """Keep accessibility directives on one parser-safe line."""
+    return " ".join(str(value or "").replace(":", " - ").split())
+
+
+def _mermaid_node(node_id: str, label: str, participant_type: str) -> str:
+    shapes = {
+        "component": f'{node_id}["{label}"]',
+        "infra": f'{node_id}[["{label}"]]',
+        "infra-resource": f'{node_id}[("{label}")]',
+        "external-system": f'{node_id}(["{label}"])',
+        "manual": f'{node_id}{{{{"{label}"}}}}',
+        "unknown": f'{node_id}["? {label}"]',
+    }
+    return shapes.get(participant_type, shapes["unknown"])
+
+
 def _mermaid(fm: dict) -> str:
     if not fm.get("diagram"):
         return "_No generated diagram requested._"
@@ -379,23 +403,75 @@ def _mermaid(fm: dict) -> str:
     if not steps:
         return "_No steps are available to diagram._"
     node_names = {step["step_id"]: f"s{index}" for index, step in enumerate(steps)}
-    lines = ["```mermaid", "flowchart LR"]
+    transition_kinds = {
+        transition.get("on")
+        for step in steps
+        for transition in (step.get("transitions") or [])
+        if isinstance(transition, dict)
+    }
+    branching = any(len(step.get("transitions") or []) > 1 for step in steps)
+    complex_topology = branching or bool(
+        transition_kinds & {"failure", "retry", "conditional"}
+    )
+    direction = "TB" if len(steps) > 6 or complex_topology else "LR"
+    title = _mermaid_accessibility_text(fm.get("title") or fm.get("id") or "Atlas flow")
+    description = _mermaid_accessibility_text(
+        fm.get("description") or f"Ordered steps for {title}."
+    )
+    lines = [
+        "```mermaid",
+        f"flowchart {direction}",
+        f"    accTitle: {title} flow",
+        f"    accDescr: {description}",
+    ]
+    uncertain_nodes: list[str] = []
     for step in steps:
         participant = step.get("participant") or {}
-        label = f"{step.get('order')}. {step.get('name')}\\n{participant.get('name', '')}".replace('"', "'")
-        lines.append(f'    {node_names[step["step_id"]]}["{label}"]')
+        label = (
+            f"{_mermaid_text(step.get('order'))}. {_mermaid_text(step.get('name'))}"
+            f"<br/>{_mermaid_text(participant.get('name'))}"
+        )
+        node_id = node_names[step["step_id"]]
+        participant_type = str(participant.get("type") or "unknown")
+        lines.append(f"    {_mermaid_node(node_id, label, participant_type)}")
+        if step.get("confidence") != "reviewed":
+            uncertain_nodes.append(node_id)
+    has_explicit_transitions = bool(transition_kinds)
+    dashed_edges: list[int] = []
+    edge_index = 0
     for index, step in enumerate(steps):
         transitions = step.get("transitions") or []
         if transitions:
             for transition in transitions:
-                label = transition.get("on", "")
+                transition_type = str(transition.get("on") or "")
+                label = transition_type
+                if transition.get("condition"):
+                    label += f": {transition['condition']}"
                 lines.append(
-                    f"    {node_names[step['step_id']]} -->|{label}| {node_names[transition['to']]}"
+                    f"    {node_names[step['step_id']]} -->|{_mermaid_text(label)}| "
+                    f"{node_names[transition['to']]}"
                 )
-        elif index + 1 < len(steps):
+                if transition_type in {"failure", "retry"}:
+                    dashed_edges.append(edge_index)
+                edge_index += 1
+        elif not has_explicit_transitions and index + 1 < len(steps):
             following = steps[index + 1]
             lines.append(f"    {node_names[step['step_id']]} --> {node_names[following['step_id']]}")
+            edge_index += 1
+    if uncertain_nodes:
+        lines.append(f"    class {','.join(uncertain_nodes)} uncertain")
+        lines.append("    classDef uncertain stroke-dasharray: 5 5;")
+    if dashed_edges:
+        edge_numbers = ",".join(str(index) for index in dashed_edges)
+        lines.append(f"    linkStyle {edge_numbers} stroke-dasharray: 5 5;")
     lines.append("```")
+    legend: list[str] = []
+    if uncertain_nodes:
+        legend.append("Dashed node borders mark uncertain steps")
+    if dashed_edges:
+        legend.append("Dashed edges mark failure or retry paths")
+    if legend:
+        lines.extend(["", f"_{'. '.join(legend)}._"])
     return "\n".join(lines)
 
 
