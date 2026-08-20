@@ -58,6 +58,8 @@ Evidence sources and suggested curation destinations are captured in the body (`
 
 `staging.change` has one type-specific exception: it may add a validated `change_source` block for Git range provenance. The block is required when `source_type: merged-change` and optional for other change source types. No other staging bucket accepts it.
 
+Portfolio onboarding records may additionally carry `onboarding_source: {campaign_id: <slug>, item_id: <slug>}`. This is operational provenance that joins evidence to its onboarding campaign; it is not authority, does not change staging trust, and does not make campaign lifecycle state evidence. Campaign state remains separate controller state under `_intake/onboarding/`.
+
 The filename must be exactly `<staging-id>.md`, for example `STG-20260809-retry-evidence.md`. Use a deterministic `-2`, `-3`, etc. ID suffix when the same-day slug already exists.
 
 ## Source-type recommendations

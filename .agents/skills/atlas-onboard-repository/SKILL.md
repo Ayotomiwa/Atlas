@@ -12,9 +12,13 @@ Read shared human-intent/persistence/runtime/provenance/handoff, curation-safety
 3. Delegate coordination to `atlas-repo-analyst`. Assess every full-baseline lens; use one analyst for a small boundary or split material lenses behind a coordinator for a large boundary. Reconcile before preview.
 4. Follow explicit shared/infra references only; report sibling products as follow-ups. Exclude irrelevant VCS/dependency/generated/build/vendor/large-data content. Give every lens an evidence state and stopping reason.
 5. Ask one consolidated blocking clarification round and offer other gaps as confirm-or-correct; skipped non-blocking gaps remain unknown.
-6. Prepare one repository/component discovery record plus independent curation-ready flow/infra/schema/operations/governance records when justified. Draft them with the clear-writing contract, include exact anchors and a causal walkthrough per component, and never create placeholders or folder-shaped components.
+6. Assess every lens and prepare only independently justified records. An infra-only boundary may use `staging.infra` as its primary record; create repository/component discovery only when independently justified. Draft flow/infra/schema/operations/governance records with the clear-writing contract, exact anchors and a causal walkthrough per component; never create placeholders, folder-shaped components or a new onboarding type.
 7. Immediately before preview, clean up through the snapshot helper so it verifies the selected commit and clean state. A mismatch invalidates the analysis; never force cleanup.
 8. Show one batch preview including exclusions, unresolved lenses, source snapshot and future intake anchor. After one approval, complete the shared taxonomy/contract and destination-contract reads, then write the unchanged batch without repeated handoff approval. Do not advance `_intake/`.
 9. Validate, create one exact-path local commit for the approved staging batch, and report branch/commit plus the full evidence matrix/scan manifest as audit detail.
+
+## Portfolio-controller handoff
+
+Accept a handoff only with campaign/item IDs plus digest, exact logical boundary and selected source commit, verified analyst packet and exact approved item slice. Reverify commit, boundary and files before reuse; any change returns to the controller for reanalysis/re-preview. For an unchanged packet, do not repeat analysis, clarification or approval. This skill still stages semantically, validates and commits; tag every produced record with `onboarding_source`, then return staging IDs and commit so the controller can CAS-update campaign state. Flag missing app coverage; never recursively queue it. Standalone onboarding is unchanged.
 
 An infra-only folder normally produces infra evidence; a component needs an independently addressable behavior boundary.

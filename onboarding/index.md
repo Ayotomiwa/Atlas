@@ -5,6 +5,7 @@
 - [Curated knowledge routes](../_curated/index.md)
 - [Staging evidence routes](../_staging/index.md)
 - [Merged-change intake and source cursors](../_intake/README.md)
+- [Infrastructure portfolio onboarding with `atlas-onboard-infra-portfolio`](../_intake/README.md#infrastructure-onboarding-campaigns)
 - [Map routes](../_curated/maps/index.md)
 - [Taxonomy ownership](../taxonomy/README.md)
 

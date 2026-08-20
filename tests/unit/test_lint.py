@@ -4,6 +4,7 @@ from pathlib import Path
 import json
 import shutil
 
+import pytest
 import yaml
 
 from scripts.atlas_lint import lint_repository
@@ -377,6 +378,235 @@ def _intake_checkpoint(staging_id: str = "STG-20260811-merged-change") -> dict:
         "updated_at": "2026-08-11T12:30:00+00:00",
         "updated_by": "Fixture Curator",
     }
+
+
+def _onboarding_campaign(*, state: str = "queued", staging_ids: list[str] | None = None) -> dict:
+    staged = state == "staged"
+    return {
+        "schema_version": "atlas-onboarding-campaign/1.0",
+        "campaign_id": "fixture-portfolio",
+        "title": "Fixture portfolio",
+        "phase": "pilot",
+        "updated_at": "2026-08-20T12:30:00+00:00",
+        "updated_by": "Fixture Curator",
+        "pilot": {"item_ids": ["fixture-item"], "confirmed": staged},
+        "active_trial": None,
+        "sources": [{
+            "source_key": "fixture-source",
+            "locator": "https://example.invalid/fixture.git",
+            "default_branch": "main",
+        }],
+        "items": [{
+            "item_id": "fixture-item",
+            "source_key": "fixture-source",
+            "repository_root": ".",
+            "archetype": "fixture",
+            "traits": [],
+            "routing_hints": {"atlas_ids": [], "product_roots": []},
+            "state": state,
+            "selected_commit": "a" * 40 if staged else None,
+            "staging_ids": staging_ids or [],
+            "atlas_commit": "b" * 40 if staged else None,
+            "reason": "Fixture evidence was captured." if staged else None,
+        }],
+    }
+
+
+def _onboarding_staging(identifier: str, *, item_id: str = "fixture-item") -> dict:
+    return {
+        "id": identifier,
+        "type": "staging.infra",
+        "package": "fixtures",
+        "timestamp": "2026-08-20",
+        "title": "Onboarding evidence",
+        "description": "Evidence captured by portfolio onboarding.",
+        "status": "new",
+        "captured_by": "Fixture Curator",
+        "source_type": "onboarding",
+        "onboarding_source": {
+            "campaign_id": "fixture-portfolio",
+            "item_id": item_id,
+        },
+    }
+
+
+@pytest.mark.parametrize("state", ["queued", "blocked"])
+def test_lint_accepts_unlisted_onboarding_provenance_during_handoff(
+    tmp_path: Path, state: str
+):
+    root = _root(tmp_path)
+    campaign = root / "_intake/onboarding/fixture-portfolio.json"
+    campaign.parent.mkdir(parents=True)
+    value = _onboarding_campaign(state=state)
+    if state == "blocked":
+        value["items"][0]["reason"] = "A resolvable source-boundary decision is pending."
+    campaign.write_text(json.dumps(value), encoding="utf-8")
+    record = _onboarding_staging("STG-20260820-fixture")
+    _write(root, f"_staging/infra/test/{record['id']}.md", record)
+
+    assert lint_repository(root) == []
+
+
+def test_lint_requires_all_matching_staging_records_on_a_staged_campaign_item(tmp_path: Path):
+    root = _root(tmp_path)
+    listed_id = "STG-20260820-fixture"
+    extra_id = "STG-20260820-extra"
+    campaign = root / "_intake/onboarding/fixture-portfolio.json"
+    campaign.parent.mkdir(parents=True)
+    campaign.write_text(
+        json.dumps(_onboarding_campaign(state="staged", staging_ids=[listed_id])),
+        encoding="utf-8",
+    )
+    for staging_id in (listed_id, extra_id):
+        record = _onboarding_staging(staging_id)
+        _write(root, f"_staging/infra/test/{record['id']}.md", record)
+
+    issues = lint_repository(root)
+
+    assert any(
+        item["path"] == f"_staging/infra/test/{extra_id}.md"
+        and "is not listed in that item's staging_ids" in item["message"]
+        for item in issues
+    )
+    assert not any(
+        item["path"] == f"_staging/infra/test/{listed_id}.md"
+        and "is not listed in that item's staging_ids" in item["message"]
+        for item in issues
+    )
+
+
+@pytest.mark.parametrize("state", ["already-covered", "skipped"])
+def test_lint_rejects_onboarding_staging_for_terminal_nonstaged_outcomes(
+    tmp_path: Path, state: str
+):
+    root = _root(tmp_path)
+    campaign = root / "_intake/onboarding/fixture-portfolio.json"
+    campaign.parent.mkdir(parents=True)
+    value = _onboarding_campaign(state=state)
+    if state == "skipped":
+        value["items"][0]["reason"] = "The user explicitly excluded this boundary."
+    campaign.write_text(json.dumps(value), encoding="utf-8")
+    record = _onboarding_staging("STG-20260820-fixture")
+    _write(root, f"_staging/infra/test/{record['id']}.md", record)
+
+    issues = lint_repository(root)
+
+    assert any(
+        item["path"] == "_staging/infra/test/STG-20260820-fixture.md"
+        and f"state {state}" in item["message"]
+        for item in issues
+    )
+
+
+def test_lint_validates_onboarding_provenance_shape_and_campaign_identity(tmp_path: Path):
+    root = _root(tmp_path)
+    campaign = _onboarding_campaign()
+    campaign["campaign_id"] = "another-campaign"
+    path = root / "_intake/onboarding/wrong-name.json"
+    path.parent.mkdir(parents=True)
+    path.write_text(json.dumps(campaign), encoding="utf-8")
+    malformed = path.with_name("bad-schema.json")
+    malformed.write_text(json.dumps({"campaign_id": "bad-schema"}), encoding="utf-8")
+    record = _onboarding_staging("STG-20260820-fixture")
+    record["onboarding_source"] = {"campaign_id": "Not A Slug", "item_id": "fixture-item", "extra": "no"}
+    _write(root, f"_staging/infra/test/{record['id']}.md", record)
+
+    issues = lint_repository(root)
+
+    assert any(
+        item["path"] == "_staging/infra/test/STG-20260820-fixture.md"
+        and "onboarding_source" in item["message"]
+        for item in issues
+    )
+    assert any(
+        item["path"] == "_intake/onboarding/wrong-name.json"
+        and "campaign filename" in item["message"]
+        for item in issues
+    )
+    assert any(
+        item["path"] == "_intake/onboarding/bad-schema.json"
+        and "campaign is missing" in item["message"]
+        for item in issues
+    )
+
+
+def test_lint_rejects_nested_onboarding_campaign_json(tmp_path: Path):
+    root = _root(tmp_path)
+    path = root / "_intake/onboarding/nested/fixture-portfolio.json"
+    path.parent.mkdir(parents=True)
+    path.write_text(json.dumps(_onboarding_campaign()), encoding="utf-8")
+
+    issues = lint_repository(root)
+
+    assert any(
+        item["code"] == "ATLAS029"
+        and item["path"] == "_intake/onboarding/nested/fixture-portfolio.json"
+        and "direct children" in item["message"]
+        for item in issues
+    )
+
+
+def test_lint_checks_onboarding_reference_even_when_staging_identity_is_invalid(tmp_path: Path):
+    root = _root(tmp_path)
+    record = _onboarding_staging("not-a-staging-id")
+    record["onboarding_source"]["campaign_id"] = "missing-campaign"
+    _write(root, "_staging/infra/test/not-a-staging-id.md", record)
+
+    issues = lint_repository(root)
+
+    assert any(
+        item["path"] == "_staging/infra/test/not-a-staging-id.md"
+        and "references missing campaign missing-campaign" in item["message"]
+        for item in issues
+    )
+
+
+def test_lint_joins_staged_campaign_items_to_matching_onboarding_provenance(tmp_path: Path):
+    root = _root(tmp_path)
+    staging_id = "STG-20260820-fixture"
+    campaign = root / "_intake/onboarding/fixture-portfolio.json"
+    campaign.parent.mkdir(parents=True)
+    campaign.write_text(
+        json.dumps(_onboarding_campaign(state="staged", staging_ids=[staging_id])),
+        encoding="utf-8",
+    )
+    record = _onboarding_staging(staging_id, item_id="other-item")
+    _write(root, f"_staging/infra/test/{record['id']}.md", record)
+
+    issues = lint_repository(root)
+
+    assert any(
+        item["path"] == "_intake/onboarding/fixture-portfolio.json"
+        and "does not match onboarding_source" in item["message"]
+        for item in issues
+    )
+
+
+def test_lint_attributes_duplicate_and_missing_onboarding_staging_references(tmp_path: Path):
+    root = _root(tmp_path)
+    staging_id = "STG-20260820-fixture"
+    campaign = root / "_intake/onboarding/fixture-portfolio.json"
+    campaign.parent.mkdir(parents=True)
+    campaign.write_text(
+        json.dumps(_onboarding_campaign(state="staged", staging_ids=[staging_id, "STG-20260820-missing"])),
+        encoding="utf-8",
+    )
+    record = _onboarding_staging(staging_id)
+    _write(root, f"_staging/infra/test/{record['id']}.md", record)
+    _write(root, f"_staging/infra/other/{record['id']}.md", record)
+
+    issues = lint_repository(root)
+
+    assert any(
+        item["path"] == "_intake/onboarding/fixture-portfolio.json"
+        and "missing staging ID STG-20260820-missing" in item["message"]
+        for item in issues
+    )
+    assert any(
+        item["path"] == "_intake/onboarding/fixture-portfolio.json"
+        and "ambiguous staging ID STG-20260820-fixture" in item["message"]
+        for item in issues
+    )
 
 
 def test_lint_accepts_merged_change_provenance_and_checkpoint_join(tmp_path: Path):

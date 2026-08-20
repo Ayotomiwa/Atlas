@@ -7,3 +7,5 @@ __pycache__/
 .codex-remote-attachments/
 _intake/checkpoints/.*.lock
 _intake/checkpoints/.*.tmp
+_intake/onboarding/.*.lock
+_intake/onboarding/.*.tmp
