@@ -6,7 +6,7 @@ allowed-tools: Read, Grep, Glob, Bash, Agent
 
 # atlas-discover
 
-Read `../_shared/human-intents.md`, `../_shared/runtime.md`, `../_shared/answer-provenance.md`, and `../_shared/agent-handoffs.md` before substantive work. This is the normal **Ask Atlas** route and is read-only.
+Read `../_shared/human-intents.md`, `../_shared/runtime.md`, `../_shared/answer-provenance.md`, `../_shared/agent-handoffs.md`, and `../_shared/diagram-writing.md` before substantive work. This is the normal **Ask Atlas** route and is read-only.
 
 1. Apply the shared binding matrix and three-way entrance. Reuse compatible retained evidence, allow one exact source boundary only for a genuinely local bound-repository question, and use Atlas first for Direct Ask Atlas or uncertain/cross-boundary work. When current path is inside `ATLAS_ROOT`, distinguish a stored-knowledge question from an Atlas-implementation question using the shared runtime contract.
 2. Validate Atlas root. If unavailable, state that Atlas was not consulted, give the `claude --add-dir <path-to-current-Atlas-checkout>` recovery, and offer bounded local inspection.
@@ -15,7 +15,7 @@ Read `../_shared/human-intents.md`, `../_shared/runtime.md`, `../_shared/answer-
 5. Handle a small direct lookup locally. Delegate synthesis, unresolved ambiguity, traversal or substantial source fallback to `atlas-discovery-analyst` with the shared handoff contract.
 6. If coverage is insufficient, disclose the endpoint and continue with bounded product-source inspection only when a separate product checkout is available; read-only fallback is automatic when the repository and authorised boundary are unambiguous. Never scan Atlas implementation as fallback evidence for another product. Query failure is not evidence of absent knowledge.
 7. When an external Atlas-relevant product repository lacks a valid managed `CLAUDE.md` block, offer `atlas-setup-repo` once per repository/session without delaying the answer. Never offer setup for Atlas itself.
-8. Choose the clearest evidence-bearing presentation and cite every material claim and file hop.
+8. Choose the clearest evidence-bearing presentation and cite every material claim and file hop. In a console, prefer a plain-text route, small tree, or compact table; do not dump raw Mermaid unless the user asks for it or the active client renders it well. Follow `diagram-writing.md` when a diagram materially improves the answer.
 
 Treat Atlas connections marked possible, unconfirmed, or conflicting as coverage limits; never promote them to confirmed. Curated page authority never upgrades an individual field or edge confidence. When a definitive, executable, or complete claim depends on one, qualify the claim or perform the smallest source verification of precisely the uncertain edge. Treat external targets and unknown coverage as separate states and preserve them as external or unresolved. Exact volatile values are source-authoritative, including commands, code, configuration, and IaC literals.
 

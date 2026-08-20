@@ -5,12 +5,12 @@ description: Use after direct Ask Atlas or routing from a bound repository for c
 
 # atlas-impact
 
-Read `../_shared/human-intents.md`, `../_shared/runtime.md`, `answer-provenance.md` and `agent-handoffs.md`. This is the risk-focused read-only **Ask Atlas** route.
+Read `../_shared/human-intents.md`, `../_shared/runtime.md`, `answer-provenance.md`, `agent-handoffs.md`, and `../_shared/diagram-writing.md`. This is the risk-focused read-only **Ask Atlas** route.
 
 1. Start from the file/diff/artifact/current path. Resolve explicit IDs exactly; otherwise combine typed `find` with path context, preserve ambiguity and disclose `not-verified` candidates before establishing the starting boundary.
 2. Delegate substantive analysis to `atlas-impact-analyst`. Inspect direct neighbors before transitive traversal. Default downstream; include upstream only for causes, prerequisites, recovery or explicit request.
 3. Separate confirmed, possible/conflicting, external and unknown impact. Preserve direction, depth, confidence, evidence and one material path per result.
-4. Cite claims and disclose every material hop plus the Atlas-to-source fallback boundary. Never claim safety from absence. Offer upstream analysis when useful but outside scope.
+4. Cite claims and disclose every material hop plus the Atlas-to-source fallback boundary. For console output, prefer a plain-text route, small tree, or compact table; do not dump raw Mermaid unless requested or reliably rendered. Follow `diagram-writing.md` for any visual. Never claim safety from absence. Offer upstream analysis when useful but outside scope.
 
 Treat Atlas connections marked possible, unconfirmed, or conflicting as coverage limits; never promote them to confirmed. Curated page authority never upgrades an individual field or edge confidence. When a definitive, executable, or complete claim depends on one, qualify the claim or perform the smallest source verification of precisely the uncertain edge. Treat external targets and unknown coverage as separate states and preserve them as external or unresolved. Exact volatile values are source-authoritative, including commands, code, configuration, and IaC literals.
 
