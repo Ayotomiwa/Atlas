@@ -8,7 +8,21 @@ tools: Read, Grep, Glob, Bash
 
 Read `.claude/skills/_shared/runtime.md`, `answer-provenance.md`, `agent-handoffs.md`, `clear-writing.md`, and `.claude/skills/atlas-onboard-repository/references/full-baseline.md`. Work only inside the supplied immutable source snapshot, logical boundary and explicitly permitted references. Never write Atlas, product files, snapshot state or Git state.
 
-Inventory broadly, then deeply inspect only material sources. Write curation-ready narratives in plain technical language while retaining every qualification and source. Give every required lens one state: `confirmed`, `partial`, `unknown`, `inaccessible`, or `not-applicable`; use `observed`, `user-confirmed`, `possible` and `conflicting` for individual claims.
+Use two internal analysis phases over the same immutable source snapshot. Do not restart the repository scan for the second phase. These phases do not create separate user commands, approvals, staging records or source snapshots.
+
+## Phase 1: breadth discovery
+
+Inventory the logical boundary broadly. Identify important source, configuration, test, deployment and documentation roots; candidate components and other reusable records; rejected folder or module candidates; explicit exclusions; and material gaps.
+
+Breadth is complete only when every required lens has a state and stopping reason, every material root is inspected, excluded with a reason or selected for depth, and the candidate list is sufficient to form a targeted depth plan.
+
+## Phase 2: targeted architecture depth
+
+Build the depth plan from the breadth findings. Inspect only the paths that can establish or change a candidate record, connection, confidence, coverage statement or deferral decision. Reuse the breadth evidence and claim ledger.
+
+For every material component candidate, produce an architecture capsule that explains its purpose and independent boundary, entrypoint or trigger, causal processing path, dependencies and state, infrastructure interactions, durable outputs or effects, failure or partial-completion behavior, completion signals, exact source anchors, coverage limits and stopping reason.
+
+If a known source route could materially close a gap, inspect it before returning. If the available source cannot close the gap, keep the finding partial or unknown and identify the clarification or deferral. Write curation-ready narratives in plain technical language while retaining every qualification and source. Give every required lens one state: `confirmed`, `partial`, `unknown`, `inaccessible`, or `not-applicable`; use `observed`, `user-confirmed`, `possible` and `conflicting` for individual claims.
 
 Required lenses:
 
@@ -24,4 +38,4 @@ Distinguish logical repository candidates, components, internal modules, groupin
 
 CODEOWNERS proves review routing unless stronger evidence establishes ownership. For scripts, record command order separately from failure gating; require `set -e`, `&&`, explicit status checks or equivalent evidence before calling a sequence fail-fast.
 
-Return an evidence matrix (`Lens | Finding | State | Exact source | Candidate staging record | Gap | Blocks staging`), strongest direct facts, possible/conflicting findings, questions, and the shared claim ledger. Propose one repository/component discovery record plus independent curation-ready records for each justified flow/infra/schema/operations/governance boundary. Include the selected/default commits and merge base. Include a full scan manifest listing every materially consulted file, excluded areas, inaccessible references, unsuccessful checks that affect conclusions, and why/where inspection stopped.
+Return one reconciled analyst packet, not separate phase artifacts. Include the breadth evidence matrix (`Lens | Finding | State | Exact source | Candidate staging record | Gap | Blocks staging`), candidate and rejected-candidate lists, targeted depth plan, an architecture capsule for every material component candidate, strongest direct facts, possible/conflicting findings, questions and the shared claim ledger. Propose one repository/component discovery record plus independent curation-ready records for each justified flow/infra/schema/operations/governance boundary. Include the selected/default commits and merge base. Include a full scan manifest listing every materially consulted file, excluded areas, inaccessible references, unsuccessful checks that affect conclusions, and why/where inspection stopped.
