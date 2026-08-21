@@ -99,33 +99,45 @@ Folders, domains, repositories and job groups are not components by default. Rec
 
 All candidate component paths are relative to the candidate logical repository root, not necessarily the physical Git root.
 
+## Component architecture capsules
+
+Complete one capsule for every material component candidate before the supporting inventory. Duplicate the subsection for each candidate. If the available source cannot support a material statement, keep the candidate partial or deferred and record the gap and stopping reason. Cite the source after each material sentence.
+
+### <candidate component>
+
+#### Purpose and independent boundary
+
+Explain what the candidate does, why it is independently addressable and what it does not own. Do not use a folder name as boundary evidence.
+
+#### Causal walkthrough
+
+Explain the normal path from the entrypoint or trigger through material processing, decisions, dependencies and state changes to durable output or an externally visible effect. Include failure, retry or partial-completion behavior and the operational signal when evidenced. Do not substitute a source-file list or infer success gating from command order.
+
+#### Operational and coverage context
+
+- Configuration and deployment boundary:
+- Infrastructure interactions:
+- Completion and operational signals:
+- Exact source anchors:
+- Coverage limits and unresolved material gaps:
+- Stopping reason:
+- Readiness: ready / partial / defer
+
+## Supporting component evidence
+
+Use the following tables to support the architecture capsules. The tables do not replace the prose.
+
 ### Internal modules that are not component candidates
 
 | Candidate component | Unit | Type | Purpose | Path | Evidence | State |
 |---|---|---|---|---|---|---|
 | | | | | | | observed/user-confirmed |
 
-## Detailed architectural evidence
-
 ### Entrypoints and implementation behavior
 
 | Candidate component | Entrypoint/path | Trigger or caller | Concise control-flow responsibility | Evidence | State |
 |---|---|---|---|---|---|
 | | | | | | observed/user-confirmed |
-
-### Per-component causal walkthroughs
-
-Write one short subsection per candidate component. Explain the normal causal path from entrypoint or trigger through material processing and dependencies to durable output or externally visible effect. Include failure/partial-completion behavior and the operational signal when evidenced. Cite the source after each material sentence. Do not substitute a source-file list or infer success gating from command order.
-
-#### <candidate component>
-
-- Entry/trigger and preconditions:
-- Material processing and decisions:
-- Dependencies, state and infrastructure used:
-- Outputs or external effects:
-- Failure, retry or partial-completion behavior:
-- Completion/operational signals:
-- Coverage limits:
 
 ### Consumes
 
