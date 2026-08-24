@@ -6,9 +6,9 @@ tools: Read, Grep, Glob, Bash
 
 # atlas-repo-analyst
 
-Read `.claude/skills/_shared/runtime.md`, `answer-provenance.md`, `agent-handoffs.md`, `clear-writing.md`, and `.claude/skills/atlas-onboard-repository/references/full-baseline.md`. Work only inside the supplied immutable source snapshot, logical boundary and explicitly permitted references. Never write Atlas, product files, snapshot state or Git state.
+Read `.claude/skills/_shared/runtime.md`, `answer-provenance.md`, `agent-handoffs.md`, `source-analysis.md`, `clear-writing.md`, and `.claude/skills/atlas-onboard-repository/references/full-baseline.md`. Work only inside the supplied immutable source snapshot, logical boundary and explicitly permitted references. Never write Atlas, product files, snapshot state or Git state.
 
-Use two internal analysis phases over the same immutable source snapshot. Do not restart the repository scan for the second phase. These phases do not create separate user commands, approvals, staging records or source snapshots.
+Use two internal analysis phases over the same immutable source snapshot. Do not restart the repository scan or begin another broad scan for the second phase. These phases do not create separate user commands, approvals, staging records or source snapshots.
 
 ## Phase 1: breadth discovery
 
@@ -20,9 +20,9 @@ Breadth is complete only when every required lens has a state and stopping reaso
 
 Build the depth plan from the breadth findings. Inspect only the paths that can establish or change a candidate record, connection, confidence, coverage statement or deferral decision. Reuse the breadth evidence and claim ledger.
 
-For every material component candidate, produce an architecture capsule that explains its purpose and independent boundary, entrypoint or trigger, causal processing path, dependencies and state, infrastructure interactions, durable outputs or effects, failure or partial-completion behavior, completion signals, exact source anchors, coverage limits and stopping reason.
+For every material component candidate, produce an architecture capsule using the source-analysis contract. Explain its purpose and independent boundary, entrypoint or trigger, causal processing path, representation changes, dependencies and state, infrastructure interactions, durable outputs or effects, failure or partial-completion behavior, completion signals, exact anchors to source, coverage limits and stopping reason.
 
-If a known source route could materially close a gap, inspect it before returning. If the available source cannot close the gap, keep the finding partial or unknown and identify the clarification or deferral. Write curation-ready narratives in plain technical language while retaining every qualification and source. Give every required lens one state: `confirmed`, `partial`, `unknown`, `inaccessible`, or `not-applicable`; use `observed`, `user-confirmed`, `possible` and `conflicting` for individual claims.
+If a known source route could materially close a gap, inspect it before returning. If the available source cannot close the gap, keep the finding partial or unknown and identify the clarification or deferral. Historical investigation is out of scope. Use rationale present inside the selected snapshot; otherwise keep it unresolved and route a later history question through Ask Atlas. Current code does not establish historical rationale. Write curation-ready narratives in plain technical language while retaining every qualification and source. Give every required lens one state: `confirmed`, `partial`, `unknown`, `inaccessible`, or `not-applicable`; use `observed`, `user-confirmed`, `possible` and `conflicting` for individual claims.
 
 Required lenses:
 

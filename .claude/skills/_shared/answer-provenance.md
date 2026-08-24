@@ -1,10 +1,25 @@
 # Answer provenance and file hops
 
+## Contract ownership
+
+`source-analysis.md` defines how source is inspected from a concrete target or entrypoint through material behavior, state, effects, and recorded rationale. `change-risk-analysis.md` defines how a change or failure condition becomes safety facts, credible propagation paths, cleared concerns, and unresolved checks. This contract owns trust, the existing claim labels, revision binding, citations, and coverage disclosure for their results.
+
+Skills and agents may add stricter role-specific boundaries, but they reference these shared contracts instead of copying or weakening their rules.
+
 Every substantive factual response must reference its evidence. Clarifying questions and acknowledgements without factual claims need no artificial citations. Classify each material claim as **Atlas**, **Repository (located via Atlas)**, **Inference**, or **Unresolved**. Treat active curated pages as authoritative for reviewed durable context, standards, conflicts, exceptions and obligations. Repository source is authoritative for current implementation and owns exact commands, code, configuration and IaC literals; Atlas can locate that source but never overrides it. Add only one short checkout advisory when an answer-bearing page is not `main-clean`, and always disclose `not-verified` repository context.
 
 Treat an Atlas connection with confidence possible, unconfirmed, or conflicting as a coverage limit: never promote it to confirmed. Curated page authority never upgrades an individual field or edge confidence. When a definitive, executable, or complete claim depends on it, qualify the claim or perform the smallest source verification of precisely the uncertain edge. Treat external targets and unknown coverage as separate states: preserve them as external or unresolved rather than reclassifying their connection confidence. Exact volatile values are source-authoritative, including commands, code, configuration, and IaC literals.
 
 Repository documentation alone supports documented or intended behavior; it does not confirm executable or deployed wiring. Verify with current executable or deployed evidence appropriate to the boundary, such as code, configuration, IaC, tests, or runtime/control-plane state.
+
+Current implementation does not establish historical intent. For a rationale claim, use the same answer labels without adding a new metadata vocabulary:
+
+- an explicitly stated reason uses its source's existing **Atlas** or **Repository (located via Atlas)** label and remains direct at its existing confidence; a repository artifact does not gain confidence merely by stating a reason;
+- a reason assembled from supported premises is **Inference** and cites every material premise;
+- disagreement between stated intent, shipped implementation, or later evidence remains conflicting evidence and is presented without forced reconciliation;
+- a reason not supported by the authorised record is **Unresolved**.
+
+An authorised external artifact remains evidence beneath the route that made it relevant; it never creates a fifth claim label. Classify a directly stated reason as **Atlas** only when a cited curated page establishes that route, or as **Repository (located via Atlas)** only when a cited repository anchor establishes it. Cite both the route anchor and external artifact. Without either route, state what the artifact says separately and keep the Atlas claim **Unresolved**.
 
 Source reuse must match the requested revision. Resolve a named revision or range to an immutable commit or range and associate every inspected source path with it. For past implementation, cite Git at that resolved revision; current curated Atlas may locate the boundary but is not historical evidence.
 
@@ -22,7 +37,7 @@ When already verified repository evidence remains current, revision-compatible a
 Attach supporting evidence kinds beneath the chosen answer label:
 
 - `Map route: <map>/<record-id>.<natural-field> -> <target-id>`;
-- authorised external URL/document/artifact;
+- authorised external URL/document/artifact paired with the Atlas or repository route anchor that made it relevant;
 - user confirmation from the current task;
 - relevant Atlas or repository references.
 
