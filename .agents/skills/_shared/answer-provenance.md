@@ -1,10 +1,16 @@
 # Answer provenance and file hops
 
+`source-analysis.md` owns source inspection from target through behavior, state, effects and recorded rationale. `change-risk-analysis.md` owns safety facts, credible propagation, cleared concerns and unresolved checks. This contract owns trust, the existing claim labels, revision binding, citations and coverage. Role-specific files may tighten boundaries but must not copy or weaken these shared rules.
+
 Every substantive factual answer needs clean references near its material claims. Classify each material claim as **Atlas**, **Repository (located via Atlas)**, **Inference**, or **Unresolved**. Treat active curated pages as authoritative for reviewed durable context, standards, conflicts, exceptions and obligations. Repository source is authoritative for current implementation and owns exact commands, code, configuration and IaC literals; Atlas can locate that source but never overrides it. Add only one short checkout advisory when an answer-bearing page is not `main-clean`, and always disclose `not-verified` context.
 
 Treat an Atlas connection with confidence possible, unconfirmed, or conflicting as a coverage limit: never promote it to confirmed. Curated page authority never upgrades an individual field or edge confidence. When a definitive, executable, or complete claim depends on it, qualify the claim or perform the smallest source verification of precisely the uncertain edge. Treat external targets and unknown coverage as separate states: preserve them as external or unresolved rather than reclassifying their connection confidence. Exact volatile values are source-authoritative, including commands, code, configuration, and IaC literals.
 
 Repository documentation alone supports documented or intended behavior; it does not confirm executable or deployed wiring. Verify with current executable or deployed evidence appropriate to the boundary, such as code, configuration, IaC, tests, or runtime/control-plane state.
+
+Current implementation does not establish historical intent. An explicitly stated reason uses its source's existing **Atlas** or **Repository (located via Atlas)** label and remains direct at its existing confidence; a repository artifact does not gain confidence merely by stating a reason. A reason assembled from premises is **Inference** and cites each material premise. Preserve contradictions between intent, implementation and later evidence. Use **Unresolved** when the authorised record does not support a reason. These are the existing labels, not a new rationale vocabulary.
+
+An authorised external artifact remains evidence beneath the route that made it relevant; it never creates a fifth claim label. Classify a directly stated reason as **Atlas** only when a cited curated page establishes that route, or as **Repository (located via Atlas)** only when a cited repository anchor establishes it. Cite both the route anchor and external artifact. Without either route, state what the artifact says separately and keep the Atlas claim **Unresolved**.
 
 Source reuse must match the requested revision. Resolve a named revision or range to an immutable commit or range and associate every inspected source path with it. For past implementation, cite Git at that resolved revision; current curated Atlas may locate the boundary but is not historical evidence.
 
@@ -22,7 +28,7 @@ When already verified repository evidence remains current, revision-compatible a
 Attach supporting evidence kinds beneath the chosen answer label:
 
 - `Map route: <map>/<record-id>.<natural-field> -> <target-id>`;
-- authorised external artifact/URL;
+- authorised external artifact/URL paired with the Atlas or repository route anchor that made it relevant;
 - user-confirmed current-task fact;
 - relevant Atlas or repository references.
 

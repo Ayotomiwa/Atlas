@@ -18,6 +18,18 @@ For architecture pages:
 - Flow prose explains the ordered path, including conditions and handoffs; a step may be a component, infrastructure item, external system, manual action, or unresolved participant.
 - Infrastructure prose explains the package or resource, why it matters, how it is used, and its operational boundary.
 
+## Scan for page-specific meaning
+
+Before a persistence preview or return, scan page-specific explanatory prose. Do not apply this scan to reusable policy, templates, generated text, code, quotations, or parser-owned structures.
+
+- Use the portability test. If a sentence could appear unchanged in another project's record, it does not explain this one. Replace it with an evidenced actor, mechanism, boundary, input, output, failure behaviour, or effect. If the evidence cannot support a specific replacement, remove the sentence or preserve the knowledge gap instead of inventing detail.
+- Cut filler and prose that only repeats a heading, field, or nearby sentence.
+- Replace an inline label followed by a restatement with a direct sentence. Keep labels that identify distinct items and introduce new information.
+- Prefer a direct verb to weak phrases such as `serves as`, `stands as`, `acts as`, or `provides a way to`.
+- Name the actor when passive wording hides material ownership or causality. Keep passive wording when the actor is unknown or does not matter, and preserve an explicit unknown.
+
+These checks are review prompts, not banned words or mechanical errors. Do not weaken governed terms such as `must`, `never`, or `only`.
+
 ## Preserve meaning and interfaces
 
 Never change wording at the cost of precision. Preserve:
@@ -37,7 +49,8 @@ Before returning persisted prose, verify:
 
 1. The opening tells the reader why the page exists.
 2. An engineer can understand the first screen without prior Atlas vocabulary.
-3. Every material claim still has the same meaning and support.
-4. No new fact, certainty, relationship, or requirement was introduced.
-5. Protected structures and link targets are unchanged unless the owning workflow explicitly approved them.
-6. Remaining unknowns and contradictions are still visible.
+3. Every explanatory sentence states something specific to this record or earns its place as reusable policy or structure.
+4. Every material claim still has the same meaning and support.
+5. No new fact, certainty, relationship, or requirement was introduced.
+6. Protected structures and link targets are unchanged unless the owning workflow explicitly approved them.
+7. Remaining unknowns and contradictions are still visible.

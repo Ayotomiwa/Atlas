@@ -31,6 +31,20 @@ Assess every lens and assign `confirmed`, `partial`, `unknown`, `inaccessible`, 
 
 Unknown is an honest result. Do not create a component, flow, resource, schema or runbook merely to fill a lens.
 
+## Phase 1: breadth discovery
+
+Inspect the logical boundary broadly enough to identify the important source, configuration, test, deployment and documentation roots; candidate records; rejected folder or module candidates; exclusions; and material gaps. Produce a breadth evidence matrix and a targeted depth plan.
+
+Breadth stops when every required lens has a state and stopping reason, every material root is inspected, excluded with a reason or selected for depth, and the candidate list identifies which source paths can still change a record decision.
+
+## Phase 2: targeted architecture depth
+
+Use the breadth findings to inspect only material candidates and blocking gaps. Reuse the same source snapshot, evidence matrix and claim ledger. Do not begin another broad scan.
+
+For every material component candidate, write an architecture capsule that covers its purpose and independent boundary, entrypoint or trigger, causal processing path, dependencies and state, infrastructure interactions, durable outputs or effects, failure or partial-completion behavior, completion signals, exact source anchors, coverage limits and stopping reason.
+
+Continue only while a known source route could materially change a proposed record, connection, confidence level, coverage statement or deferral decision. When the available source cannot resolve a material gap, ask in the consolidated clarification round or keep the candidate partial, unknown or deferred.
+
 ## Adaptive analysis
 
 - Small boundary: one repository analyst may cover all lenses.
@@ -41,6 +55,6 @@ Unknown is an honest result. Do not create a component, flow, resource, schema o
 
 Assess every lens, then stage only independently justified evidence. An infra-only boundary may make `staging.infra` the primary record; create a repository/component discovery record only when it has its own independently evidenced reusable boundary. Do not add an onboarding-specific staging type. Add separate flow, schema, runbook, incident, standard or concept records only when each has an independently useful evidenced boundary.
 
-Every staged record must include a readable explanation, precise source paths/anchors, causality rather than file adjacency, coverage limits and unresolved decisions. For every candidate component include its own causal walkthrough from entrypoint through material work to output/failure behavior. A file inventory is not a component explanation.
+Every staged record must include a readable explanation, precise source paths/anchors, causality rather than file adjacency, coverage limits and unresolved decisions. For every material component candidate, lead with its architecture capsule and use tables as supporting evidence. A component passes the readiness gate only when its capsule supports curation without another broad source scan, or the record explicitly keeps the candidate partial or deferred with a stopping reason. A capsule fails the gate when its explanation could appear unchanged for another component because it does not establish this candidate's behaviour or boundary. A file inventory is not a component explanation.
 
 The final preview covers the whole coherent staging batch and the future maintenance anchor after snapshot validation/cleanup succeeds. One approval authorises that unchanged batch; downstream staging writes do not ask again.

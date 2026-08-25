@@ -23,6 +23,14 @@ SURFACE_PAIRS = {
         ".claude/skills/_shared/agent-handoffs.md",
         ".agents/skills/_shared/agent-handoffs.md",
     ),
+    "source_analysis": (
+        ".claude/skills/_shared/source-analysis.md",
+        ".agents/skills/_shared/source-analysis.md",
+    ),
+    "change_risk": (
+        ".claude/skills/_shared/change-risk-analysis.md",
+        ".agents/skills/_shared/change-risk-analysis.md",
+    ),
     "discover": (
         ".claude/skills/atlas-discover/SKILL.md",
         ".agents/skills/atlas-discover/SKILL.md",
@@ -219,23 +227,16 @@ def test_answer_label_membership_is_exact_and_excludes_evidence_kinds() -> None:
         assert "`User-confirmed:" not in text, relative
 
 
-def test_discovery_agent_classifications_use_only_the_four_answer_labels() -> None:
-    expected = {"Atlas", "Repository (located via Atlas)", "Inference", "Unresolved"}
-    evidence_rule = (
-        "User confirmation, conflict, and external artifacts remain evidence "
-        "or state beneath those labels"
+def test_discovery_agents_use_the_shared_claim_classifications() -> None:
+    _assert_all("discovery_agent", "answer-provenance.md")
+    _assert_absent("discovery_agent", "Classify every material claim as")
+    _assert_all(
+        "provenance",
+        "Atlas",
+        "Repository (located via Atlas)",
+        "Inference",
+        "Unresolved",
     )
-    for relative, text in zip(
-        SURFACE_PAIRS["discovery_agent"], _texts("discovery_agent"), strict=True
-    ):
-        declaration = re.search(
-            r"Classify every material claim as (?P<labels>.+?)\.", text
-        )
-        assert declaration, relative
-        labels = set(re.findall(r"\*\*([^*]+)\*\*", declaration["labels"]))
-        assert labels == expected, relative
-        assert evidence_rule in text, relative
-        assert "separately label repository-derived" not in text, relative
 
 
 def test_direct_ask_and_flow_synthesis_are_complete_on_parent_and_delegate() -> None:
@@ -289,25 +290,16 @@ def test_uncertain_atlas_evidence_never_becomes_a_confirmed_claim() -> None:
         "external targets and unknown coverage",
         "separate states",
     )
-    for surface in (
-        "provenance",
-        "discover",
-        "impact",
-        "discovery_agent",
-        "impact_agent",
-    ):
-        _assert_all(surface, *uncertainty_terms)
+    _assert_all("provenance", *uncertainty_terms)
+
+    for surface in ("discover", "impact", "discovery_agent", "impact_agent"):
+        _assert_all(surface, "answer-provenance.md")
+        _assert_absent(surface, "Treat Atlas connections marked possible")
 
     _assert_all(
         "provenance",
         "Curated page authority never upgrades an individual field or edge confidence",
     )
-    for surface in ("discover", "impact"):
-        _assert_all(
-            surface,
-            "Curated page authority never upgrades an individual field or edge confidence",
-        )
-
     _assert_all(
         "managed_block",
         "possible, unconfirmed, or conflicting",
@@ -391,8 +383,12 @@ def test_verified_source_evidence_can_satisfy_a_follow_up_without_retrieval() ->
         "required confidence",
         "related evidence must not upgrade a different uncertain edge",
     )
-    for surface in ("runtime", "provenance", "discover", "impact"):
+    for surface in ("runtime", "provenance"):
         _assert_all(surface, *reuse_terms)
+
+    for surface in ("discover", "impact"):
+        _assert_all(surface, "answer-provenance.md")
+        _assert_absent(surface, "already verified repository evidence")
 
 
 def test_exact_volatile_values_remain_source_authoritative() -> None:
@@ -401,11 +397,15 @@ def test_exact_volatile_values_remain_source_authoritative() -> None:
         "source-authoritative",
         "commands, code, configuration, and IaC literals",
     )
-    for surface in ("runtime", "provenance", "discover", "impact"):
+    for surface in ("runtime", "provenance"):
         for relative, text in zip(SURFACE_PAIRS[surface], _texts(surface), strict=True):
             lowered = text.lower()
             for term in exact_terms:
                 assert term.lower() in lowered, f"{relative}: missing {term!r}"
+
+    for surface in ("discover", "impact"):
+        _assert_all(surface, "answer-provenance.md")
+        _assert_absent(surface, "Exact volatile values")
 
 
 def test_documented_flows_do_not_become_executable_wiring() -> None:
@@ -415,14 +415,17 @@ def test_documented_flows_do_not_become_executable_wiring() -> None:
         "current executable or deployed evidence appropriate to the boundary",
         "code, configuration, IaC, tests, or runtime/control-plane state",
     )
-    for surface in (
-        "provenance",
-        "discover",
-        "impact",
-        "discovery_agent",
-        "impact_agent",
-    ):
-        _assert_all(surface, *wiring_terms)
+    _assert_all("provenance", *wiring_terms)
+    _assert_all(
+        "source_analysis",
+        "answer-provenance.md",
+        "Documentation supports documented or intended behavior",
+        "executable evidence",
+    )
+
+    for surface in ("discover", "impact", "discovery_agent", "impact_agent"):
+        _assert_all(surface, "source-analysis.md")
+        _assert_absent(surface, "Repository documentation alone supports")
 
 
 def test_exact_change_guard_and_semantic_risk_readiness_are_paired() -> None:
