@@ -100,10 +100,11 @@ USER INTENT
 │ + smoke validation  │
 └──────────┬──────────┘
            ▼
-┌─────────────────────┐
-│ 11. LEARN           │
-│ docs / ADR / Atlas  │
-└─────────────────────┘
+┌───────────────────────────┐
+│ 11. LEARN / ADAPT         │
+│ episode → candidate learn │
+│ → review → promotion      │
+└───────────────────────────┘
 ```
 
 This should be dynamically composed from the change rather than a fixed pipeline.
@@ -506,14 +507,516 @@ The combination of a grilling skill, dynamically injected standards, and an Atla
 
 ---
 
-## Recommended first implementation slice
+## 12. Add an adaptive learning loop
 
-Build these three pieces first:
+The lifecycle should not end at deployment. A completed engineering run is evidence about both the product and the engineering system itself.
+
+The important distinction is between four kinds of memory:
+
+| Memory | Role in this architecture |
+|---|---|
+| Working | Current conversation, Engineering Change Contract, selected source/context, active plan, tests, and review state |
+| Episodic | What actually happened during a completed engineering run |
+| Semantic | Durable system knowledge such as architecture, flows, ownership, standards, incidents, and runbooks; Atlas is the semantic layer |
+| Procedural | Reusable behaviour encoded as skills, workflow instructions, and narrowly scoped rules |
+
+Atlas already provides a governed semantic-memory layer and the plugin system provides procedural memory. The missing bridge is **episodic memory and governed promotion from episodes into semantic or procedural knowledge**.
+
+The target loop is:
+
+```text
+WORKING STATE
+Engineering Change Contract
+        │
+        │ execution
+        ▼
+ENGINEERING EPISODE
+what actually happened
+        │
+        ▼
+ADAPTATION ROUTER
+        │
+        ├── no durable lesson ───────────────→ discard
+        │
+        ├── stable system fact ──────────────→ Atlas candidate
+        │
+        ├── repeatable engineering method ──→ skill candidate
+        │
+        ├── recurring agent failure ─────────→ rule/skill candidate
+        │
+        └── apparent policy requirement ─────→ locate authoritative standard
+                                                    │
+                                                    ▼
+                                      never infer policy from repetition
+```
+
+The system should learn from engineering work without allowing one successful or mistaken run to silently rewrite the engineering harness.
+
+---
+
+## 13. Engineering Episode
+
+Introduce an ephemeral or short-lived **Engineering Episode** at the end of a meaningful engineering run.
+
+The Change Contract records what the workflow intended to do. The Engineering Episode records what actually happened.
+
+Example:
+
+```yaml
+episode:
+  task_type: bugfix
+  objective:
+  result:
+    successful:
+    deployed:
+
+change_contract:
+  expected_scope:
+  expected_tests:
+  expected_risks:
+  expected_reviews:
+
+context_used:
+  atlas_ids: []
+  standards: []
+  source_paths: []
+  tickets: []
+
+actions:
+  commands: []
+  files_read: []
+  files_changed: []
+  tools_used: []
+
+failures:
+  - symptom:
+    failed_action:
+    verified_cause:
+    recovery:
+
+human_interventions:
+  - correction:
+    affected_decision:
+    outcome:
+
+verification:
+  tests:
+  build:
+  lint:
+  security:
+  reviews:
+
+deviations:
+  unexpected_files: []
+  unexpected_dependencies: []
+  unexpected_standards: []
+  unexpected_failure_modes: []
+
+candidate_learnings: []
+```
+
+Capture **observable engineering evidence**, not hidden chain-of-thought. Useful evidence includes tool calls, source paths, commands, test results, errors, human corrections, review findings, and verified causes.
+
+Most episodes should not become permanent artifacts. They are an input to reflection, not a new document store.
+
+---
+
+## 14. Compare intent with reality
+
+The best learning signal is often the delta between the Engineering Change Contract and the Engineering Episode.
+
+```text
+CHANGE CONTRACT                 ENGINEERING EPISODE
+───────────────                 ───────────────────
+anticipated files              actual files
+expected dependencies          discovered dependencies
+planned test strategy          tests actually needed
+predicted risks                failures encountered
+expected standards             standards actually required
+planned implementation         recovery path
+planned reviewers              findings from review
+```
+
+Reflection should focus on **material deviations**, not summarize the entire conversation.
+
+Useful questions include:
+
+- Where did execution materially diverge from the plan?
+- Which assumption was wrong?
+- Which investigation or recovery step is likely to recur?
+- Did a human correction reveal a missing procedural guardrail?
+- Did the run discover a stable system fact that Atlas does not know?
+- Did an existing rule or skill cause unnecessary work?
+- Was an apparent lesson causal or merely correlated with success?
+
+This creates a much cleaner signal for adaptation than asking an LLM to mine an unrestricted session transcript for lessons.
+
+---
+
+## 15. Adaptation Router
+
+Add a small reflection skill, conceptually:
+
+```text
+reflect-engineering-run
+```
+
+It should classify candidate learnings rather than directly changing any durable knowledge.
+
+Recommended decisions:
+
+| Observation | Route |
+|---|---|
+| Nothing meaningful or reusable happened | Discard |
+| Stable architecture, ownership, flow, operational, or interface fact | Atlas staging candidate |
+| Repeatable technique for performing engineering work | Skill candidate |
+| Repeated agent error that should be prevented cheaply | Rule or skill candidate |
+| Team or organisation policy | Resolve to an authoritative standard; do not learn policy from repetition |
+| One-off incident/debugging context | Keep only if it belongs in incident/runbook knowledge |
+| Heuristic correlation such as files frequently changing together | Generated source-graph signal, not semantic truth |
+
+The router must not automatically persist anything.
+
+A useful threshold for procedural promotion is:
+
+```text
+Is the behaviour likely to recur?
+        │
+        ├── no → discard
+        │
+        ▼
+Does an existing skill/rule already cover it?
+        │
+        ├── yes → no new artifact; consider improving evaluation
+        │
+        ▼
+Is the successful behaviour supported by observable evidence?
+        │
+        ├── no → keep as hypothesis only
+        │
+        ▼
+Can it be expressed narrowly without encoding project-specific facts?
+        │
+        ├── no → semantic/context route instead
+        │
+        ▼
+candidate skill/rule
+```
+
+---
+
+## 16. Govern procedural-memory promotion
+
+A learned technique should be treated like Atlas treats unreviewed evidence:
+
+```text
+observed technique ≠ approved engineering procedure
+```
+
+The promotion lifecycle should be:
+
+```text
+Engineering Episode
+        ↓
+candidate lesson
+        ↓
+candidate skill/rule
+        ↓
+independent review
+        ↓
+evaluation
+        ↓
+human approval
+        ↓
+active procedural memory
+```
+
+Never allow:
+
+```text
+Claude noticed something
+        ↓
+Claude silently edits SKILL.md or a rule
+```
+
+The review should check:
+
+- provenance: which runs and evidence justify the candidate;
+- specificity: is it reusable rather than project-specific;
+- duplication: does another skill already own this behaviour;
+- scope: when should it activate and when should it not;
+- safety: could a poisoned or mistaken run institutionalise a bad behaviour;
+- portability: does the candidate incorrectly encode Datalens-specific knowledge into a generic skill;
+- cost: does it add context or process overhead disproportionate to its benefit.
+
+Human approval remains the authority boundary.
+
+---
+
+## 17. Evaluate learned skills before promotion
+
+Atlas already uses explicit evaluation rather than assuming that persistent context is automatically beneficial. Apply the same principle to procedural memory.
+
+For a candidate skill or rule, run paired scenarios where possible:
+
+```text
+                 same task/scenario
+                       │
+              ┌────────┴────────┐
+              ▼                 ▼
+        WITHOUT candidate   WITH candidate
+              │                 │
+              └────────┬────────┘
+                       ▼
+                    compare
+```
+
+Useful measures include:
+
+- task correctness;
+- tests passed;
+- build/lint/type-check outcomes;
+- number of retries;
+- unnecessary file edits;
+- human corrections;
+- reviewer findings;
+- tool calls;
+- input/output tokens when observable;
+- elapsed execution when observable.
+
+A candidate should not be promoted merely because its wording sounds sensible.
+
+This is also the mechanism for removing stale procedural memory: periodically test whether an existing rule or skill still changes outcomes enough to justify its context and complexity cost.
+
+---
+
+## 18. Add a source graph as a generated retrieval layer, not Atlas authority
+
+A code knowledge graph can improve retrieval when the exact implementation boundary is unknown. It should complement Atlas rather than become curated Atlas content.
+
+The layers answer different questions:
+
+```text
+ATLAS / SEMANTIC GRAPH          SOURCE GRAPH
+──────────────────────          ────────────
+repository                      file
+component                       symbol
+flow                            function
+infrastructure                  class
+schema                          module
+standard
+runbook
+
+depends-on                      imports
+consumes                        calls
+produces                        references
+reads-from                      co-edited-with
+writes-to
+triggers
+deployed-by
+monitored-by
+```
+
+Do not create curated Atlas pages for every file or function. That would duplicate source intelligence, create huge curation cost, and become stale quickly.
+
+Instead:
+
+```text
+                     QUESTION
+                        │
+                        ▼
+                engineering-flow
+                        │
+          ┌─────────────┴─────────────┐
+          ▼                           ▼
+       Atlas                     Source Graph
+ semantic/system level        implementation level
+          │                           │
+          └─────────────┬─────────────┘
+                        ▼
+                 exact source read
+                        ▼
+                  evidence-backed
+                      answer
+```
+
+The graph is a **locator**, not an authority. Exact source remains the evidence for executable implementation claims.
+
+---
+
+## 19. Source-graph routing
+
+Extend retrieval routing conceptually to:
+
+```text
+known exact local source
+        ↓
+read source directly
+
+architecture / system / ownership / standards question
+        ↓
+Atlas
+
+unknown implementation boundary
+        ↓
+source graph
+        ↓
+candidate files / symbols
+        ↓
+exact source read
+
+cross-system ambiguity
+        ↓
+Atlas first
+        ↓
+bounded source or source-graph fallback
+```
+
+Start cheaply.
+
+Useful first edges:
+
+1. Git co-edit relationships;
+2. imports;
+3. obvious static references.
+
+Only add richer symbol and call-graph relationships when evaluation demonstrates retrieval value.
+
+For Java and TypeScript, prefer language-aware compiler/LSP/code-intelligence output over maintaining custom parsers for every language.
+
+---
+
+## 20. Treat co-edit relationships as heuristics
+
+Git history can reveal files that often change together even when no static import path connects them.
+
+For example:
+
+```text
+OrderService.java
+OrderMapper.java
+OrderContractTest.java
+xray/order-processing.feature
+deployment/order-stack.yaml
+```
+
+This can be useful for impact discovery, but correlation is not architectural dependency.
+
+Represent it explicitly as a derived heuristic, for example:
+
+```yaml
+relationship: co-edited-with
+classification: heuristic
+source: git-history
+confidence: derived
+```
+
+Never automatically promote a co-edit edge into an Atlas `depends-on`, `consumes`, `produces`, or other semantic relationship.
+
+---
+
+## 21. Avoid premature model adaptation
+
+The engineering harness should exhaust cheaper and more portable control surfaces before considering model adaptation.
+
+Preferred order:
+
+```text
+exact source / identifiers
+        ↓
+better skills and rules
+        ↓
+team standards
+        ↓
+Atlas semantic context
+        ↓
+source graph
+        ↓
+generic lexical/vector retrieval
+        ↓
+reranking
+        ↓
+domain-specific embedding adaptation
+        ↓
+model fine-tuning
+```
+
+For the engineering control plane, model fine-tuning is currently out of scope.
+
+Reasons include:
+
+- reduced portability across Claude, Codex, and future models;
+- governance and evaluation cost;
+- most target behaviour is naturally expressible through skills, rules, standards, context, and deterministic tooling;
+- a tuned model would not remove the need for source truth, current architecture, or organisation-specific policy.
+
+Revisit model adaptation only for a narrowly bounded model-owned task after retrieval, procedural memory, and orchestration have been measured and found insufficient.
+
+---
+
+## 22. Revised lifecycle
+
+The complete system is cyclical rather than linear:
+
+```text
+                 ┌─────────────────────┐
+                 │ CONTEXT             │
+                 │ Atlas + standards   │
+                 └──────────┬──────────┘
+                            ▼
+                     CHANGE CONTRACT
+                            │
+                            ▼
+                    ENGINEERING FLOW
+                            │
+                            ▼
+                         RESULT
+                            │
+                            ▼
+                  ENGINEERING EPISODE
+                            │
+                            ▼
+                    ADAPTATION ROUTER
+                            │
+        ┌───────────────────┼───────────────────┐
+        ▼                   ▼                   ▼
+   Atlas candidate     Skill candidate      Rule candidate
+        │                   │                   │
+        └──────────────┬────┴──────────────┬────┘
+                       ▼                   ▼
+                    review              evaluation
+                       └─────────┬─────────┘
+                                 ▼
+                         human approval
+                                 │
+                                 ▼
+                          next engineering run
+```
+
+The system therefore improves at two distinct levels:
+
+1. **product/system understanding** improves through governed semantic knowledge;
+2. **engineering behaviour** improves through governed procedural knowledge.
+
+Neither should be updated directly from a single agent run.
+
+---
+
+## Revised implementation order
+
+Build in this order:
 
 1. `engineering-core`;
 2. the **Engineering Change Contract**;
-3. the **change classifier/router**.
+3. the **change classifier/router**;
+4. the **Engineering Episode** schema;
+5. `reflect-engineering-run` / adaptation routing;
+6. candidate-skill and candidate-rule representation plus approval boundaries;
+7. evaluation support for procedural candidates;
+8. TDD, architecture, review, security, delivery, and language-specific capabilities;
+9. a small source-graph retrieval experiment using Git co-edits plus imports/references;
+10. richer code graph only if evaluation demonstrates value.
 
-Once those contracts are stable, TDD, architecture, review, security, deployment, and language-specific plugins become much cleaner additions.
+Do **not** start with a persistent graph database, embedding fine-tuning, or model fine-tuning.
 
-Do not start by building every specialist skill and agent. The routing contract and lifecycle state model determine almost every later boundary.
+The routing contract, lifecycle state model, and learning/promotion boundaries determine nearly every later component.
